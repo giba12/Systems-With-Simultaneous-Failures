@@ -5,7 +5,7 @@ A small C++20 tool that implements the per-state signature / MTTF algorithm of L
 Failures*, arXiv:2610.22181) for a **fictional** six-component satellite-support system.
 Educational portfolio project: not a certified or flight-qualified analysis.
 
-**Status: Days 1–4 of the plan are complete** (documents and glossary, state model and structure function, brute-force reference, level sweep). Everything
+**Status: Days 1–5 of the plan are complete** (documents and glossary, state model and structure function, brute-force reference, level sweep, signatures). Gates G1, G2 and G3 are met. Everything
 below that line is still a skeleton: those functions throw `NotImplementedError` and their
 tests report *skipped*. Work through [../docs/project-plan.md](../docs/project-plan.md) day by day.
 
@@ -15,11 +15,12 @@ tests report *skipped*. Work through [../docs/project-plan.md](../docs/project-p
 | `system_model` (components, Φ, JSON loader, validation, call counter) | done, tested |
 | `reference` (brute-force counting vectors and minimal path sets) | done, tested (`solve_mttf_direct` waits for Day 6) |
 | `signature`: `sweep()` (Algorithm 1: counting vectors, minimal path sets) | done, tested |
-| `signature`: `tail_signature()`, `signature()` | skeleton, **next (Day 5)** |
-| `failure_model`, `mttf` | skeleton (Days 6–7) |
+| `signature`: `tail_signature()`, `signature()` | done, tested |
+| `failure_model` ([Exp]), `mttf`, `solve_mttf_direct` | skeleton, **next (Day 6)** |
+| `failure_model` (lethal shock) | skeleton (Day 7) |
 | `main.cpp`, `python/` | skeleton |
 
-Test status: 69 tests, 46 passing, 23 skipped (waiting for their feature).
+Test status: 76 tests, 55 passing, 21 skipped (waiting for their feature).
 
 Measured sweep cost (parallel system, Release build): n = 16 → 0.17 s; n = 20 → 2.9 s, 25 MB; n = 24 → 58 s, 402 MB.
 

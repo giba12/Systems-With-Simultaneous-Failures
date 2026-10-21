@@ -141,17 +141,60 @@ SweepResult sweep(const SystemModel& model, const StateObserver& observer,
   return result;
 }
 
-// PSEUDO-CODE   (Day 5)
+// ALGORITHM   (Eq. (2))
 //   w = size(W) - 1
 //   return [ W[k] / binomial(w, k)  for k in 0..w ]       // as doubles
-std::vector<double> tail_signature(const CountingVector& /*w*/) {
-  not_implemented("tail_signature");
+// Every W[k] is an exact integer no larger than C(w,k), so each entry has a single rounding error.
+std::vector<double> tail_signature(const CountingVector& w) {
+  if (w.empty()) {
+    throw std::invalid_argument("a counting vector needs at least one entry (W[0])");
+  }
+  const int size = static_cast<int>(w.size()) - 1;
+  std::vector<double> tail(w.size());
+  for (int k = 0; k <= size; ++k) {
+    const std::uint64_t ways = binomial(size, k);
+    if (w[static_cast<std::size_t>(k)] > ways) {
+      throw std::invalid_argument("W[" + std::to_string(k) + "] = " +
+                                  std::to_string(w[static_cast<std::size_t>(k)]) +
+                                  " exceeds C(" + std::to_string(size) + "," + std::to_string(k) +
+                                  ") = " + std::to_string(ways));
+    }
+    tail[static_cast<std::size_t>(k)] =
+        static_cast<double>(w[static_cast<std::size_t>(k)]) / static_cast<double>(ways);
+  }
+  return tail;
 }
 
-// PSEUDO-CODE   (Day 5)
-//   if W[0] == 0: return empty list                        // system already failed
-//   S = tail_signature(W)
-//   return [ S[k-1] - S[k]  for k in 1..w ]                // each entry >= 0, total = 1
-std::vector<double> signature(const CountingVector& /*w*/) { not_implemented("signature"); }
+// ALGORITHM   (Eq. (1))
+//   if W[0] == 0: return empty list                        // system already failed: no signature
+//   w = size(W) - 1
+//   for k = 1 .. w:
+//       s[k] = W[k-1]/C(w,k-1) - W[k]/C(w,k)
+//            = ( W[k-1]*C(w,k) - W[k]*C(w,k-1) ) / ( C(w,k-1) * C(w,k) )
+// The second form has an exact integer numerator, so each entry is rounded once and the entries
+// add up to 1 (they telescope to Sbar[0] - Sbar[w] = 1 - 0) to about machine precision.
+// long double (64-bit mantissa) holds the products exactly for w <= 31.
+// For a monotone Phi every entry is >= 0; for an arbitrary Phi an entry can be negative, and the
+// function reports it as it is rather than hiding it.
+std::vector<double> signature(const CountingVector& w) {
+  if (w.empty()) {
+    throw std::invalid_argument("a counting vector needs at least one entry (W[0])");
+  }
+  if (w[0] == 0U) {
+    return {};
+  }
+  const int size = static_cast<int>(w.size()) - 1;
+  (void)tail_signature(w);  // validates W[k] <= C(w,k)
+  std::vector<double> s;
+  s.reserve(static_cast<std::size_t>(size));
+  for (int k = 1; k <= size; ++k) {
+    const long double before = static_cast<long double>(binomial(size, k - 1));
+    const long double after = static_cast<long double>(binomial(size, k));
+    const long double numerator = static_cast<long double>(w[static_cast<std::size_t>(k - 1)]) * after -
+                                  static_cast<long double>(w[static_cast<std::size_t>(k)]) * before;
+    s.push_back(static_cast<double>(numerator / (before * after)));
+  }
+  return s;
+}
 
 }  // namespace reliability

@@ -2,6 +2,8 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <cmath>
+#include <numeric>
 #include <random>
 #include <string>
 #include <vector>
@@ -254,23 +256,183 @@ TEST(Signature, SweepRejectsSystemsOutsideTheSupportedSize) {
   EXPECT_NO_THROW(sweep(SystemModel::parallel(1), nullptr, {}));
 }
 
-// ---- Day 5: signature formulas (still skeleton) -------------------------------------------------
+// ---- Day 5: tail signature and signature ---------------------------------------------------------
 
-// TC-A-03/03, B-03, C-06
-TEST(Signature, SignatureOfKnownSystems) {
-  GTEST_SKIP() << "Day 5: needs signature";
-  // PSEUDO-CODE
-  //   series(3):            signature({1,0,0,0})             == (1, 0, 0)
-  //   parallel(2):          signature({1,2,0})               == (0, 1)
-  //   reference system:     signature({1,6,12,8,0,0,0})      == (0, 0.2, 0.4, 0.4, 0, 0)
-  //   P1 failed:            signature({1,4,4,0,0,0})         == (0.2, 0.4, 0.4, 0, 0)
-  //   paper Fig. 1:         signature({1,3,1,0})             == (0, 2/3, 1/3)
+namespace {
+
+void ExpectNear(const std::vector<double>& actual, const std::vector<double>& expected,
+                const std::string& label, double tolerance = 1e-15) {
+  ASSERT_EQ(actual.size(), expected.size()) << label;
+  for (std::size_t i = 0; i < expected.size(); ++i) {
+    EXPECT_NEAR(actual[i], expected[i], tolerance) << label << " entry " << i;
+  }
 }
 
-// TC-F-02
+// Signature of the whole system, computed from the sweep (state = all components working).
+std::vector<double> system_signature(const SystemModel& model) {
+  const SweepResult r = sweep(model, nullptr, keep_all());
+  return signature(r.vectors[all_working(model.n())]);
+}
+
+// The classic 5-component bridge network. Components 1,2 are on the source side, 4,5 on the
+// terminal side, 3 is the bridge.   Paths: {1,4} {2,5} {1,3,5} {2,3,4}   (bits 0..4 = components 1..5)
+SystemModel bridge_network() {
+  return SystemModel::from_function(5, [](StateMask x) {
+    const bool c1 = is_working(x, 0), c2 = is_working(x, 1), c3 = is_working(x, 2),
+               c4 = is_working(x, 3), c5 = is_working(x, 4);
+    return (c1 && c4) || (c2 && c5) || (c1 && c3 && c5) || (c2 && c3 && c4);
+  });
+}
+
+SystemModel k_out_of_n_working(int n, int k) {
+  return SystemModel::from_function(n, [k](StateMask x) { return working_count(x) >= k; });
+}
+
+}  // namespace
+
+TEST(Signature, TailSignatureOfKnownVectors) {
+  ExpectNear(tail_signature({1, 6, 12, 8, 0, 0, 0}), {1, 1, 0.8, 0.4, 0, 0, 0}, "satellite");
+  ExpectNear(tail_signature({1, 4, 4, 0, 0, 0}), {1, 0.8, 0.4, 0, 0, 0}, "P1 failed");
+  ExpectNear(tail_signature({1, 3, 1, 0}), {1, 1, 1.0 / 3.0, 0}, "paper Fig. 1");
+  ExpectNear(tail_signature({0}), {0}, "all failed");
+}
+
+// TC-A-03, B-03, C-06 and the paper's Fig. 1
+TEST(Signature, SignatureOfKnownSystems) {
+  ExpectNear(signature({1, 0, 0, 0}), {1, 0, 0}, "series(3)");
+  ExpectNear(signature({1, 2, 0}), {0, 1}, "parallel(2)");
+  ExpectNear(signature({1, 6, 12, 8, 0, 0, 0}), {0, 0.2, 0.4, 0.4, 0, 0}, "satellite");
+  ExpectNear(signature({1, 4, 4, 0, 0, 0}), {0.2, 0.4, 0.4, 0, 0}, "satellite, P1 failed");
+  ExpectNear(signature({1, 2, 0, 0, 0}), {0.5, 0.5, 0, 0}, "satellite, P1 and C1 failed");
+  ExpectNear(signature({1, 3, 1, 0}), {0, 2.0 / 3.0, 1.0 / 3.0}, "paper Fig. 1");
+}
+
+TEST(Signature, SignatureOfAFailedSystemIsEmpty) {
+  EXPECT_TRUE(signature({0}).empty());
+  EXPECT_TRUE(signature({0, 0, 0, 0, 0}).empty());  // e.g. P1 and P2 failed
+  EXPECT_EQ(signature({1}).size(), 0U);             // a lone state with no working component
+}
+
+TEST(Signature, InvalidCountingVectorsAreRejected) {
+  EXPECT_THROW(tail_signature({}), std::invalid_argument);
+  EXPECT_THROW(signature({}), std::invalid_argument);
+  EXPECT_THROW(tail_signature({1, 7, 0}), std::invalid_argument);  // W[1] = 7 > C(2,1) = 2
+  EXPECT_THROW(signature({1, 3, 1}), std::invalid_argument);       // W[1] = 3 > C(2,1) = 2
+}
+
+// TC-F-02: for every operational state of every test system, the entries are >= 0 and sum to 1
 TEST(Signature, EntriesAreNonNegativeAndSumToOne) {
-  GTEST_SKIP() << "Day 5: needs signature";
-  // PSEUDO-CODE
-  //   for every operational state x of every test system:
-  //       s = signature(W[x]);  expect every s[k] >= -1e-12 and |sum(s) - 1| < 1e-12
+  std::vector<SystemModel> systems;
+  systems.push_back(load_reference());
+  systems.push_back(paper_figure_one());
+  systems.push_back(bridge_network());
+  for (int n = 2; n <= 10; ++n) {
+    systems.push_back(SystemModel::series(n));
+    systems.push_back(SystemModel::parallel(n));
+  }
+  std::mt19937 rng(31415);
+  for (int t = 0; t < 40; ++t) {
+    systems.push_back(random_monotone_system(3 + static_cast<int>(rng() % 6U), rng));
+  }
+
+  std::size_t checked = 0;
+  for (std::size_t idx = 0; idx < systems.size(); ++idx) {
+    const SweepResult r = sweep(systems[idx], nullptr, keep_all());
+    for (std::size_t x = 0; x < r.vectors.size(); ++x) {
+      if (r.vectors[x][0] == 0U) {
+        EXPECT_TRUE(signature(r.vectors[x]).empty());
+        continue;
+      }
+      const std::vector<double> s = signature(r.vectors[x]);
+      ASSERT_EQ(s.size(), r.vectors[x].size() - 1U);
+      double sum = 0.0;
+      for (double entry : s) {
+        EXPECT_GE(entry, 0.0) << "system " << idx << " state " << x;  // exact for monotone Phi
+        sum += entry;
+      }
+      EXPECT_NEAR(sum, 1.0, 1e-14) << "system " << idx << " state " << x;
+      // the tail signature falls from 1 to 0 and never rises (monotone Phi)
+      const std::vector<double> tail = tail_signature(r.vectors[x]);
+      EXPECT_EQ(tail.front(), 1.0);
+      EXPECT_EQ(tail.back(), 0.0);
+      EXPECT_TRUE(std::is_sorted(tail.rbegin(), tail.rend())) << "system " << idx << " state " << x;
+      ++checked;
+    }
+  }
+  EXPECT_GT(checked, 1000U);
+}
+
+// Mixed topology, independent of our own machinery: the 5-component bridge network has the
+// well-known signature (0, 1/5, 3/5, 1/5, 0). Hand check: the minimal cuts of size 2 are {1,2} and
+// {4,5}, so 2 of the C(5,2) = 10 failure pairs kill it (s2 = 1/5); after three failures only the two
+// size-2 paths {1,4} and {2,5} survive, 2 of 10 (S3 = 1/5, so s3 = 4/5 - 1/5 = 3/5); no single
+// component is a path, so s4 = 1/5 and s5 = 0.
+TEST(Signature, BridgeNetworkHasTheClassicSignature) {
+  const SystemModel bridge = bridge_network();
+  ASSERT_NO_THROW(bridge.validate());
+  ExpectNear(system_signature(bridge), {0, 0.2, 0.6, 0.2, 0}, "bridge");
+  const SweepResult r = sweep(bridge, nullptr, keep_all());
+  EXPECT_EQ(r.vectors[0b11111], (Vec{1, 5, 8, 2, 0, 0}));
+  std::vector<StateMask> paths = r.minimal_path_sets;
+  EXPECT_EQ(paths.size(), 4U);  // {1,4} {2,5} {1,3,5} {2,3,4}
+  std::sort(paths.begin(), paths.end(), [](StateMask a, StateMask b) {
+    return working_count(a) != working_count(b) ? working_count(a) < working_count(b) : a < b;
+  });
+  // sorted by size, then mask value: {1,4}=9  {2,5}=18  {2,3,4}=14  {1,3,5}=21
+  EXPECT_EQ(paths, (std::vector<StateMask>{0b01001, 0b10010, 0b01110, 0b10101}));
+}
+
+// k-out-of-n:G (works while at least k components work) fails exactly at the (n-k+1)-th failure,
+// so its signature is a single 1 at that position, and W[j] = C(n, j) for j <= n-k, else 0.
+TEST(Signature, KOutOfNSystemsHaveAPointMassSignature) {
+  for (int n = 2; n <= 9; ++n) {
+    for (int k = 1; k <= n; ++k) {
+      const SystemModel model = k_out_of_n_working(n, k);
+      ASSERT_NO_THROW(model.validate()) << n << "," << k;
+      std::vector<double> expected(static_cast<std::size_t>(n), 0.0);
+      expected[static_cast<std::size_t>(n - k)] = 1.0;  // position n-k+1, zero-based n-k
+      ExpectNear(system_signature(model), expected, "k=" + std::to_string(k) + " of n=" + std::to_string(n));
+
+      const SweepResult r = sweep(model, nullptr, keep_all());
+      const Vec& w = r.vectors[all_working(n)];
+      for (int j = 0; j <= n; ++j) {
+        EXPECT_EQ(w[static_cast<std::size_t>(j)], j <= n - k ? binomial(n, j) : 0U)
+            << "n=" << n << " k=" << k << " j=" << j;
+      }
+    }
+  }
+}
+
+// (3 components in parallel) in series with 1 component, written U0,U1,U2 | U3.
+// The system fails at the earlier of two events: U3 fails, or the LAST of U0..U2 fails.
+// With U3 at failure position p (uniform on 1..4): p = 1 or 2 -> fails at p; p = 3 -> the block's last
+// member is 4th, so it fails at 3; p = 4 -> the block's last member is 3rd, so it fails at 3.
+// Hence the signature is (1/4, 1/4, 1/2, 0). Counting agrees: W = [1, 3, 3, 0, 0].
+TEST(Signature, SeriesOfParallelBlocksMatchesHandCount) {
+  std::vector<Component> components;
+  for (int i = 0; i < 4; ++i) {
+    components.push_back({"U" + std::to_string(i), "", "", i});
+  }
+  const SystemModel model = SystemModel::and_of_or_groups(components, {{0, 1, 2}, {3}});
+  const SweepResult r = sweep(model, nullptr, keep_all());
+  EXPECT_EQ(r.vectors[0b1111], (Vec{1, 3, 3, 0, 0}));
+  ExpectNear(signature(r.vectors[0b1111]), {0.25, 0.25, 0.5, 0}, "(3-parallel) in series with 1");
+}
+
+// The signature is a distribution over the ORDER of failures, so it cannot depend on how the
+// components are labelled: permuting the bits of any system leaves its signature unchanged.
+TEST(Signature, SignatureIsInvariantUnderRelabellingComponents) {
+  const SystemModel original = bridge_network();
+  const std::vector<int> permutation = {2, 0, 4, 1, 3};  // component i is renamed permutation[i]
+  const SystemModel relabelled = SystemModel::from_function(5, [&](StateMask x) {
+    StateMask y = 0;
+    for (int i = 0; i < 5; ++i) {
+      if (is_working(x, i)) {
+        y |= StateMask{1} << permutation[static_cast<std::size_t>(i)];
+      }
+    }
+    return original.phi(y);
+  });
+  ExpectNear(system_signature(relabelled), system_signature(original), "relabelled bridge");
+  ExpectNear(system_signature(relabelled), {0, 0.2, 0.6, 0.2, 0}, "relabelled bridge, absolute");
 }
