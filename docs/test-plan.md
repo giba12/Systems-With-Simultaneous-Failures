@@ -109,6 +109,8 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | TC-C-12 | Config loading | `satellite_support.json` loads 6 components with IDs P1,P2,C1,C2,K1,K2 and bits 0–5 | SYS-003 |
 | TC-C-13 | Eq. (6) vs Eq. (7) under [Exp] | MTTF from the sweep equals the MTTF from solving Eq. (6) directly, for all 64 states (within TOL) | REL-005 |
 | TC-C-14 | Paper Fig. 1 system (ORC-6) | W vectors, signature (0, 2/3, 1/3), m(**1**) = 7/6 and the per-state ratios in ORC-6 | ALG-002, ALG-003, REL-001 |
+| TC-C-15 | Sweep on arbitrary Boolean Φ (random truth tables, n = 1..8, including non-monotone and trivial ones) | Sweep equals brute force on every state — the paper states Algorithm 1 makes no assumption on Φ (Lemma 1 is pure counting) | ALG-002, VER-001 |
+| TC-C-16 | Sweep bookkeeping | The sweep resets the Φ-call counter itself; the observer sees each state once, level by level in increasing mask order; vectors are kept only on request; the peak number of live vectors equals the largest sum of two adjacent binomials | ALG-004 |
 
 ### Test D — Simultaneous failures
 
@@ -216,9 +218,9 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | SYS-004 | TC-A-01, TC-B-01, TC-C-02 |
 | SYS-005 | TC-E-05, TC-E-06 |
 | ALG-001 | TC-A-01, TC-C-01 |
-| ALG-002 | TC-A-02, TC-B-02, TC-C-03, TC-C-04, TC-C-05, TC-C-14, TC-F-01, TC-F-06 |
+| ALG-002 | TC-A-02, TC-B-02, TC-C-03, TC-C-04, TC-C-05, TC-C-14, TC-C-15, TC-F-01, TC-F-06 |
 | ALG-003 | TC-A-03, TC-B-03, TC-C-06, TC-C-14, TC-F-02 |
-| ALG-004 | TC-C-09 |
+| ALG-004 | TC-C-09, TC-C-16 |
 | ALG-005 | TC-C-03 (plus code inspection) |
 | ALG-006 | TC-G-06 |
 | REL-001 | TC-A-04, TC-B-04, TC-B-05, TC-C-07, TC-C-08, TC-C-14, TC-F-03, TC-F-08 |

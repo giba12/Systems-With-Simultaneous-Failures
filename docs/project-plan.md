@@ -60,7 +60,8 @@ Deliver                                                     ████
 | 1 | **Done (2026-10-21)** | Requirements, test plan, plan and validation report written. Notation glossary written ([notation-glossary.md](notation-glossary.md)). Eq. (21) checked against the typeset PDF: the paper has a typo in the lower limit (correct: w−k). **Gate G1 met.** |
 | 2 | **Done (2026-10-21)** | `state` and `system_model` implemented; 19 tests pass, including sanitizer runs. Decisions: GoogleTest, nlohmann/json 3.11.3, max n = 24. |
 | 3 | **Done (2026-10-21)** | `reference` implemented (brute-force counting vectors, minimal path sets by definition); 14 tests, sanitizer-clean, mutation-checked. `solve_mttf_direct` waits for Day 6 as planned. **Gate G2 met:** the reference reproduces ORC-1…5, the paper's Fig. 1 system and closed-form series/parallel/repeated-pair vectors. |
-| 4–10 | Not started | Next: Day 4, the level sweep (Algorithm 1). |
+| 4 | **Done (2026-10-21)** | Level sweep (Algorithm 1) implemented with dense per-level matrices, combinatorial-number-system ranks for son lookup, two levels in memory, exact Lemma 1 divisibility check. Φ is evaluated exactly 2ⁿ times. 13 tests; sweep = brute force on every state of the satellite, series/parallel up to n = 16, 60 random monotone systems **and 60 arbitrary (non-monotone) Boolean functions** (the paper claims no assumption on Φ). Sanitizer-clean; 4 deliberate bugs all caught. Measured: n = 20 → 2.9 s / 25 MB; n = 24 → 58 s / 402 MB (≈ ×4.2 time and ×4 memory per +2 components, as O(n²2ⁿ) and O(√n·2ⁿ) predict). Pulled forward from Day 5: minimal-path-set recording and random-system tests (TC-C-10, TC-E-12, TC-F-05, TC-I-03). |
+| 5–10 | Not started | Next: Day 5 — signature and tail-signature formulas (`signature()`, `tail_signature()`), Fig. 1 signature, remaining tests TC-A-03, TC-B-03, TC-C-06, TC-F-02. |
 
 ## 3. Day-by-day work plan
 
