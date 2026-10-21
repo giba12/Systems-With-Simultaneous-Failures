@@ -116,7 +116,7 @@ Priority: P0 required · P1 extension · P2 optional. Estimates are relative (S/
 
 ### US-26 Be warned about numerical limits (P1, S)
 **As** Riley, **I want** the tool to reject or flag sizes at which the simultaneous-failure formulas lose precision, **so that** I don't trust results that have silently degraded.
-- In plain double precision the error of the increments grows from ~1e-14 (n=6) to ~1e-8 (n=20) and ~1e-4 (n=30).
+- In plain double precision the error of the increments grows from ~1e-14 (n=6) to ~1e-8 (n=20) and ~1e-4 (n=30). The implemented models use `long double`, are accurate to about 2e-10 at n = 16, and refuse larger systems with a clear error.
 - *Reqs:* NFR-009 · *Tests:* TC-F-07
 
 ## Epic 5 — Run experiments

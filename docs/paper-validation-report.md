@@ -76,6 +76,20 @@ Eq. (21) is an alternating sum. Evaluating it in naive `double` loses accuracy a
 
 The paper computes Ψ-derived quantities and P_{w,w′} in 512-bit arithmetic and then uses non-negative recursions in double. For the six-component project, `double` is adequate; for the scaling experiment (Exp. 4), **the supported maximum n for simultaneous-failure models must either be ≤ 12 or use extended precision**. The [Exp] model is unaffected (increment = 1/(w−k)).
 
+### Implemented precision strategy and measured limits (2026-10-21)
+
+The Lévy-frailty models compute Eq. (20) and the increments in `long double` (64-bit mantissa) and refuse any model whose kernel is not a probability distribution. Measured for the parallel system under [LSh], β = 0.2, against exact rational arithmetic:
+
+| n | relative error of the MTTF | kernel error vs closed form |
+|---|---|---|
+| 6 | 5 × 10⁻¹⁵ | 4 × 10⁻¹⁵ |
+| 12 | 3 × 10⁻¹² | 1 × 10⁻¹² |
+| 16 | 2 × 10⁻¹⁰ | 6 × 10⁻¹¹ |
+| 17 | refused for some β (e.g. [BFR] β ≤ 0.01, [LSh] β = 0.9), accepted for others | — |
+| ≥ 18 | refused (negative kernel entries) | — |
+
+Because behaviour at n = 17 depends on the parameter, the code uses a **hard cap of n = 16** for all Lévy-frailty models. Both increment routes (recursion and Eq. (21)) agree with exact values to about 3 × 10⁻¹⁴ in absolute terms; the *relative* error is larger (up to about 5 × 10⁻¹⁰) only for the tiniest late-stage increments.
+
 ## 5. Remaining caveats
 
 - ~~The PDF text extraction garbles Eq. (21).~~ **Resolved on 2026-10-21 — see §6.** The typeset equation was read directly from the rendered page. It has a typo in the lower summation limit; the corrected form is used in the code.

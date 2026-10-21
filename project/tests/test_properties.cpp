@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <memory>
 #include <random>
 #include <set>
 #include <string>
@@ -81,9 +82,15 @@ bool dominates(const CountingVector& x, const CountingVector& y) {
 
 // TC-I-02, paper Lemma 4
 TEST(Properties, MttfNeverIncreasesWhenMoreComponentsFail) {
-  const IndependentExponential fm(1.0);
+  std::vector<std::unique_ptr<FailureModel>> models;
+  models.push_back(make_exponential(1.0));
+  models.push_back(make_lethal_shock(0.2, 8));
+  models.push_back(make_lethal_shock(0.5, 8));
+  models.push_back(make_binomial_failure_rate(0.3, 8));
   std::size_t pairs = 0;
+  for (const auto& model_ptr : models)
   for (const SystemModel& model : test_systems()) {
+    const FailureModel& fm = *model_ptr;
     const std::vector<double> m = compute_all_mttf(model, fm);
     const std::uint64_t states = std::uint64_t{1} << model.n();
     for (std::uint64_t xi = 1; xi < states; ++xi) {
@@ -97,16 +104,22 @@ TEST(Properties, MttfNeverIncreasesWhenMoreComponentsFail) {
       }
     }
   }
-  EXPECT_GT(pairs, 10000U);
+  EXPECT_GT(pairs, 40000U);
 }
 
 // TC-I-01, paper Theorem 5: if x dominates y (same number of working components) then m(x) >= m(y),
 // and strictly when the vectors differ and every increment is positive (true for [Exp]).
 TEST(Properties, SignatureDominanceImpliesMttfDominance) {
-  const IndependentExponential fm(1.0);
+  // beta < 1 keeps every increment positive (with beta = 1 all failures coincide and only >= holds)
+  std::vector<std::unique_ptr<FailureModel>> models;
+  models.push_back(make_exponential(1.0));
+  models.push_back(make_lethal_shock(0.2, 8));
+  models.push_back(make_binomial_failure_rate(0.3, 8));
   std::size_t dominated_pairs = 0;
   std::size_t strict_pairs = 0;
+  for (const auto& model_ptr : models)
   for (const SystemModel& model : test_systems()) {
+    const FailureModel& fm = *model_ptr;
     const SweepResult r = sweep(model, nullptr, {true});
     const std::vector<double> m = compute_all_mttf(model, fm);
     const std::uint64_t states = std::uint64_t{1} << model.n();
@@ -127,8 +140,8 @@ TEST(Properties, SignatureDominanceImpliesMttfDominance) {
     }
   }
   // make sure the test is not vacuous
-  EXPECT_GT(dominated_pairs, 1000U);
-  EXPECT_GT(strict_pairs, 100U);
+  EXPECT_GT(dominated_pairs, 3000U);
+  EXPECT_GT(strict_pairs, 300U);
 }
 
 // TC-I-04: the converse of Theorem 5 is false. A concrete counterexample (found by random search, then

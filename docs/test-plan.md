@@ -131,6 +131,12 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | TC-D-06 | Eq. (6) vs Eq. (7) under [LSh] | Direct solution of the MTTF system using νw = Ψ(w) and Pw,w′ from Eq. (20) equals the sweep result on all 64 states | REL-005, REL-002 |
 | TC-D-07 | Kernel validity | For w = 1 … 6, the Pw,w′ (w′ < w) are ≥ 0 (within TOL) and sum to 1; mean number failing per epoch equals wΨ(1)/Ψ(w) (Remark 1) | REL-002 |
 | TC-D-08 | Calibration | β = 2 − Ψ(2); Ψ(1) = 1; β = 0 reproduces [Exp] exactly; β outside [0,1] is rejected | REL-004 |
+| TC-D-09 | [LSh] kernel vs independent closed form | P(w,w−1) = (1−β)w/Ψ(w), P(w,0) = β/Ψ(w), all else 0, for w ≤ 16 | REL-002 |
+| TC-D-10 | [BFR] kernel vs independent closed form (tests all of Eq. (20)) | P(w,w−j) = C(w,j)pʲ(1−p)^{w−j} / (1−(1−p)^w), j = 1…w, p = β | REL-002 |
+| TC-D-11 | The paper's printed Eq. (21) is wrong | With lower limit w−k+1 the sum is 0 for k = 0 and wrong for k ≥ 1; the corrected limit w−k equals the recursion | REL-002 |
+| TC-D-12 | Other Ψ families and edge cases | Stable subordinator Ψ(x) = x^α gives a valid kernel; a non-concave Ψ (x²), a decreasing or uncalibrated Ψ are rejected; β = 1 fails everything at once (all increments after the first are 0, every working state has MTTF 1) | REL-002, REL-004 |
+| TC-D-13 | Satellite under [LSh]: all 64 states, plus series/parallel | Independent integral closed forms agree (satellite 1e-11, series 1e-12, parallel 1e-9); exact values 32/35 (β = 0.5), 6003/7735 (0.2), 147467/205436 (0.05) | REL-002 |
+| TC-D-14 | Eq. (6) vs Eq. (7) under [LSh], [BFR], stable | Agree to 1e-10 on 28 systems × 5 models | REL-005, REL-002 |
 
 ### Test E — Invalid models and inputs
 
@@ -159,7 +165,7 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | TC-F-04 | Sweep λ from 1e-6 to 1e3 | MTTF scales as 1/λ (MTTF·λ constant within TOL) | REL-003 |
 | TC-F-05 | Random monotone systems, n ≤ 8 (fixed seed) | Recursive = brute-force for all states; signatures valid | VER-001, EXP-001 |
 | TC-F-06 | Boundary states | Mask 0 (all failed) and all-ones handled; W₀ = Φ | ALG-002 |
-| TC-F-07 | Precision of Ψ-derived increments | Compare Eq. (21) in `double` with an exact/extended-precision reference for n = 6, 12, 20 ([LSh], θ = 0.2). Expect relative error ≈ 1e-14, 1e-11, 1e-8; any n for which error exceeds TOL must be rejected or run in extended precision | NFR-009 |
+| TC-F-07 | Precision of Ψ-derived quantities | Kernel and increments in `long double`; parallel-system MTTF under [LSh] (β = 0.2) vs exact rational arithmetic: relative error ≤ 1e-13 at n=6, ≤ 1e-10 at n=12, ≤ 1e-9 at n=16 (measured 5e-15, 3e-12, 2e-10); n = 17 is refused; the two increment routes agree to 1e-11 (n ≤ 12) / 1e-9 (n ≤ 16) of the scale E T_{w:w} | NFR-009 |
 | TC-F-08 | Increments positive | δ_{w,k} = E(T_{k+1:w}) − E(T_{k:w}) > 0 for every model and w, k used | REL-001 |
 
 ### Test G — Experiment and reproducibility (Python)
@@ -188,7 +194,7 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | ID | Setup | Expected | Req |
 |---|---|---|---|
 | TC-I-01 | Signature dominance (Theorem 5): all pairs x, y with \|x\| = \|y\| in the reference system and in random monotone systems (n ≤ 8, fixed seed), under [Exp] and [LSh] | If S̄ˣₖ ≥ S̄ʸₖ for all k then m(x) ≥ m(y); strict when the tail signatures differ | VER-004 |
-| TC-I-02 | MTTF monotonicity (Lemma 4): x′ ≤ x | m(x′) ≤ m(x) under [Exp] and [LSh] (verified exactly on the reference system) | VER-004 |
+| TC-I-02 | MTTF monotonicity (Lemma 4): x′ ≤ x | m(x′) ≤ m(x) under [Exp], [LSh] (β = 0.2, 0.5) and [BFR] (β = 0.3), on > 40 000 state pairs | VER-004 |
 | TC-I-03 | Minimal path sets: states with W₀ = 1 and W₁ = 0 | Equals the set of minimal path sets from an independent enumeration; reference system → 8 sets of size 3 | VER-004, SYS-002 |
 | TC-I-04 | The converse of Theorem 5 is false | Deterministic counterexample: 6-component system with minimal path sets {0,5}, {3,4}, {1,4}, {3}, {0,1,3,5}; states x = mask 15 (W = [1,3,3,1,0], MTTF 1) and y = mask 51 (W = [1,4,2,0,0], MTTF 3/4) have crossing tail signatures yet m(x) > m(y). Crossings do not occur in systems with fewer than 5 components | VER-004 |
 
@@ -229,7 +235,7 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | ALG-005 | TC-C-03 (plus code inspection) |
 | ALG-006 | TC-G-06 |
 | REL-001 | TC-A-04, TC-B-04, TC-B-05, TC-C-07, TC-C-08, TC-C-14, TC-C-20, TC-C-21, TC-F-03, TC-F-08 |
-| REL-002 | TC-D-02, TC-D-03, TC-D-04, TC-D-05, TC-D-06, TC-D-07 |
+| REL-002 | TC-D-02, TC-D-03, TC-D-04, TC-D-05, TC-D-06, TC-D-07, TC-D-09 … TC-D-14 |
 | REL-003 | TC-A-04, TC-E-07, TC-F-04 |
 | REL-004 | TC-D-01, TC-D-04, TC-D-08, TC-E-08 |
 | REL-005 | TC-C-13, TC-D-06 |

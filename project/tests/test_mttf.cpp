@@ -5,6 +5,7 @@
 #include <cmath>
 #include <random>
 #include <string>
+#include <memory>
 #include <vector>
 
 #include "reliability/errors.hpp"
@@ -79,6 +80,40 @@ double satellite_closed_form(StateMask x, double lambda) {
              (j % 2 == 0 ? 1.0 : -1.0) / (lambda * (degraded + healthy + j));
   }
   return total;
+}
+
+// Independent closed form (no sweep, no kernel, no Eq. (6)) for the satellite under the lethal-shock
+// model with beta = theta. A state survives while no shock has struck AND every pair still has a working
+// unit; units fail alone at rate r = 1 - theta. With a = e^{-r t}, p2 healthy pairs and p1 degraded pairs:
+//     MTTF = integral of e^{-theta t} a^p1 (2a - a^2)^p2 dt
+//          = sum_j C(p2,j) 2^(p2-j) (-1)^j / (theta + r (p1 + p2 + j)).
+double satellite_lethal_shock_closed_form(StateMask x, double theta) {
+  const double r = 1.0 - theta;
+  int healthy = 0;
+  int degraded = 0;
+  for (int pair = 0; pair < 3; ++pair) {
+    const int alive = working_count((x >> (2 * pair)) & 3U);
+    if (alive == 0) {
+      return 0.0;
+    }
+    (alive == 2 ? healthy : degraded) += 1;
+  }
+  long double total = 0.0L;
+  for (int j = 0; j <= healthy; ++j) {
+    total += static_cast<long double>(binomial(healthy, j)) * std::pow(2.0L, healthy - j) *
+             (j % 2 == 0 ? 1.0L : -1.0L) / (theta + r * (degraded + healthy + j));
+  }
+  return static_cast<double>(total);
+}
+
+// parallel(n) under [LSh]: the system outlives its components or the shock, whichever comes first:
+//     MTTF = sum_{j=1..n} (-1)^(j+1) C(n,j) / (theta + j (1 - theta)).
+double parallel_lethal_shock_closed_form(int n, double theta) {
+  long double total = 0.0L;
+  for (int j = 1; j <= n; ++j) {
+    total += (j % 2 == 1 ? 1.0L : -1.0L) * static_cast<long double>(binomial(n, j)) / (theta + j * (1.0 - theta));
+  }
+  return static_cast<double>(total);
 }
 
 }  // namespace
@@ -241,23 +276,163 @@ TEST(Mttf, ComputeAllMttfSizeAndSystemsOfEveryShape) {
   }
 }
 
-// Day 7 (needs the Levy-frailty model)
+// ---- Day 7: simultaneous failures -----------------------------------------------------------------------
+
+// TC-D-05 (ORC-8): the closed form at beta = 0.05, 0.2, 0.5, and the exact value 32/35 at beta = 0.5
 TEST(Mttf, LethalShockMatchesClosedFormAndDirectSolve) {
-  GTEST_SKIP() << "Day 7: needs LevyFrailty";
-  // PSEUDO-CODE
-  //   for beta in {0.05, 0.2, 0.5}:   r = 1 - beta
-  //       closed = 8/(beta+3r) - 12/(beta+4r) + 6/(beta+5r) - 1/(beta+6r)
-  //       expect compute_all_mttf(reference, lethal_shock(beta))[63] == closed
-  //       expect sweep == solve_mttf_direct for all 64 states
-  //   expect beta = 0.5 gives 32/35
+  const SystemModel model = load_reference();
+  for (double beta : {0.05, 0.2, 0.5}) {
+    const double r = 1.0 - beta;
+    const double closed = 8.0 / (beta + 3 * r) - 12.0 / (beta + 4 * r) + 6.0 / (beta + 5 * r) - 1.0 / (beta + 6 * r);
+    const std::unique_ptr<FailureModel> fm = make_lethal_shock(beta, 6);
+    const std::vector<double> m = compute_all_mttf(model, *fm);
+    ExpectRelNear(m[63], closed, 1e-12, "beta=" + std::to_string(beta));
+    // TC-D-06: Eq. (7) through the sweep equals Eq. (6) solved directly, on every state
+    const std::vector<double> direct = solve_mttf_direct(model, *fm);
+    for (StateMask x = 0; x < 64; ++x) {
+      ExpectRelNear(m[x], direct[x], 1e-12, "beta=" + std::to_string(beta) + " state " + std::to_string(x));
+    }
+  }
+  ExpectRelNear(compute_all_mttf(model, *make_lethal_shock(0.5, 6))[63], 32.0 / 35.0, 1e-12, "32/35");
+  // the other published values of the plan: 0.71782, 0.77608, 0.91429 and the P1-failed state at beta = 0.5
+  ExpectRelNear(compute_all_mttf(model, *make_lethal_shock(0.05, 6))[63], 147467.0 / 205436.0, 1e-12, "beta=0.05");
+  ExpectRelNear(compute_all_mttf(model, *make_lethal_shock(0.2, 6))[63], 6003.0 / 7735.0, 1e-12, "beta=0.2");
+  ExpectRelNear(compute_all_mttf(model, *make_lethal_shock(0.5, 6))[62], 11.0 / 15.0, 1e-12, "P1 failed, beta=0.5");
+  ExpectRelNear(compute_all_mttf(model, *make_lethal_shock(0.5, 6))[58], 3.0 / 5.0, 1e-12, "P1,C1 failed, beta=0.5");
 }
 
-// TC-D-04 (CORRECTED expectation - see docs/paper-validation-report.md E1)
+// All 64 states against the independent integral formula, several beta values.
+TEST(Mttf, SatelliteLethalShockMatchesIndependentClosedFormOnEveryState) {
+  const SystemModel model = load_reference();
+  for (double beta : {0.01, 0.05, 0.2, 0.5, 0.9}) {
+    const std::vector<double> m = compute_all_mttf(model, *make_lethal_shock(beta, 6));
+    for (StateMask x = 0; x < 64; ++x) {
+      ExpectRelNear(m[x], satellite_lethal_shock_closed_form(x, beta), 1e-11,
+                    "state " + std::to_string(x) + " beta=" + std::to_string(beta));
+    }
+  }
+}
+
+// TC-D-01: beta = 0 reproduces the independent model on every state of the satellite
+TEST(Mttf, ZeroBetaReproducesTheIndependentModel) {
+  const SystemModel model = load_reference();
+  const std::vector<double> independent = compute_all_mttf(model, IndependentExponential(1.0));
+  const std::vector<double> lethal = compute_all_mttf(model, *make_lethal_shock(0.0, 6));
+  const std::vector<double> bfr_limit = compute_all_mttf(model, *make_binomial_failure_rate(1e-9, 6));
+  for (StateMask x = 0; x < 64; ++x) {
+    ExpectRelNear(lethal[x], independent[x], 1e-12, "lethal shock, state " + std::to_string(x));
+    ExpectRelNear(bfr_limit[x], independent[x], 1e-6, "binomial failure rate -> independent, state " + std::to_string(x));
+  }
+}
+
+// Series and parallel systems have closed forms under [LSh] too: series fails at the first event,
+// 1/Psi(n); parallel by inclusion-exclusion.
+TEST(Mttf, SeriesAndParallelLethalShockClosedForms) {
+  for (double beta : {0.05, 0.2, 0.5, 0.9}) {
+    for (int n = 2; n <= 12; ++n) {
+      const std::unique_ptr<FailureModel> fm = make_lethal_shock(beta, n);
+      ExpectRelNear(compute_all_mttf(SystemModel::series(n), *fm)[all_working(n)], 1.0 / ((1 - beta) * n + beta),
+                    1e-12, "series n=" + std::to_string(n) + " beta=" + std::to_string(beta));
+      ExpectRelNear(compute_all_mttf(SystemModel::parallel(n), *fm)[all_working(n)],
+                    parallel_lethal_shock_closed_form(n, beta), 1e-9,
+                    "parallel n=" + std::to_string(n) + " beta=" + std::to_string(beta));
+    }
+  }
+}
+
+// TC-D-04 (CORRECTED expectation - see docs/paper-validation-report.md E1). With every component
+// calibrated to unit mean lifetime, ABSOLUTE MTTF rises with beta (failures are bunched together), while
+// the benefit of redundancy relative to a series system built from the same components FALLS.
 TEST(Mttf, RedundancyBenefitFallsAsBetaGrows) {
-  GTEST_SKIP() << "Day 7: needs LevyFrailty";
-  // PSEUDO-CODE
-  //   for beta in {0, 0.05, 0.2, 0.5}:
-  //       ratio = m_reference[63] / (1 / Psi(6))          // series-of-6 MTTF under the same model
-  //   expect ratios ~ 4.20, 4.13, 3.88, 3.20 and strictly decreasing
-  //   do NOT assert that absolute MTTF decreases: it INCREASES (0.700 -> 0.914)
+  const SystemModel model = load_reference();
+  const double betas[] = {0.0, 0.05, 0.2, 0.5};
+  const double expected_absolute[] = {0.7, 0.717824529, 0.776082741, 0.914285714};
+  const double expected_ratio[] = {4.2, 4.1275, 3.8804, 3.2};
+  double previous_ratio = 1e9;
+  double previous_absolute = 0.0;
+  for (int i = 0; i < 4; ++i) {
+    const std::unique_ptr<FailureModel> fm = make_lethal_shock(betas[i], 6);
+    const double absolute = compute_all_mttf(model, *fm)[63];
+    const double series_of_six = 1.0 / fm->exit_rate(6);  // the six components in series: fails at the first event
+    const double ratio = absolute / series_of_six;
+    EXPECT_NEAR(absolute, expected_absolute[i], 1e-8) << "beta=" << betas[i];
+    EXPECT_NEAR(ratio, expected_ratio[i], 1e-3) << "beta=" << betas[i];
+    EXPECT_LT(ratio, previous_ratio) << "the redundancy ratio must fall as beta grows";
+    EXPECT_GT(absolute, previous_absolute) << "absolute MTTF rises with beta under this calibration";
+    previous_ratio = ratio;
+    previous_absolute = absolute;
+  }
+}
+
+// beta = 1: every event is a lethal shock, so every working system lives exactly one unit of time on average.
+TEST(Mttf, FullyCommonCauseGivesMttfOneForEveryWorkingState) {
+  const SystemModel model = load_reference();
+  const std::vector<double> m = compute_all_mttf(model, *make_lethal_shock(1.0, 6));
+  for (StateMask x = 0; x < 64; ++x) {
+    EXPECT_NEAR(m[x], model.phi(x) ? 1.0 : 0.0, 1e-12) << "state " << x;
+  }
+}
+
+// Eq. (7) = Eq. (6) under every simultaneous-failure family, on many systems.
+TEST(Mttf, SweepMatchesDirectSolveUnderSimultaneousFailures) {
+  std::vector<SystemModel> systems;
+  systems.push_back(load_reference());
+  systems.push_back(paper_figure_one());
+  systems.push_back(bridge_network());
+  std::mt19937 rng(2718281);
+  for (int t = 0; t < 25; ++t) {
+    systems.push_back(random_monotone_system(3 + static_cast<int>(rng() % 6U), rng));
+  }
+  std::vector<std::unique_ptr<FailureModel>> models;
+  models.push_back(make_lethal_shock(0.2, 8));
+  models.push_back(make_lethal_shock(0.7, 8));
+  models.push_back(make_binomial_failure_rate(0.15, 8));
+  models.push_back(make_binomial_failure_rate(0.6, 8));
+  models.push_back(std::make_unique<LevyFrailty>("stable(0.6)", [](int x) { return std::pow(static_cast<double>(x), 0.6); }, 8));
+  for (std::size_t idx = 0; idx < systems.size(); ++idx) {
+    for (const auto& fm : models) {
+      const std::vector<double> sweep_m = compute_all_mttf(systems[idx], *fm);
+      const std::vector<double> direct_m = solve_mttf_direct(systems[idx], *fm);
+      for (std::size_t x = 0; x < sweep_m.size(); ++x) {
+        ExpectRelNear(sweep_m[x], direct_m[x], 1e-10,
+                      fm->name() + ", system " + std::to_string(idx) + ", state " + std::to_string(x));
+      }
+    }
+  }
+}
+
+// TC-F-07: accuracy at larger n, against exact rational arithmetic (Python Fractions), for the parallel
+// system under [LSh] with beta = 1/5. The error grows by roughly a factor 10 per two components; the model
+// refuses to exist beyond n = 16.
+TEST(Mttf, LethalShockAccuracyAtLargerSizes) {
+  struct Case {
+    int n;
+    double exact;
+    double tolerance;
+  };
+  const Case cases[] = {
+      {6, 2.1757810816634344, 1e-13},
+      {12, 2.595877122891562, 1e-10},
+      {16, 2.7556771083577862, 1e-9},
+  };
+  for (const Case& c : cases) {
+    const std::unique_ptr<FailureModel> fm = make_lethal_shock(0.2, c.n);
+    CountingVector w(static_cast<std::size_t>(c.n) + 1, 0);
+    for (int k = 0; k < c.n; ++k) {
+      w[static_cast<std::size_t>(k)] = binomial(c.n, k);
+    }
+    const double m = mttf_from_counting_vector(w, *fm);  // parallel(n): only the all-failed case fails
+    EXPECT_NEAR(m, c.exact, c.tolerance * c.exact) << "n = " << c.n;
+  }
+  EXPECT_THROW(make_lethal_shock(0.2, 17), ModelError);
+}
+
+// REL-002 acceptance: the model genuinely produces simultaneous failures, and ignoring them would be wrong.
+// Treating the shock-driven failures as if they came one at a time (an independent model with the same
+// per-component rate) predicts a different MTTF than the lethal-shock model with the same marginals.
+TEST(Mttf, SimultaneousFailuresChangeTheAnswerComparedWithIndependentFailures) {
+  const SystemModel model = load_reference();
+  const double independent = compute_all_mttf(model, IndependentExponential(1.0))[63];
+  const double shocked = compute_all_mttf(model, *make_lethal_shock(0.5, 6))[63];
+  EXPECT_GT(std::fabs(shocked - independent), 0.1);
 }

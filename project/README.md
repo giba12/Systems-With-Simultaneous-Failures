@@ -5,7 +5,7 @@ A small C++20 tool that implements the per-state signature / MTTF algorithm of L
 Failures*, arXiv:2610.22181) for a **fictional** six-component satellite-support system.
 Educational portfolio project: not a certified or flight-qualified analysis.
 
-**Status: Days 1–6 of the plan are complete** (documents and glossary, state model and structure function, brute-force reference, level sweep, signatures, baseline MTTF). Gates G1–G4 are met. Everything
+**Status: Days 1–7 of the plan are complete** (documents and glossary, state model and structure function, brute-force reference, level sweep, signatures, baseline MTTF, simultaneous failures). Gates G1–G5 are met. The C++ engine is finished; what remains is the command-line tool and the Python experiments (Day 8). Everything
 below that line is still a skeleton: those functions throw `NotImplementedError` and their
 tests report *skipped*. Work through [../docs/project-plan.md](../docs/project-plan.md) day by day.
 
@@ -17,10 +17,10 @@ tests report *skipped*. Work through [../docs/project-plan.md](../docs/project-p
 | `signature`: `sweep()` (Algorithm 1: counting vectors, minimal path sets) | done, tested |
 | `signature`: `tail_signature()`, `signature()` | done, tested |
 | `failure_model`: `IndependentExponential`; `mttf` | done, tested |
-| `failure_model`: Lévy-frailty / lethal-shock model | skeleton, **next (Day 7, optional P1)** |
-| `main.cpp`, `python/` | skeleton |
+| `failure_model`: Lévy-frailty family (lethal shock, binomial failure rate, any Laplace exponent; n ≤ 16) | done, tested |
+| `main.cpp` (`analyze` CLI), `python/` | skeleton, **next (Day 8)** |
 
-Test status: 84 tests, 77 passing, 7 skipped (waiting for the Day 7 lethal-shock model).
+Test status: 99 tests, all passing, none skipped.
 
 Measured sweep cost (parallel system, Release build): n = 16 → 0.17 s; n = 20 → 2.9 s, 25 MB; n = 24 → 58 s, 402 MB.
 

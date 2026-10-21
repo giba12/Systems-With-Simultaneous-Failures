@@ -149,7 +149,7 @@ Requirement IDs marked **(guide)** come directly from guide §6. Others are deri
 | NFR-006 | Auditability | Every result can be traced to a configuration, code version and (where used) seed. |
 | NFR-007 | CI | A CI workflow builds the code and runs the automated test suite on each push. |
 | NFR-008 | Honesty | Documentation does not claim flight qualification, full reproduction of the paper before it is checked, or employer relevance beyond transferable skills. |
-| NFR-009 | Numerical precision | Eq. (20) and Eq. (21) are alternating sums. In naive double precision their error grows with n (relative error ≈ 8e-15 at n=6, 8e-9 at n=20, 6e-4 at n=30 for [LSh], θ=0.2). The simultaneous-failure model shall either be limited to n ≤ 12 or use extended precision for Ψ-derived quantities; the supported limit is documented. Counting vectors are integers (exact); the [Exp] model has no such issue. |
+| NFR-009 | Numerical precision | Eq. (20) and Eq. (21) are alternating sums whose cancellation grows like 2ⁿ. In naive `double` the error of the increments is ≈ 8e-15 at n=6, 8e-9 at n=20, 6e-4 at n=30. **Implemented (Day 7):** the Lévy-frailty models compute the kernel and increments in `long double`, refuse any model whose transition probabilities do not form a distribution, and accept at most **n = 16** (`kMaxLevyFrailtyComponents`). Measured accuracy of a parallel-system MTTF against exact rational arithmetic: ≈ 5e-15 relative at n=6, 3e-12 at n=12, 2e-10 at n=16; at n=17 some parameter values are already refused. Counting vectors are integers (exact); the [Exp] model has no such issue. |
 
 ## 6. Data requirements
 
@@ -176,8 +176,8 @@ C++ implementation of the recursive algorithm · baseline MTTF and, if completed
 
 ## 9. Open items
 1. ~~Confirm exact equations against the paper~~ — done for Eqs. (1)–(2), (5)–(8), (19)–(22). Eq. (21) has a typo in the paper's lower limit (should be w−k); see the validation report §6.
-2. ~~Select the common-cause model~~ — resolved: Lévy-frailty Marshall-Olkin family, minimum [LSh] (REL-002). Whether to add [BFR] and [LFMO-C] is open.
-3. Fix the numerical tolerance (suggest 1e-9 with `double` for n ≤ 12). **Decided on Day 2:** the maximum system size is n = 24 (`kMaxComponents`; validation of a 24-component system takes about 0.3 s). The simultaneous-failure model applies its own tighter limit (see NFR-009).
+2. ~~Select the common-cause model~~ — resolved: Lévy-frailty Marshall-Olkin family, minimum [LSh] (REL-002). [BFR] was added on Day 7 (its transition kernel has an independent closed form that tests all of Eq. (20)); the stable subordinator [LFMO-S] is exercised in the tests; [LFMO-C], [LFMO-G] and [LFMO-IG] are not implemented.
+3. Fix the numerical tolerance (suggest 1e-9 with `double` for n ≤ 12). **Decided on Day 2:** the maximum system size is n = 24 (`kMaxComponents`; validation of a 24-component system takes about 0.3 s). **Decided on Day 7:** the Lévy-frailty models apply their own limit of n = 16, set from measurements (see NFR-009).
 4. ~~Choose GoogleTest or Catch2~~ — **decided: GoogleTest 1.14**. JSON parsing: **nlohmann/json 3.11.3** (MIT licence), also decided on Day 2.
 5. Decide whether to use the authors' repository (`github.com/guidolagos/Subsystems`) as a third independent check.
 6. Confirm the reading of Algorithm 1 regarding the all-failed state: the paper sets its result without calling Φ, while Theorem 2.1 says exactly 2ⁿ evaluations. This specification counts Φ(**0**) too (exactly 2ⁿ calls).
