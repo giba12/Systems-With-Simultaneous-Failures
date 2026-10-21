@@ -1,0 +1,88 @@
+@startuml sequence
+title Sequence - Analyse system, verify, and run an experiment (paper Algorithm 1: level-by-level sweep)
+autonumber
+
+actor "Analyst" as A
+participant "Python\nrun_experiments.py" as PY
+participant "CLI\n(analyze)" as CLI
+participant "SystemModel" as SM
+participant "FailureModel" as FM
+participant "SignatureEngine\n(level sweep)" as SIG
+participant "MttfEngine" as MTTF
+participant "BruteForceReference" as REF
+database "results/" as RES
+
+A -> PY : run experiment (config, seed)
+activate PY
+PY -> RES : write hypothesis + config copy
+PY -> CLI : analyze --config satellite_support.json
+activate CLI
+
+CLI -> SM : load(config)
+activate SM
+SM -> SM : validate IDs, n > 1, monotone,\nnon-trivial (Phi(0)=0, Phi(1)=1), n limit
+alt invalid configuration
+  SM --> CLI : error (field, rule)
+  CLI --> PY : non-zero exit + message
+  PY --> A : report error
+else valid
+  SM --> CLI : SystemModel (n = 6)
+end
+deactivate SM
+
+CLI -> FM : create(type, lambda | beta, ...)
+activate FM
+FM -> FM : validate parameters\n(lambda > 0; 0 <= beta <= 1; Psi(1) = 1)
+FM -> FM : precompute increments\ndelta(w,k) = E T(k+1:w) - E T(k:w)\n(extended precision if needed)
+FM --> CLI : FailureModel
+deactivate FM
+
+CLI -> SIG : sweep(model, failureModel)
+activate SIG
+note over SIG
+  Algorithm 1: levels by number of failures,
+  from the all-failed state (level n) up to
+  the all-working state (level 0).
+  Only two consecutive levels are kept.
+end note
+loop level k = n .. 0
+  loop for each state x with k failures
+    SIG -> SM : phi(x)   <<exactly once per state>>
+    SM --> SIG : 0 / 1
+    SIG -> SIG : W0(x) = phi(x)\nWj(x) = (1/j) * sum of W(j-1) over sons of x\n(sons taken from level k+1)
+    SIG -> MTTF : mttf(x, W(x))
+    activate MTTF
+    MTTF -> FM : delta(|x|, j) for j = 0 .. |x|-1
+    FM --> MTTF : increments
+    MTTF --> SIG : m(x) = sum_j W_j / C(|x|,j) * delta(|x|, j)
+    deactivate MTTF
+    opt W0(x) = 1 and W1(x) = 0
+      SIG -> SIG : record minimal path set A_x
+    end
+  end
+  SIG -> SIG : keep level k, erase level k+1
+end
+SIG --> CLI : W[x], tail signature, signature,\nm[x] for all 64 states, path sets,\nphi call count (= 64)
+deactivate SIG
+
+opt verification enabled
+  CLI -> REF : bruteForceCounts(model)
+  activate REF
+  REF --> CLI : W_ref[x][0..n]  (does not use the recurrence)
+  deactivate REF
+  CLI -> CLI : compare W vs W_ref (TOL)
+  CLI -> CLI : compare m(x) vs direct solution of Eq. (6)
+  alt mismatch
+    CLI --> PY : failure: state, k, values
+  end
+end
+
+CLI -> CLI : numerical checks\n(no NaN, s_k >= 0, sum s = 1,\nphi calls == 2^n)
+CLI --> PY : results (JSON/CSV), exit 0
+deactivate CLI
+
+PY -> RES : save raw output + config + seed
+PY -> PY : analyze_results.py / plot_results.py
+PY --> A : summary table and plots
+deactivate PY
+@enduml

@@ -1,0 +1,94 @@
+@startuml use-case
+title Space System Reliability Analyzer - Use Case Diagram
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Reliability Analyst" as Analyst
+actor "Verifier / Reviewer" as Verifier
+actor "Portfolio Reader" as Reader
+actor "CI Server" as CI <<system>>
+
+together {
+  package "Model" {
+    usecase "UC1 Define system\nfrom JSON config" as UC1
+    usecase "UC2 Validate model\n(monotone, IDs, limits)" as UC2
+    usecase "UC3 Enumerate states\nand evaluate structure function" as UC3
+  }
+  package "Analyse" {
+    usecase "UC4 Compute counting vectors" as UC4
+    usecase "UC5 Compute signature" as UC5
+    usecase "UC6 Find minimal path sets (P1)" as UC6
+    usecase "UC7 Select failure model" as UC7
+    usecase "UC8 Compute per-state MTTF" as UC8
+    usecase "UC9 Model simultaneous\nfailures (P1)" as UC9
+    usecase "UC10 Compare repair policies (P2)" as UC10
+  }
+  package "Verify" {
+    usecase "UC11 Cross-check against\nbrute-force reference" as UC11
+    usecase "UC12 Run analytical\n(oracle) tests" as UC12
+    usecase "UC13 Check numerical sanity\n(incl. precision limits)" as UC13
+    usecase "UC20 Check paper properties\n(dominance, monotone MTTF,\nEq. 6 vs Eq. 7)" as UC20
+    usecase "UC14 Review traceability\nand verification report" as UC14
+    usecase "UC15 Build and run tests" as UC15
+  }
+  package "Experiment" {
+    usecase "UC16 Run experiment\n(config + seed)" as UC16
+    usecase "UC17 Save raw results\nand configuration" as UC17
+    usecase "UC18 Plot and summarise results" as UC18
+  }
+  usecase "UC19 Read architecture,\nassumptions and limitations" as UC19
+}
+
+Analyst --> UC1
+Analyst --> UC3
+Analyst --> UC5
+Analyst --> UC6
+Analyst --> UC8
+Analyst --> UC16
+Analyst --> UC18
+Analyst --> UC10
+
+Verifier --> UC11
+Verifier --> UC12
+Verifier --> UC13
+Verifier --> UC20
+Verifier --> UC14
+
+Reader --> UC18
+Reader --> UC19
+
+CI --> UC15
+
+UC1 ..> UC2 : <<include>>
+UC3 ..> UC2 : <<include>>
+UC4 ..> UC3 : <<include>>
+UC5 ..> UC4 : <<include>>
+UC8 ..> UC4 : <<include>>
+UC8 ..> UC7 : <<include>>
+UC9 ..> UC7 : <<extend>>
+UC6 ..> UC4 : <<include>>
+UC10 ..> UC8 : <<include>>
+UC11 ..> UC4 : <<include>>
+UC12 ..> UC8 : <<include>>
+UC13 ..> UC5 : <<include>>
+UC15 ..> UC11 : <<include>>
+UC15 ..> UC12 : <<include>>
+UC15 ..> UC13 : <<include>>
+UC15 ..> UC20 : <<include>>
+UC20 ..> UC8 : <<include>>
+UC16 ..> UC8 : <<include>>
+UC16 ..> UC17 : <<include>>
+UC18 ..> UC17 : <<include>>
+
+note right of UC9
+  Extends UC7: Levy-frailty Marshall-Olkin
+  family (minimum: lethal-shock model),
+  calibrated by the pairwise beta factor.
+  One event may fail several components.
+end note
+
+legend bottom
+  UC4, UC5, UC6 and UC8 share one level-by-level sweep (paper Algorithm 1):
+  the structure function Phi is evaluated once per state.
+endlegend
+@enduml

@@ -1,0 +1,20 @@
+{
+  "name": "satellite_support",
+  "description": "Fictional satellite-support architecture: three redundant pairs (power, communications, computers). Educational model, not flight-qualified.",
+  "components": [
+    { "id": "P1", "name": "Power unit A",          "role": "Primary power source",   "bit": 0 },
+    { "id": "P2", "name": "Power unit B",          "role": "Redundant power source", "bit": 1 },
+    { "id": "C1", "name": "Communications unit A", "role": "Primary communications", "bit": 2 },
+    { "id": "C2", "name": "Communications unit B", "role": "Backup communications",  "bit": 3 },
+    { "id": "K1", "name": "Computer A",            "role": "Primary processing",     "bit": 4 },
+    { "id": "K2", "name": "Computer B",            "role": "Backup processing",      "bit": 5 }
+  ],
+  "structure": {
+    "type": "and_of_or_groups",
+    "groups": [ ["P1", "P2"], ["C1", "C2"], ["K1", "K2"] ]
+  },
+  "failure_model": {
+    "type": "independent_exponential",
+    "lambda": 1.0
+  }
+}

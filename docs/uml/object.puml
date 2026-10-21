@@ -1,0 +1,118 @@
+@startuml object
+title Object Diagram - Satellite support system, snapshot of one analysis run
+left to right direction
+
+object "model : SystemModel" as model {
+  name = "satellite_support"
+  n = 6
+  structure = "(P1 or P2) and (C1 or C2) and (K1 or K2)"
+}
+
+object "P1 : Component" as P1 {
+  bit = 0
+  role = "Primary power"
+}
+object "P2 : Component" as P2 {
+  bit = 1
+  role = "Redundant power"
+}
+object "C1 : Component" as C1 {
+  bit = 2
+  role = "Primary comms"
+}
+object "C2 : Component" as C2 {
+  bit = 3
+  role = "Backup comms"
+}
+object "K1 : Component" as K1 {
+  bit = 4
+  role = "Primary processing"
+}
+object "K2 : Component" as K2 {
+  bit = 5
+  role = "Backup processing"
+}
+
+object "pairPower : RedundantPair" as pp
+object "pairComms : RedundantPair" as pc
+object "pairComputer : RedundantPair" as pk
+
+object "x63 : State" as x63 {
+  mask = 0b111111 (63)
+  workingCount = 6
+  phi = 1
+}
+object "w63 : CountingVector" as w63 {
+  W = [1, 6, 12, 8, 0, 0, 0]
+}
+object "sig : Signature" as sig {
+  s = (0, 0.2, 0.4, 0.4, 0, 0)
+  sum = 1.0
+}
+
+object "x62 : State" as x62 {
+  mask = 0b111110 (62)
+  failed = {P1}
+  workingCount = 5
+  phi = 1
+}
+object "w62 : CountingVector" as w62 {
+  W = [1, 4, 4, 0, 0, 0]
+}
+
+object "x3 : State" as x3 {
+  mask = 0b000011 (3)
+  failed = {C1, C2, K1, K2}
+  workingCount = 2
+  phi = 0
+}
+
+object "fm : IndependentExponential" as fm {
+  lambda = 1.0
+}
+object "m63 : MttfResult" as m63 {
+  value = 0.7 / lambda
+}
+object "m62 : MttfResult" as m62 {
+  value = 0.5333 / lambda
+}
+object "ref : BruteForceReference" as ref {
+  tolerance = 1e-9
+  matchesAllStates = true
+}
+
+model *-- P1
+model *-- P2
+model *-- C1
+model *-- C2
+model *-- K1
+model *-- K2
+model *-- pp
+model *-- pc
+model *-- pk
+
+pp o-- P1
+pp o-- P2
+pc o-- C1
+pc o-- C2
+pk o-- K1
+pk o-- K2
+
+x63 --> model : of
+x62 --> model : of
+x3 --> model : of
+x63 --> w63 : counts
+x62 --> w62 : counts
+w63 --> sig : derives
+w63 --> m63 : feeds
+w62 --> m62 : feeds
+m63 --> fm : uses
+m62 --> fm : uses
+w63 ..> ref : verified by
+w62 ..> ref : verified by
+
+note bottom of x3
+  Both comms and both computers failed:
+  phi = 0, so MTTF = 0.
+end note
+@enduml

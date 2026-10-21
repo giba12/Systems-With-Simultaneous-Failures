@@ -1,0 +1,75 @@
+@startuml component
+title Space System Reliability Analyzer - Component Diagram
+skinparam componentStyle uml2
+skinparam nodesep 40
+skinparam ranksep 60
+
+package "Python Analysis" {
+  component "run_experiments.py" as RUN
+  component "analyze_results.py" as ANA
+  component "plot_results.py" as PLOT
+}
+
+package "Executables" {
+  component "CLI: analyze" as CLI
+  component "Test Suite\n(GoogleTest / Catch2)" as TESTS
+}
+
+package "C++20 Engine (library: reliability)" {
+  component "System Model\n(system_model.hpp/.cpp)\nconfig, structure function Phi" as SM
+  component "State\n(state.hpp)\nbitmask encoding" as ST
+  component "Signature Engine\n(signature.hpp/.cpp)\nlevel sweep: W, signatures,\nminimal path sets" as SIG
+  component "Failure Model\n(failure_model.hpp/.cpp)\nnu_w, P_w,w', delta(w,k)" as FM
+  component "MTTF Engine\n(mttf.hpp/.cpp)\nEq. (7)" as MTTF
+  component "Brute-Force Reference\n(independent; also solves Eq. (6))" as REF
+}
+
+package "Data and Docs" {
+  artifact "configs/satellite_support.json" as CFG
+  artifact "results/\n(raw output, config, seed)" as RES
+  artifact "docs/" as DOCS
+}
+
+component "CI Workflow" as CI
+
+RUN -down-> CLI : invokes
+RUN -down-> CFG : reads
+RUN -down-> RES : writes
+ANA -down-> RES : reads
+PLOT -down-> RES : reads
+
+CI -down-> TESTS : builds, runs
+CI -down-> CLI : builds
+
+CLI -down-> SM : <<use>>
+CLI -down-> SIG : <<use>>
+CLI -down-> FM : <<use>>
+CLI -down-> REF : optional verify
+CLI -down-> CFG : reads
+CLI -down-> RES : writes
+TESTS -down-> SIG
+TESTS -down-> MTTF
+TESTS -down-> REF : compares against
+
+SIG -down-> SM : phi(x)
+SIG -down-> ST
+SIG -down-> MTTF : m(x) per level
+MTTF -down-> FM : delta(w,k)
+REF -down-> SM : phi only
+ST -down-> SM : encodes masks for
+
+DOCS -[hidden]down-> RES
+
+note right of FM
+  Models satisfy the paper's
+  Assumptions (A)-(C): [Exp] and the
+  Levy-frailty Marshall-Olkin family
+  ([LSh] minimum). Extended precision
+  for Psi-derived terms when n is large.
+end note
+
+note right of REF
+  Must not reuse the recurrence
+  in the Signature Engine.
+end note
+@enduml

@@ -1,0 +1,10 @@
+build/
+cmake-build-*/
+.cache/
+compile_commands.json
+__pycache__/
+*.pyc
+.venv/
+# keep the folder, ignore generated experiment output
+results/*
+!results/.gitkeep
