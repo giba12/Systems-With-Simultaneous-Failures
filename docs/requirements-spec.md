@@ -177,7 +177,7 @@ C++ implementation of the recursive algorithm · baseline MTTF and, if completed
 ## 9. Open items
 1. ~~Confirm exact equations against the paper~~ — done for Eqs. (1)–(2), (5)–(8), (19)–(20), (22); **Eq. (21) still to be confirmed against the typeset PDF**.
 2. ~~Select the common-cause model~~ — resolved: Lévy-frailty Marshall-Olkin family, minimum [LSh] (REL-002). Whether to add [BFR] and [LFMO-C] is open.
-3. Fix the numerical tolerance (suggest 1e-9 with `double` for n ≤ 12) and the maximum supported n (see NFR-009).
-4. Choose GoogleTest or Catch2.
+3. Fix the numerical tolerance (suggest 1e-9 with `double` for n ≤ 12). **Decided on Day 2:** the maximum system size is n = 24 (`kMaxComponents`; validation of a 24-component system takes about 0.3 s). The simultaneous-failure model applies its own tighter limit (see NFR-009).
+4. ~~Choose GoogleTest or Catch2~~ — **decided: GoogleTest 1.14**. JSON parsing: **nlohmann/json 3.11.3** (MIT licence), also decided on Day 2.
 5. Decide whether to use the authors' repository (`github.com/guidolagos/Subsystems`) as a third independent check.
 6. Confirm the reading of Algorithm 1 regarding the all-failed state: the paper sets its result without calling Φ, while Theorem 2.1 says exactly 2ⁿ evaluations. This specification counts Φ(**0**) too (exactly 2ⁿ calls).

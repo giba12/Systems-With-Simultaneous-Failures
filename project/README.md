@@ -5,9 +5,20 @@ A small C++20 tool that implements the per-state signature / MTTF algorithm of L
 Failures*, arXiv:2610.22181) for a **fictional** six-component satellite-support system.
 Educational portfolio project: not a certified or flight-qualified analysis.
 
-**Status: project skeleton.** Every module has its interface and pseudo-code, but the
-algorithms are not written yet. Functions throw `NotImplementedError`; tests report *skipped*.
-Work through [../docs/project-plan.md](../docs/project-plan.md) day by day.
+**Status: Day 2 of the plan is complete** (state model and structure function). Everything
+below that line is still a skeleton: those functions throw `NotImplementedError` and their
+tests report *skipped*. Work through [../docs/project-plan.md](../docs/project-plan.md) day by day.
+
+| Module | State |
+|---|---|
+| `state` (bitmask helpers, sons, level enumeration, binomials) | done, tested |
+| `system_model` (components, Φ, JSON loader, validation, call counter) | done, tested |
+| `reference` (brute-force checker) | skeleton, next (Day 3) |
+| `signature` (Algorithm 1 sweep) | skeleton (Days 4–5) |
+| `failure_model`, `mttf` | skeleton (Days 6–7) |
+| `main.cpp`, `python/` | skeleton |
+
+Test status: 53 tests, 19 passing, 34 skipped (waiting for their feature).
 
 ## Build and test
 
@@ -17,7 +28,7 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-(The first configure downloads GoogleTest.)
+(The first configure downloads GoogleTest and nlohmann/json.)
 
 ## Layout
 

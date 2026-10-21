@@ -53,6 +53,14 @@ Deliver                                                     ████
 
 **Critical path:** state model → reference → recursive sweep → signature tests → baseline MTTF → experiments → report. Everything else hangs off this chain.
 
+## Progress
+
+| Day | Status | Notes |
+|---|---|---|
+| 1 | Partly done | Requirements, test plan, plan and validation report are written. **Still open:** the one-page notation glossary and the check of Eq. (21) against the typeset PDF. |
+| 2 | **Done (2026-10-21)** | `state` and `system_model` implemented; 19 tests pass, including sanitizer runs. Decisions: GoogleTest, nlohmann/json 3.11.3, max n = 24. |
+| 3–10 | Not started | |
+
 ## 3. Day-by-day work plan
 
 Requirement and test IDs refer to the requirements spec and test plan.

@@ -59,7 +59,8 @@ class SystemModel {
  public:
   using StructureFn = std::function<bool(StateMask)>;
 
-  // Factories (stubs in system_model.cpp)
+  // Factories. Group members are bit positions (0 .. n-1). The factories refuse n > 31 (the
+  // mask is 32 bits wide) but do NOT check the paper's preconditions: call validate() for that.
   static SystemModel from_json_file(const std::string& path);
   static SystemModel series(int n);
   static SystemModel parallel(int n);

@@ -5,7 +5,8 @@
 #   2. Build the engine as a static library "reliability" from src/*.cpp
 #      (everything except main.cpp).
 #   3. Build the command-line tool "analyze" from src/main.cpp, linked to the library.
-#   4. If BUILD_TESTING is on: download GoogleTest, build one test program
+#   4. Download nlohmann/json (config parsing).
+#   5. If BUILD_TESTING is on: download GoogleTest, build one test program
 #      "reliability_tests" from tests/*.cpp, and register each test with CTest.
 #   (Decision pending, see docs/requirements-spec.md open item 4: GoogleTest vs Catch2.
 #    GoogleTest is the recommended default in docs/project-plan.md.)
@@ -24,6 +25,14 @@ endif()
 
 option(BUILD_TESTING "Build the unit tests" ON)
 
+# JSON parsing for configs/*.json. Decision made on Day 2: nlohmann/json 3.11.3 (MIT licence,
+# header-only). It is downloaded at configure time, like GoogleTest below.
+include(FetchContent)
+set(JSON_Install OFF CACHE INTERNAL "")
+FetchContent_Declare(nlohmann_json
+  URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
+FetchContent_MakeAvailable(nlohmann_json)
+
 add_library(reliability STATIC
   src/state.cpp
   src/system_model.cpp
@@ -33,6 +42,7 @@ add_library(reliability STATIC
   src/reference.cpp
 )
 target_include_directories(reliability PUBLIC include)
+target_link_libraries(reliability PRIVATE nlohmann_json::nlohmann_json)
 if(MSVC)
   target_compile_options(reliability PRIVATE /W4)
 else()
@@ -44,7 +54,6 @@ target_link_libraries(analyze PRIVATE reliability)
 
 if(BUILD_TESTING)
   include(CTest)
-  include(FetchContent)
   FetchContent_Declare(googletest
     URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.tar.gz)
   set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
@@ -60,6 +69,9 @@ if(BUILD_TESTING)
     tests/test_properties.cpp
   )
   target_link_libraries(reliability_tests PRIVATE reliability GTest::gtest_main)
+  # Tests load the reference system from here, whatever the working directory is.
+  target_compile_definitions(reliability_tests PRIVATE
+    RELIABILITY_CONFIG_DIR="${CMAKE_CURRENT_SOURCE_DIR}/configs")
 
   include(GoogleTest)
   gtest_discover_tests(reliability_tests)

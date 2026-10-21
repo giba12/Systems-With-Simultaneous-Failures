@@ -31,9 +31,11 @@ namespace reliability {
 
 using StateMask = std::uint32_t;  // bit i = 1  <=>  component i works
 
-// Largest n we agree to analyse. PLACEHOLDER: open decision (requirements open item 3).
-// The simultaneous-failure model loses precision in plain double above about n = 12
-// (see docs/paper-validation-report.md section 4).
+// Largest n a system may have (checked by SystemModel::validate). Decision made on Day 2:
+// keep 24 for now. Validation and the brute-force reference cost about 2^n to 3^n work, and
+// the simultaneous-failure model loses precision in plain double above about n = 12 (see
+// docs/paper-validation-report.md section 4), so that model will apply its own tighter limit.
+// A state mask is 32 bits wide, so no system can ever have more than 31 components.
 inline constexpr int kMaxComponents = 24;
 
 // --- one-liners: real code ---------------------------------------------------
