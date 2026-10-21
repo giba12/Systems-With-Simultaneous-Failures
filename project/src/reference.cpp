@@ -103,21 +103,54 @@ std::vector<StateMask> brute_force_minimal_path_sets(const SystemModel& model) {
   return result;
 }
 
-// PSEUDO-CODE   (paper Eq. (6); see reference.hpp)   -- Day 6, needs the failure model
-//   m = vector<double>(2^n, 0)
-//   for w = 1 .. n:
-//       for x in masks_with_working(n, w):
-//           if not phi(x): m[x] = 0; continue
-//           acc = 1 / fm.exit_rate(w)
-//           for w2 = 0 .. w-1:
-//               p = fm.transition_prob(w, w2)
-//               if p == 0: continue
-//               s = sum of m[y] over every y whose bits are a subset of x and |y| = w2
-//               acc += p / binomial(w, w - w2) * s
-//           m[x] = acc
+// ALGORITHM   (paper Eq. (6); see reference.hpp)
+//   works[x] = phi(x) for every state
+//   m[0] = 0
+//   for x in 1 .. 2^n-1, in numeric order        // every proper sub-state y of x has y < x, so it is ready
+//       if not works[x]: m[x] = 0; continue
+//       w = |x|
+//       acc = 1 / nu_w
+//       for every proper sub-state y of x (all sub-masks except x itself, including 0):
+//           p = P(w, |y|)
+//           if p != 0: acc += p / C(w, w - |y|) * m[y]
+//       m[x] = acc
 //   return m
-std::vector<double> solve_mttf_direct(const SystemModel& /*model*/, const FailureModel& /*fm*/) {
-  not_implemented("solve_mttf_direct");
+// This never looks at counting vectors or signatures: it is the paper's defining linear system
+// for the MTTF, solved state by state. Agreement with Eq. (7) is evidence that both are right.
+std::vector<double> solve_mttf_direct(const SystemModel& model, const FailureModel& fm) {
+  require_small_enough(model, "solve_mttf_direct");
+  const std::uint64_t states = std::uint64_t{1} << model.n();
+  std::vector<std::uint8_t> works(static_cast<std::size_t>(states));
+  for (std::uint64_t x = 0; x < states; ++x) {
+    works[static_cast<std::size_t>(x)] = model.phi(static_cast<StateMask>(x)) ? 1 : 0;
+  }
+
+  std::vector<double> m(static_cast<std::size_t>(states), 0.0);
+  for (std::uint64_t xi = 1; xi < states; ++xi) {
+    if (works[static_cast<std::size_t>(xi)] == 0) {
+      continue;
+    }
+    const StateMask x = static_cast<StateMask>(xi);
+    const int w = working_count(x);
+    const double nu = fm.exit_rate(w);
+    if (!(nu > 0.0)) {
+      throw ModelError("state " + std::to_string(x) + " works but has exit rate " +
+                       std::to_string(nu) + " (a working system needs at least one working component)");
+    }
+    double acc = 1.0 / nu;
+    for (StateMask y = (x - 1U) & x;; y = (y - 1U) & x) {
+      const int wy = working_count(y);
+      const double p = fm.transition_prob(w, wy);
+      if (p != 0.0) {
+        acc += p / static_cast<double>(binomial(w, w - wy)) * m[y];
+      }
+      if (y == 0U) {
+        break;
+      }
+    }
+    m[x] = acc;
+  }
+  return m;
 }
 
 }  // namespace reliability

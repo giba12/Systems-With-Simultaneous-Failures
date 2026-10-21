@@ -2,37 +2,62 @@
 //                                                    (Plan: Day 6 for [Exp], Day 7 for the rest)
 #include "reliability/failure_model.hpp"
 
+#include <cmath>
+#include <iomanip>
+#include <sstream>
+#include <string>
+
 #include "reliability/errors.hpp"
 
 namespace reliability {
 
 // ---------------- IndependentExponential ----------------
 
-// PSEUDO-CODE
+// ALGORITHM
 //   if lambda is NaN, infinite or <= 0: throw ModelError("lambda must be a positive finite number")
 //   lambda_ = lambda
 IndependentExponential::IndependentExponential(double lambda) : lambda_(lambda) {
-  not_implemented("IndependentExponential::IndependentExponential");
+  if (!std::isfinite(lambda) || lambda <= 0.0) {
+    std::ostringstream message;
+    message << "lambda must be a positive finite number, got " << lambda;
+    throw ModelError(message.str());
+  }
 }
 
-// PSEUDO-CODE   return "independent_exponential(lambda=...)"
-std::string IndependentExponential::name() const { not_implemented("IndependentExponential::name"); }
-
-// PSEUDO-CODE   return w * lambda_
-double IndependentExponential::exit_rate(int /*w*/) const {
-  not_implemented("IndependentExponential::exit_rate");
+// ALGORITHM   return "independent_exponential(lambda=...)"
+std::string IndependentExponential::name() const {
+  std::ostringstream out;
+  out << std::setprecision(17) << "independent_exponential(lambda=" << lambda_ << ")";
+  return out.str();
 }
 
-// PSEUDO-CODE   return (w2 == w1 - 1) ? 1.0 : 0.0
-double IndependentExponential::transition_prob(int /*w1*/, int /*w2*/) const {
-  not_implemented("IndependentExponential::transition_prob");
+// ALGORITHM   w components fail independently, each at rate lambda: the next failure comes at rate w*lambda
+//   (paper Section VII-A.1: nu_w = w * lambda)
+double IndependentExponential::exit_rate(int w) const {
+  if (w < 0) {
+    throw ModelError("exit_rate: the number of working components must be >= 0, got " +
+                     std::to_string(w));
+  }
+  return static_cast<double>(w) * lambda_;
 }
 
-// PSEUDO-CODE
+// ALGORITHM   components fail one at a time: from w1 working the next state has w1 - 1 working
+double IndependentExponential::transition_prob(int w1, int w2) const {
+  if (w1 < 0 || w2 < 0) {
+    throw ModelError("transition_prob: component counts must be >= 0");
+  }
+  return (w1 >= 1 && w2 == w1 - 1) ? 1.0 : 0.0;
+}
+
+// ALGORITHM
 //   require 0 <= k < w  (else ModelError)
-//   return 1.0 / (lambda_ * (w - k))
-double IndependentExponential::increment(int /*w*/, int /*k*/) const {
-  not_implemented("IndependentExponential::increment");
+//   return 1.0 / (lambda_ * (w - k))      // paper: E T_{k+1:w} - E T_{k:w} = 1 / nu_{w-k}
+double IndependentExponential::increment(int w, int k) const {
+  if (k < 0 || k >= w) {
+    throw ModelError("increment: need 0 <= k < w, got w = " + std::to_string(w) + ", k = " +
+                     std::to_string(k));
+  }
+  return 1.0 / (lambda_ * static_cast<double>(w - k));
 }
 
 // ---------------- LevyFrailty ----------------
@@ -71,9 +96,9 @@ double LevyFrailty::increment_eq21(int /*w*/, int /*k*/) const {
 
 // ---------------- factories ----------------
 
-// PSEUDO-CODE   return a new IndependentExponential(lambda)
-std::unique_ptr<FailureModel> make_exponential(double /*lambda*/) {
-  not_implemented("make_exponential");
+// ALGORITHM   return a new IndependentExponential(lambda)
+std::unique_ptr<FailureModel> make_exponential(double lambda) {
+  return std::make_unique<IndependentExponential>(lambda);
 }
 
 // PSEUDO-CODE

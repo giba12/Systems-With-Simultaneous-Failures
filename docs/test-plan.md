@@ -113,6 +113,8 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | TC-C-17 | Classic 5-component bridge network | Signature (0, 1/5, 3/5, 1/5, 0) (hand-derived from the 2 size-2 cuts and 2 size-2 paths), W = [1,5,8,2,0,0], 4 minimal path sets of sizes 2,2,3,3 | ALG-003, SYS-002 |
 | TC-C-18 | k-out-of-n:G systems, n ≤ 9, all k | Signature is a point mass at position n−k+1; W[j] = C(n,j) for j ≤ n−k, else 0 | ALG-002, ALG-003 |
 | TC-C-19 | Relabelling invariance and series-of-parallel block | Permuting component bits leaves the signature unchanged; (3-parallel) in series with 1 has signature (1/4, 1/4, 1/2, 0) | ALG-003 |
+| TC-C-20 | Satellite MTTF on **all 64 states** vs. an independent closed form | Integral formula Σⱼ C(p2,j) 2^(p2−j) (−1)^j / (λ(p1+p2+j)) for p2 healthy and p1 degraded pairs (0 if a pair is gone) agrees for several λ — no sweep and no Eq. (6) involved | REL-001 |
+| TC-C-21 | k-out-of-n:G MTTF on every state, n ≤ 9, all k | MTTF = Σ_{j=k}^{w} 1/(jλ) for a state with w ≥ k working components, else 0 | REL-001, REL-003 |
 | TC-C-16 | Sweep bookkeeping | The sweep resets the Φ-call counter itself; the observer sees each state once, level by level in increasing mask order; vectors are kept only on request; the peak number of live vectors equals the largest sum of two adjacent binomials | ALG-004 |
 
 ### Test D — Simultaneous failures
@@ -188,7 +190,7 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | TC-I-01 | Signature dominance (Theorem 5): all pairs x, y with \|x\| = \|y\| in the reference system and in random monotone systems (n ≤ 8, fixed seed), under [Exp] and [LSh] | If S̄ˣₖ ≥ S̄ʸₖ for all k then m(x) ≥ m(y); strict when the tail signatures differ | VER-004 |
 | TC-I-02 | MTTF monotonicity (Lemma 4): x′ ≤ x | m(x′) ≤ m(x) under [Exp] and [LSh] (verified exactly on the reference system) | VER-004 |
 | TC-I-03 | Minimal path sets: states with W₀ = 1 and W₁ = 0 | Equals the set of minimal path sets from an independent enumeration; reference system → 8 sets of size 3 | VER-004, SYS-002 |
-| TC-I-04 | The converse of Theorem 5 is false | Find (or document) a pair of states with the same \|x\| and crossing tail signatures; do not assert a total order | VER-004 |
+| TC-I-04 | The converse of Theorem 5 is false | Deterministic counterexample: 6-component system with minimal path sets {0,5}, {3,4}, {1,4}, {3}, {0,1,3,5}; states x = mask 15 (W = [1,3,3,1,0], MTTF 1) and y = mask 51 (W = [1,4,2,0,0], MTTF 3/4) have crossing tail signatures yet m(x) > m(y). Crossings do not occur in systems with fewer than 5 components | VER-004 |
 
 ### Test J — Repair policies (only if EXP-004 is implemented, P2)
 
@@ -226,7 +228,7 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | ALG-004 | TC-C-09, TC-C-16 |
 | ALG-005 | TC-C-03 (plus code inspection) |
 | ALG-006 | TC-G-06 |
-| REL-001 | TC-A-04, TC-B-04, TC-B-05, TC-C-07, TC-C-08, TC-C-14, TC-F-03, TC-F-08 |
+| REL-001 | TC-A-04, TC-B-04, TC-B-05, TC-C-07, TC-C-08, TC-C-14, TC-C-20, TC-C-21, TC-F-03, TC-F-08 |
 | REL-002 | TC-D-02, TC-D-03, TC-D-04, TC-D-05, TC-D-06, TC-D-07 |
 | REL-003 | TC-A-04, TC-E-07, TC-F-04 |
 | REL-004 | TC-D-01, TC-D-04, TC-D-08, TC-E-08 |

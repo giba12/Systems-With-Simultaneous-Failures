@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "reliability/errors.hpp"
+#include "reliability/failure_model.hpp"
 #include "reliability/reference.hpp"
 #include "reliability/state.hpp"
 #include "reliability/system_model.hpp"
@@ -194,10 +195,30 @@ TEST(Reference, RefusesSystemsTooLargeForBruteForce) {
   EXPECT_THROW(brute_force_minimal_path_sets(big), ModelError);
 }
 
-// Needs the failure model: written on Day 6 (REL-005).
+// REL-005: Eq. (6), solved directly state by state, gives the known MTTF values.
 TEST(Reference, DirectMttfSolveMatchesKnownValues) {
-  GTEST_SKIP() << "Day 6: needs solve_mttf_direct and IndependentExponential";
-  // PSEUDO-CODE
-  //   m = solve_mttf_direct(reference system, exponential(lambda=1))
-  //   expect m[63] ~ 0.7,  m[62] ~ 8/15,  m[58] ~ 5/12,  m[0b111100] == 0     (tolerance 1e-9)
+  const IndependentExponential fm(1.0);
+  const std::vector<double> m = solve_mttf_direct(load_reference(), fm);
+  ASSERT_EQ(m.size(), 64U);
+  EXPECT_NEAR(m[63], 0.7, 1e-12);
+  EXPECT_NEAR(m[62], 8.0 / 15.0, 1e-12);
+  EXPECT_NEAR(m[58], 5.0 / 12.0, 1e-12);
+  EXPECT_EQ(m[0b111100], 0.0);
+  EXPECT_EQ(m[0], 0.0);
+
+  // the paper's Fig. 1 value and the textbook cases
+  EXPECT_NEAR(solve_mttf_direct(paper_figure_one(), fm)[0b111], 7.0 / 6.0, 1e-12);
+  EXPECT_NEAR(solve_mttf_direct(SystemModel::series(4), fm)[0b1111], 0.25, 1e-12);
+  EXPECT_NEAR(solve_mttf_direct(SystemModel::parallel(2), fm)[0b11], 1.5, 1e-12);
+}
+
+TEST(Reference, DirectMttfSolveScalesWithLambdaAndRefusesLargeSystems) {
+  const SystemModel model = load_reference();
+  const std::vector<double> base = solve_mttf_direct(model, IndependentExponential(1.0));
+  const std::vector<double> fast = solve_mttf_direct(model, IndependentExponential(4.0));
+  for (std::size_t x = 0; x < 64; ++x) {
+    EXPECT_NEAR(fast[x] * 4.0, base[x], 1e-12);
+  }
+  EXPECT_THROW(solve_mttf_direct(SystemModel::parallel(kMaxBruteForceComponents + 1), IndependentExponential(1.0)),
+               ModelError);
 }

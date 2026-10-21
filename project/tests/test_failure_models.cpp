@@ -1,6 +1,10 @@
 // test_failure_models.cpp - [Exp] and Levy-frailty models.   (Plan: Days 6-7; REL-003, REL-004)
 #include <gtest/gtest.h>
 
+#include <limits>
+#include <memory>
+#include <string>
+
 #include "reliability/errors.hpp"
 #include "reliability/failure_model.hpp"
 
@@ -8,18 +12,68 @@ using namespace reliability;
 
 // REL-003
 TEST(FailureModels, ExponentialIncrementsAreOneOverRemainingRate) {
-  GTEST_SKIP() << "needs IndependentExponential";
-  // PSEUDO-CODE
-  //   fm = exponential(lambda = 2)
-  //   expect fm.increment(w, k) == 1 / (2 * (w - k)) for all 0 <= k < w <= 8
-  //   expect fm.exit_rate(w) == 2 * w;  transition_prob(w, w-1) == 1;  transition_prob(w, w-2) == 0
+  const IndependentExponential fm(2.0);
+  for (int w = 1; w <= 8; ++w) {
+    for (int k = 0; k < w; ++k) {
+      EXPECT_DOUBLE_EQ(fm.increment(w, k), 1.0 / (2.0 * (w - k))) << "w=" << w << " k=" << k;
+    }
+    EXPECT_DOUBLE_EQ(fm.exit_rate(w), 2.0 * w);
+    EXPECT_EQ(fm.transition_prob(w, w - 1), 1.0);
+    for (int w2 = 0; w2 < w - 1; ++w2) {
+      EXPECT_EQ(fm.transition_prob(w, w2), 0.0);  // never two failures at once
+    }
+    EXPECT_EQ(fm.transition_prob(w, w), 0.0);      // the count never stays or rises
+  }
+  EXPECT_EQ(fm.exit_rate(0), 0.0);
+  EXPECT_EQ(fm.transition_prob(0, 0), 0.0);
+}
+
+// The increments of an exponential model add up to the harmonic expectation of the maximum:
+// E T_{w:w} = (1/lambda) * (1 + 1/2 + ... + 1/w).
+TEST(FailureModels, ExponentialIncrementsSumToHarmonicNumbers) {
+  const double lambda = 0.5;
+  const IndependentExponential fm(lambda);
+  for (int w = 1; w <= 12; ++w) {
+    double sum = 0.0;
+    double harmonic = 0.0;
+    for (int k = 0; k < w; ++k) {
+      sum += fm.increment(w, k);
+    }
+    for (int j = 1; j <= w; ++j) {
+      harmonic += 1.0 / j;
+    }
+    EXPECT_NEAR(sum, harmonic / lambda, 1e-12) << "w=" << w;
+  }
+}
+
+TEST(FailureModels, ExponentialRejectsBadArguments) {
+  const IndependentExponential fm(1.0);
+  EXPECT_THROW(fm.increment(3, 3), ModelError);   // k must be < w
+  EXPECT_THROW(fm.increment(3, -1), ModelError);
+  EXPECT_THROW(fm.increment(0, 0), ModelError);
+  EXPECT_THROW(fm.exit_rate(-1), ModelError);
+  EXPECT_THROW(fm.transition_prob(-1, 0), ModelError);
 }
 
 // TC-E-07
 TEST(FailureModels, InvalidExponentialRateIsRejected) {
-  GTEST_SKIP() << "needs IndependentExponential";
-  // PSEUDO-CODE
-  //   expect ModelError for lambda in {0, -1, NaN, +infinity}
+  const double bad[] = {0.0, -1.0, -1e-300, std::numeric_limits<double>::quiet_NaN(),
+                        std::numeric_limits<double>::infinity(),
+                        -std::numeric_limits<double>::infinity()};
+  for (double lambda : bad) {
+    EXPECT_THROW(IndependentExponential{lambda}, ModelError) << "lambda = " << lambda;
+    EXPECT_THROW(make_exponential(lambda), ModelError) << "lambda = " << lambda;
+  }
+  EXPECT_NO_THROW(IndependentExponential{1e-9});
+  EXPECT_NO_THROW(IndependentExponential{1e9});
+}
+
+TEST(FailureModels, ExponentialFactoryAndName) {
+  const std::unique_ptr<FailureModel> fm = make_exponential(2.5);
+  ASSERT_NE(fm, nullptr);
+  EXPECT_NE(fm->name().find("independent_exponential"), std::string::npos);
+  EXPECT_NE(fm->name().find("2.5"), std::string::npos);
+  EXPECT_DOUBLE_EQ(fm->increment(4, 1), 1.0 / (2.5 * 3));
 }
 
 // TC-D-08 (REL-004)
