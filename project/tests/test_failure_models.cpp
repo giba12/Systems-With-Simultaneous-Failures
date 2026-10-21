@@ -61,7 +61,7 @@ TEST(FailureModels, LethalShockAllowsSimultaneousFailures) {
 
 // TC-D-06 / Eq. (21) cross-check, TC-F-07 precision
 TEST(FailureModels, TwoWaysToGetIncrementsAgree) {
-  GTEST_SKIP() << "needs LevyFrailty; check Eq. (21) against the typeset PDF first";
+  GTEST_SKIP() << "Day 7: needs LevyFrailty (Eq. (21) uses lower limit w-k, NOT the printed w-k+1)";
   // PSEUDO-CODE
   //   for beta in {0.05, 0.2, 0.5}, n in {6, 12}:
   //       expect relative difference between increment(w,k) and increment_eq21(w,k) < 1e-9

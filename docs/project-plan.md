@@ -57,9 +57,10 @@ Deliver                                                     ████
 
 | Day | Status | Notes |
 |---|---|---|
-| 1 | Partly done | Requirements, test plan, plan and validation report are written. **Still open:** the one-page notation glossary and the check of Eq. (21) against the typeset PDF. |
+| 1 | **Done (2026-10-21)** | Requirements, test plan, plan and validation report written. Notation glossary written ([notation-glossary.md](notation-glossary.md)). Eq. (21) checked against the typeset PDF: the paper has a typo in the lower limit (correct: w−k). **Gate G1 met.** |
 | 2 | **Done (2026-10-21)** | `state` and `system_model` implemented; 19 tests pass, including sanitizer runs. Decisions: GoogleTest, nlohmann/json 3.11.3, max n = 24. |
-| 3–10 | Not started | |
+| 3 | **Done (2026-10-21)** | `reference` implemented (brute-force counting vectors, minimal path sets by definition); 14 tests, sanitizer-clean, mutation-checked. `solve_mttf_direct` waits for Day 6 as planned. **Gate G2 met:** the reference reproduces ORC-1…5, the paper's Fig. 1 system and closed-form series/parallel/repeated-pair vectors. |
+| 4–10 | Not started | Next: Day 4, the level sweep (Algorithm 1). |
 
 ## 3. Day-by-day work plan
 
@@ -170,7 +171,7 @@ Single developer (Dana), using AI as a pair programmer: ask for one equation or 
 |---|---|---|---|---|
 | R1 | Notation or indexing misread | Med / High | Glossary on Day 1; checks against paper oracles (Fig. 1) | Day 5 mismatch with Fig. 1 |
 | R2 | Reference repeats the same bug | Low / High | Reference written without the recurrence; validated against hand oracles first (G2) | G2 failure |
-| R3 | Eq. (21) mis-transcribed from the garbled PDF text | Med / High | Check the typeset PDF on Day 1; cross-check via Eq. (6) | TC-D-06 failure |
+| R3 | Eq. (21) mis-transcribed from the garbled PDF text | ~~Med / High~~ Resolved | Checked against the typeset PDF: the paper itself has a typo (lower limit should be w−k); cross-checked via Eq. (6) and the recursion | TC-D-06 failure |
 | R4 | Precision loss in Ψ-derived terms | Med / Med | Limit n ≤ 12 in double or extended precision; TC-F-07 | Error > TOL at larger n |
 | R5 | Simultaneous model outside the paper's class (non-exchangeable common cause) | Med / Med | Use only [LSh]/LFMO; state the identical-components simplification | Scope drift on Day 7 |
 | R6 | Wrong expectation about common-cause effects (as found in the first draft) | Med / Med | Compare redundancy ratio against a series baseline; write hypotheses before running | Surprising Experiment 2 result |

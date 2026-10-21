@@ -74,7 +74,7 @@ Bit assignment used by this specification: bit0 = P1, bit1 = P2, bit2 = C1, bit3
 - A-1 Components are binary (working / failed) and failures are permanent (no repair in the core). The system has n > 1 components, a monotone and non-trivial Φ, and may contain irrelevant components.
 - A-2 Redundancy within a pair is perfect.
 - A-3 Failure-time expectations E(Tₖ:n) depend on the chosen failure model and shall not be assumed interchangeable across models.
-- A-4 The equations, indexing and assumptions in this document were checked against the paper (see the validation report). Any further deviation is logged (DOC-001). Eq. (21) must still be confirmed against the typeset PDF (the text extraction is garbled).
+- A-4 The equations, indexing and assumptions in this document were checked against the paper (see the validation report). Any further deviation is logged (DOC-001). Eq. (21) was confirmed against the typeset PDF on 2026-10-21: **the paper prints its lower summation limit as w−k+1, which is a typo; the correct limit is w−k** (see the validation report §6).
 - A-5 Stack: C++20, CMake, GoogleTest or Catch2, Python with NumPy, pandas and Matplotlib, Git, and a CI workflow.
 - A-6 Failure models must satisfy the paper's Assumptions (A)–(C). In particular, **components are exchangeable (identical in law)**, so the three differently-purposed pairs are treated as having the same lifetime model; this is a simplification to be stated in the report. Models whose MTTF is not monotone (e.g. sequential order statistics with a decreasing per-component rate) are outside the experiments' scope.
 
@@ -175,7 +175,7 @@ C++ implementation of the recursive algorithm · baseline MTTF and, if completed
 | Overclaiming fidelity or employer relevance | Label fictional; list omitted effects (NFR-008, DOC-002) |
 
 ## 9. Open items
-1. ~~Confirm exact equations against the paper~~ — done for Eqs. (1)–(2), (5)–(8), (19)–(20), (22); **Eq. (21) still to be confirmed against the typeset PDF**.
+1. ~~Confirm exact equations against the paper~~ — done for Eqs. (1)–(2), (5)–(8), (19)–(22). Eq. (21) has a typo in the paper's lower limit (should be w−k); see the validation report §6.
 2. ~~Select the common-cause model~~ — resolved: Lévy-frailty Marshall-Olkin family, minimum [LSh] (REL-002). Whether to add [BFR] and [LFMO-C] is open.
 3. Fix the numerical tolerance (suggest 1e-9 with `double` for n ≤ 12). **Decided on Day 2:** the maximum system size is n = 24 (`kMaxComponents`; validation of a 24-component system takes about 0.3 s). The simultaneous-failure model applies its own tighter limit (see NFR-009).
 4. ~~Choose GoogleTest or Catch2~~ — **decided: GoogleTest 1.14**. JSON parsing: **nlohmann/json 3.11.3** (MIT licence), also decided on Day 2.

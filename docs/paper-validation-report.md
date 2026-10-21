@@ -7,7 +7,7 @@
 | **Reviewed** | `space_system_reliability_analyzer_project_guide.docx`, [requirements-spec.md](requirements-spec.md), [test-plan.md](test-plan.md), [user-stories.md](user-stories.md), [uml/](uml/) |
 | **Method** | Read the full paper text. Re-computed every numeric oracle in exact rational arithmetic with an independent script (brute-force subset counting, the paper's Lemma 1 recursion, the paper's Eq. (6) linear system, and closed-form integrals). Reproduced the paper's own worked example (Fig. 1). |
 
-**Result:** the core mathematics in the guide and my first-draft documents is **consistent with the paper**. The review also found **one incorrect test expectation, one outdated diagram, and several missing paper-specific requirements**. All have been corrected in the documents (v1.1). The remaining caveats are listed in §5.
+**Result:** the core mathematics in the guide and my first-draft documents is **consistent with the paper**. The review also found **one incorrect test expectation, one outdated diagram, and several missing paper-specific requirements**. All have been corrected in the documents (v1.1). A later check of the typeset PDF (2026-10-21, §6) found **a typo in the paper's own Eq. (21)**. The remaining caveats are listed in §5.
 
 ## 1. What was confirmed
 
@@ -78,9 +78,32 @@ The paper computes Ψ-derived quantities and P_{w,w′} in 512-bit arithmetic an
 
 ## 5. Remaining caveats
 
-- The PDF text extraction garbles Eq. (21). I reconstructed it as Σ_{i=w−k}^{w} C(w,k)·C(k,w−i)·(−1)^{i−w+k}/Ψ(i), and confirmed that this form (a) gives 1/(w−k) for the [Exp] case, (b) matches Eq. (6) solved directly for all 64 states, and (c) matches a closed-form integral for [LSh]. **Please still check it against the typeset PDF** before coding.
+- ~~The PDF text extraction garbles Eq. (21).~~ **Resolved on 2026-10-21 — see §6.** The typeset equation was read directly from the rendered page. It has a typo in the lower summation limit; the corrected form is used in the code.
 - I verified [Exp] and [LSh] only. [BFR] and the other LFMO models (Table I) are not independently checked.
 - The paper's Appendix proofs were read but not re-proved. The empirical results (Section VII, Table II/III) are for networks up to 30 edges in Julia and are not reproduction targets of this project.
 - The paper's repository (`github.com/guidolagos/Subsystems`) is referenced for code and computed signatures; I did not access it. It could serve as a third independent check.
 - Paper assumptions limit the tool to **identical, exchangeable** components. Non-identical components are listed by the authors as future work, so the satellite's three differently-purposed pairs are modelled as if all six units had the same lifetime law — a modelling simplification the report must state.
 - The paper's Algorithm 1 sets the all-failed state's result without calling Φ, while Theorem 2.1 says exactly 2ⁿ evaluations. The documents count Φ(**0**) as well, giving exactly 2ⁿ calls; confirm this reading when implementing the sweep.
+
+## 6. Typeset-PDF check of Eqs. (19)–(22) (2026-10-21)
+
+Page 8 of `paper3.pdf` was rendered to an image and the equations were read from it directly (the text extraction had garbled Eq. (21)).
+
+| Equation | As typeset | Status |
+|---|---|---|
+| (19) | ν_w = Ψ(w), for 0 < w ≤ n | ✅ matches |
+| (20) | P_{w₁,w₂} · 1/C(w₁, w₁−w₂) = Σ_{w=w₂}^{w₁} (−1)^{w−w₂+1} C(w₁−w₂, w₁−w) Ψ(w)/Ψ(w₁), for 0 ≤ w₂ < w₁ ≤ n | ✅ matches; rows of P sum to 1 (checked exactly) |
+| [Exp] | P_{w,w′}/C(w,w−w′) = 1{w′=w−1}/w, ν_w = wλ, increment = 1/ν_{w−k} | ✅ matches |
+| [LSh] | Ψ(x) = λ_ind·x + ω for x > 0 | ✅ matches the model used (λ_ind = 1−β, ω = β) |
+| (21) | E T_{k+1:w} − E T_{k:w} = Σ_{**i=w−k+1**}^{w} C(w,k) C(k,w−i) (−1)^{i−w+k} / Ψ(i) | ❌ **lower limit is wrong as printed** |
+
+**Why the printed Eq. (21) is wrong.** With the printed lower limit `i = w−k+1`:
+
+- for k = 0 the sum is empty, so the increment is 0 — but E T_{1:w} = 1/Ψ(w) > 0;
+- for the independent-exponential model (true increment 1/(w−k)) it returns 0, −1, −2 for w = 3, k = 0, 1, 2, and 0, −1, −5/2, −3 for w = 4.
+
+With the lower limit `i = w−k` it returns exactly 1/(w−k) for [Exp], and it equals the paper's own non-negative recursion (f^{(w)}_{w−k}/ν_{w−k}, stated after Proposition 3, with P from Eq. (20)) for the lethal-shock model, for every w ≤ 8, in exact arithmetic. It also reproduces Eq. (6) solved directly on all 64 satellite states. So the correct form is
+
+  δ_{w,k} = Σ_{i=w−k}^{w} C(w,k) · C(k, w−i) · (−1)^{i−w+k} / Ψ(i).
+
+**Consequences.** The code (`LevyFrailty::increment_eq21`) uses `w−k`; the non-negative recursion remains the primary route and Eq. (21) is its cross-check. The authors should be told about the typo if this project is discussed with them. The other equations used by this project (1), (2), (5)–(8) were already confirmed numerically through the Fig. 1 reproduction; (22) was confirmed by the lethal-shock calibration (β = 2 − Ψ(2) = θ).

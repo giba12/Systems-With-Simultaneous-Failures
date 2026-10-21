@@ -5,7 +5,7 @@ A small C++20 tool that implements the per-state signature / MTTF algorithm of L
 Failures*, arXiv:2610.22181) for a **fictional** six-component satellite-support system.
 Educational portfolio project: not a certified or flight-qualified analysis.
 
-**Status: Day 2 of the plan is complete** (state model and structure function). Everything
+**Status: Days 1–3 of the plan are complete** (documents and glossary, state model and structure function, brute-force reference). Everything
 below that line is still a skeleton: those functions throw `NotImplementedError` and their
 tests report *skipped*. Work through [../docs/project-plan.md](../docs/project-plan.md) day by day.
 
@@ -13,12 +13,12 @@ tests report *skipped*. Work through [../docs/project-plan.md](../docs/project-p
 |---|---|
 | `state` (bitmask helpers, sons, level enumeration, binomials) | done, tested |
 | `system_model` (components, Φ, JSON loader, validation, call counter) | done, tested |
-| `reference` (brute-force checker) | skeleton, next (Day 3) |
-| `signature` (Algorithm 1 sweep) | skeleton (Days 4–5) |
+| `reference` (brute-force counting vectors and minimal path sets) | done, tested (`solve_mttf_direct` waits for Day 6) |
+| `signature` (Algorithm 1 sweep) | skeleton, **next (Day 4)** |
 | `failure_model`, `mttf` | skeleton (Days 6–7) |
 | `main.cpp`, `python/` | skeleton |
 
-Test status: 53 tests, 19 passing, 34 skipped (waiting for their feature).
+Test status: 62 tests, 33 passing, 29 skipped (waiting for their feature).
 
 ## Build and test
 

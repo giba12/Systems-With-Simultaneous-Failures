@@ -33,8 +33,11 @@
 //           route 1 (preferred, all terms >= 0, paper after Prop. 3):
 //               f[w] = 1;  for v = w-1 down to 0:  f[v] = sum_{v' > v} f[v'] * P(v', v)
 //               increment(w, k) = f[w-k] / nu(w-k)
-//           route 2 (Eq. (21), alternating sum, check against the typeset PDF first):
+//           route 2 (Eq. (21), alternating sum):
 //               sum_{i=w-k..w} C(w,k) * C(k, w-i) * (-1)^(i-w+k) / Psi(i)
+//               NOTE: the paper PRINTS the lower limit as w-k+1. That is a typo (it gives 0 for
+//               k = 0, even for plain exponential lifetimes). The correct limit is w-k;
+//               see docs/paper-validation-report.md section 6.
 //
 //   make_lethal_shock(beta)     the simplest simultaneous-failure model, [LSh]
 //       require 0 <= beta <= 1
