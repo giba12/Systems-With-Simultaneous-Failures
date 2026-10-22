@@ -33,10 +33,11 @@ ctest --test-dir build --output-on-failure           # C++ tests + python_end_to
 
 | Configuration | Result |
 |---|---|
-| g++ 13.3.0, Release | **124 / 124 passed**, 0 compiler warnings |
-| clang++ 18.1.3, Release | **124 / 124 passed** (GitHub Actions run 39864780885, Ubuntu 24.04), 0 compiler warnings locally |
-| g++ 13.3.0, Debug + ASan + UBSan | **124 / 124 passed** (same run), no sanitizer report |
-| g++ 13.3.0, Release on GitHub Actions | **124 / 124 passed** (same run) |
+| g++ 13.3.0, Release (local) | **127 / 127 passed**, 0 compiler warnings |
+| clang++ 18.1.3, Release (local) | **127 / 127 passed**, 0 compiler warnings |
+| g++ 13.3.0, Release on GitHub Actions | **127 / 127 passed** (run 39870897184, commit `750bc03`, Ubuntu 24.04) |
+| clang++ 18.1.3, Release on GitHub Actions | **127 / 127 passed** (same run) |
+| g++ 13.3.0, Debug + ASan + UBSan on GitHub Actions | **127 / 127 passed** (same run, 167 s), no sanitizer report |
 | Release, `ctest` repeated 5 times | 5 × 114 / 114 (measured at an earlier commit, before the Table I models and the optimal policy; not repeated since) |
 | C++ tests, 10 repetitions × 3 shuffle seeds (1, 77, 2026) | 30 × 112 / 112 at the same earlier commit: no flakiness, no order dependence; not repeated since |
 | Python tests with only the standard library (no pandas / matplotlib) | 43 run, 8 skip themselves cleanly |
@@ -154,7 +155,7 @@ in my own expectations rather than in the code, which is itself worth recording.
 | NFR-002, NFR-003 | Met | satellite analysis 0.08 ms; practical limit measured (n = 20 in 3.2 s / 35 MB; n = 24 in 58 s / 402 MB) |
 | NFR-004 | Met | one test file per module plus extras |
 | NFR-005 | **Partly met** | g++ and clang++ on Linux/WSL; other operating systems not tried |
-| NFR-007 | **Met on Linux** | the workflow runs on GitHub Actions (g++ and clang++ in Release, and ASan/UBSan in Debug, 124 / 124 tests each); first green run: 39864780885 on commit `4fa4812`, 2026-10-22 |
+| NFR-007 | **Met on Linux** | the workflow runs on GitHub Actions (g++ and clang++ in Release, and ASan/UBSan in Debug, 127 / 127 tests each); first green run: 39864780885 on commit `4fa4812`, 2026-10-22 |
 
 ## 7. What has not been verified
 
