@@ -52,7 +52,7 @@ source is wrong and the project fixes it), **Decision** (a choice the sources le
 | D2 | Limitation | Run times are medians of 1 to 5 repeats on one laptop under WSL2 and are orders of magnitude and growth rates, not benchmarks. |
 | D3 | Limitation | In Experiment 4 verification stops at n = 14 (the brute-force reference does about 3ⁿ work); the analysis stops at n = 20. |
 | D4 | Process | **Pre-registered predictions were rejected** — two in Experiment 2, one in Experiment 4 and one in Experiment 6 in every run, plus one timing-sensitive Experiment 4 criterion that was rejected in the first run and supported on a repeat — and are reported as found; the hypothesis files were not edited afterwards. |
-| D5 | Limitation | CI runs on GitHub Actions on Ubuntu only (first green run 2026-10-22, run 39864780885). No other operating system has been tried. The workflow uses `actions/checkout@v7` and `actions/setup-python@v7` (Node.js 24 runtimes), which replaced v4 and v5 after the first runs warned about the deprecated Node.js 20 runtime. |
+| D5 | Limitation | CI runs on GitHub Actions on Ubuntu 24.04 only (pinned, so that the compiler versions quoted in the verification report stay valid) (first green run 2026-10-22, run 39864780885). No other operating system has been tried. The workflow uses `actions/checkout@v7` and `actions/setup-python@v7` (Node.js 24 runtimes), which replaced v4 and v5 after the first runs warned about the deprecated Node.js 20 runtime. |
 | D6 | Process | A fault-injection environment variable (`ANALYZE_FAULT_INJECTION`) exists in the CLI solely to test the verification itself; it acts only together with `--verify`. |
 
 ## E. Scope statements (NFR-008)
