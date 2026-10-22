@@ -6,6 +6,7 @@
 #   2. shows that two states with the same number of failures can be worth very different amounts
 #   3. shows what a common-cause failure mechanism does to the benefit of redundancy
 #   4. analyses a 20-component system (about a million states) to show the cost of exactness
+#   5. compares repair policies with the paper's cost model (its Fig. 1 example, then the satellite)
 #
 # The satellite is a FICTIONAL, educational model: not a certified or flight-qualified analysis.
 set -euo pipefail
@@ -83,5 +84,29 @@ echo "  analysis time: $(field "$WORK/big.json" "round(d['timing']['analysis_ms'
 echo "  structure function evaluations: $(field "$WORK/big.json" "d['results']['phi_calls']")  (exactly 2^20)"
 echo "  counting vectors held at once: $(field "$WORK/big.json" "d['results']['peak_vectors_held']")  (two levels, instead of all 1,048,576)"
 
+heading "5. When is a repair worth it? (the paper's cost model: replace every failed part, restoring a new system)"
+python3 - "$WORK/fig1.json" <<'PY'
+import json, sys
+json.dump({"name": "paper_fig1", "components": [{"id": f"x{i+1}", "bit": i} for i in range(3)],
+           "structure": {"type": "path_sets", "paths": [["x1", "x2"], ["x3"]]}}, open(sys.argv[1], "w"))
+PY
+"$ANALYZE" --config "$WORK/fig1.json" --c-comp 0.03333333333333333 --c-sys 1 --c-set 0 --out "$WORK/p1.json"
+echo "  the paper's Fig. 1 system (3 components, replacing a part costs 1/30 of a system failure, no set-up cost):"
+python3 - "$WORK/p1.json" <<'PY'
+import json, sys
+t = json.load(open(sys.argv[1]))["policies"]["threshold"]["policies"]
+for p, published in zip(t, ["97/105", "11/15", "1/10"]):
+    print(f"    repair when MTTF falls below {p['gamma_from']:.2f} - {p['gamma_to']:.2f} of new: cost per time {p['long_term_mean_cost']:.4f}   (paper: {published})")
+PY
+"$ANALYZE" --config configs/satellite_support.json --c-comp 0.1667 --c-sys 1 --c-set 0.2 --out "$WORK/p2.json"
+python3 - "$WORK/p2.json" <<'PY'
+import json, sys
+p = json.load(open(sys.argv[1]))["policies"]
+r = p["r_out_of_n"]
+print("  the satellite (replacing everything costs as much as one system failure, each repair visit costs 0.2):")
+print(f"    best rule: repair after {r['best_r']} failures, cost per time {r['best_long_term_mean_cost']:.4f}; "
+      f"waiting for the system to fail costs {p['corrective']['long_term_mean_cost']:.4f}")
+PY
+
 echo
-echo "Done. Reproduce the four experiments and the figures with the commands in README.md."
+echo "Done. Reproduce the five experiments and the figures with the commands in README.md."

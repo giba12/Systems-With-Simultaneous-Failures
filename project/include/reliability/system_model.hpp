@@ -22,6 +22,7 @@
 //   series(n)              : Phi(x) = (x == all_working(n))        (every component needed)
 //   parallel(n)            : Phi(x) = (x != 0)                     (any one component is enough)
 //   and_of_or_groups(g)    : Phi(x) = for every group, at least one member bit is 1
+//   or_of_and_groups(p)    : Phi(x) = for some path set, every member bit is 1   (JSON type "path_sets")
 //   from_function(n, fn)   : wrap any user function (used by tests, e.g. the paper's Fig. 1
 //                            system  max{x3, min{x1, x2}}  and random monotone systems)
 //
@@ -66,6 +67,10 @@ class SystemModel {
   static SystemModel parallel(int n);
   static SystemModel and_of_or_groups(std::vector<Component> components,
                                       const std::vector<std::vector<int>>& groups);
+  // Phi(x) = 1 if ALL components of SOME path set work (an OR of ANDs): the natural form for minimal path sets.
+  // Every path set must be non-empty and name valid bit positions.
+  static SystemModel or_of_and_groups(std::vector<Component> components,
+                                      const std::vector<std::vector<int>>& path_sets);
   static SystemModel from_function(int n, StructureFn fn);
 
   int n() const { return static_cast<int>(components_.size()); }

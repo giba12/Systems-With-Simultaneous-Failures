@@ -55,7 +55,7 @@ Derivations:
 | (1,1,0) | [1,0,0] | 3/7 ≈ 43 % |
 | (1,0,0), (0,1,0), (0,0,0) | all zero | 0 |
 
-**ORC-7 — paper Fig. 1 repair policies** (c_comp = 1/30, c_sys = 1, c_set = 0, [Exp]): the MTTF-threshold policy π_γ has LTMC = 1/10 for γ ∈ (86 %, 100 %], 11/15 for γ ∈ (43 %, 86 %], and 97/105 for γ ∈ (0, 43 %]. Reproduced exactly with Eqs. (9)–(12) in a separate validation script (not part of the delivered code; the repair-policy feature is unimplemented, so no test covers this oracle).
+**ORC-7 — paper Fig. 1 repair policies** (c_comp = 1/30, c_sys = 1, c_set = 0, [Exp]): the MTTF-threshold policy π_γ has LTMC = 1/10 for γ ∈ (86 %, 100 %], 11/15 for γ ∈ (43 %, 86 %], and 97/105 for γ ∈ (0, 43 %]. Reproduced exactly with Eqs. (9)–(12), first in a throw-away validation script and now by the delivered policy code (TC-J-01, TC-H-08, TC-G-11).
 
 **ORC-8 — reference system under the lethal-shock model [LSh]** (Ψ(x) = (1−θ)x + θ, β = θ, Ψ(1) = 1). Closed form: MTTF(**1**) = 8/(θ+3r) − 12/(θ+4r) + 6/(θ+5r) − 1/(θ+6r) with r = 1−θ (a shock time Exp(θ) racing against the pair structure with independent rate r). Verified equal to Eq. (7) with increments from Eq. (21), and to Eq. (6) solved directly, on all 64 states.
 
@@ -115,6 +115,7 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | TC-C-19 | Relabelling invariance and series-of-parallel block | Permuting component bits leaves the signature unchanged; (3-parallel) in series with 1 has signature (1/4, 1/4, 1/2, 0) | ALG-003 |
 | TC-C-20 | Satellite MTTF on **all 64 states** vs. an independent closed form | Integral formula Σⱼ C(p2,j) 2^(p2−j) (−1)^j / (λ(p1+p2+j)) for p2 healthy and p1 degraded pairs (0 if a pair is gone) agrees for several λ — no sweep and no Eq. (6) involved | REL-001 |
 | TC-C-21 | k-out-of-n:G MTTF on every state, n ≤ 9, all k | MTTF = Σ_{j=k}^{w} 1/(jλ) for a state with w ≥ k working components, else 0 | REL-001, REL-003 |
+| TC-C-22 | Operation counts (Theorem 2.3) | the sweep's **measured** integer additions equal n(n+1)2ⁿ⁻² and divisions n·2ⁿ⁻¹ exactly for n = 2…14, independent of the structure function | ALG-006 |
 | TC-C-16 | Sweep bookkeeping | The sweep resets the Φ-call counter itself; the observer sees each state once, level by level in increasing mask order; vectors are kept only on request; the peak number of live vectors equals the largest sum of two adjacent binomials | ALG-004 |
 
 ### Test D — Simultaneous failures
@@ -153,6 +154,7 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | TC-E-09 | Malformed JSON; missing required fields | CLI exits non-zero with a message naming the field | INT-004 |
 | TC-E-10 | n = 1 | Rejected (the paper requires n > 1) | SYS-001 |
 | TC-E-11 | Constant Φ (always 0 or always 1) | Rejected as trivial (needs Φ(**0**) = 0 and Φ(**1**) = 1) | SYS-001 |
+| TC-E-13 | Path-set structures (OR of ANDs) | the bridge network from its four minimal path sets, from code and JSON (`path_sets`), equals the direct definition; empty path sets, unknown ids, missing fields and an empty path-set list are rejected | SYS-001, SYS-003 |
 | TC-E-12 | Structure with an irrelevant component (e.g. Φ ignores x₃) | **Accepted**; the irrelevant component never appears in a minimal path set; recursive = brute force | SYS-001, SYS-002 |
 
 ### Test F — Numerical checks
@@ -189,8 +191,10 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | TC-H-03 | Documentation review | Limitations, complexity, deviations, fictional-system label and the reproduced-vs-new separation are present | DOC-001, DOC-002, NFR-008 |
 | TC-H-04 | CLI end-to-end | `analyze --config configs/satellite_support.json` writes results with exit code 0; JSON fields, per-state records, `--out`, determinism apart from `timing`, all three failure models, failure model from the config file with the command line winning | INT-001, INT-003 |
 | TC-H-05 | CLI errors | Invalid input → exit 1 with a message naming the problem (missing file, malformed JSON, n = 1, duplicate id, missing/invalid β or λ, unwritable output, n > 16 for the simultaneous-failure models); usage errors → exit 2 | INT-004 |
+| TC-H-08 | CLI repair policies | `--c-comp/--c-sys/--c-set` reproduce the paper's Fig. 1 costs through the tool; no policies without costs; works for every failure model; giving only some of the three flags is a usage error (2); negative costs and n > 14 are input errors (1) | EXP-004, INT-001 |
 | TC-H-07 | Traceability is machine-checked | `project/tools/check_traceability.py` finds no problem: every requirement has a test case, every matrix entry exists, every test case carries a tag in test code or is classified as verified another way; it runs under ctest | VER-003 |
 | TC-H-06 | The verification can fail | With a labelled fault injected (miscounted vector or drifting MTTF) `--verify` exits 3, still writes the JSON, names the first mismatching state, and an impossible vector is a failed verification, not a crash; the injection does nothing without `--verify` | VER-001, INT-004 |
+| TC-G-11 | Experiment 5 | covers 6 × 45 cost-grid analyses (satellite under three models, three asymmetric systems) plus the paper's Fig. 1 setting (97/105, 11/15, 1/10); c_sys = 1, c_comp = ρ/n, c_set = σ in every run; all pre-registered predictions are evaluated deterministically | EXP-002, EXP-004 |
 | TC-G-10 | The Python layer never re-implements the algorithm | `run_experiments.py` imports only the standard library; the saved raw results are exactly what `analyze` printed for the same inputs | INT-002 |
 | TC-G-08 | Experiment runner and results | Refuses to run without a (non-empty) hypothesis; copies it and records its SHA-256; results carry settings, seed, tool version; `hypothesis_written_before_run`; the deterministic file is byte-identical across runs for all four experiments; an explicit bad `--analyze` path is an error | EXP-001, EXP-002, NFR-006 |
 | TC-G-09 | Analysis and plots | Verdict file with a SUPPORTED/REJECTED line per prediction; results without provenance are refused; the four figures are drawn from the copied tables alone (valid PNGs, no subprocess use) | EXP-003 |
@@ -204,13 +208,16 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | TC-I-03 | Minimal path sets: states with W₀ = 1 and W₁ = 0 | Equals the set of minimal path sets from an independent enumeration; reference system → 8 sets of size 3 | VER-004, SYS-002 |
 | TC-I-04 | The converse of Theorem 5 is false | Deterministic counterexample: 6-component system with minimal path sets {0,5}, {3,4}, {1,4}, {3}, {0,1,3,5}; states x = mask 15 (W = [1,3,3,1,0], MTTF 1) and y = mask 51 (W = [1,4,2,0,0], MTTF 3/4) have crossing tail signatures yet m(x) > m(y). Crossings do not occur in systems with fewer than 5 components | VER-004 |
 
-### Test J — Repair policies (only if EXP-004 is implemented, P2)
+### Test J — Repair policies (optional P2, EXP-004; implemented on Day 9+)
 
 | ID | Setup | Expected | Req |
 |---|---|---|---|
-| TC-J-01 | Fig. 1 system, [Exp], c_comp = 1/30, c_sys = 1, c_set = 0 | LTMC = 1/10, 11/15, 97/105 for the three distinct thresholds (ORC-7) | EXP-004 |
-| TC-J-02 | All breakpoints of γ ↦ LTMC_γ are evaluated | The best threshold equals the minimum over all distinct values of m(x)/m(**1**); a search that stops at the first cost increase must not be used | EXP-004 |
-| TC-J-03 | γ → 0 and γ = 1 | γ → 0 is corrective maintenance (repair only after failure); γ = 1 repairs at the first failure of a relevant component | EXP-004 |
+| TC-J-01 | Fig. 1 system, [Exp], c_comp = 1/30, c_sys = 1, c_set = 0 | exactly three threshold policies with γ-intervals (0, 3/7], (3/7, 6/7], (6/7, 1] and LTMC = 97/105, 11/15, 1/10 (ORC-7); repairing at the first failure is cheapest; cycle length 7/6 | EXP-004 |
+| TC-J-02 | All breakpoints of γ ↦ LTMC_γ are evaluated | one policy per distinct operational MTTF ratio (4 for the satellite); the best is the minimum over all of them. A **non-unimodal** example (8 components, path sets 90, 203, 22, 41, ρ = 10, σ = 0): three local minima; a search that decreases γ from 1 and stops at the first rise ends at policy 8 and misses the optimum (policy 6) by 0.15 % | EXP-004 |
+| TC-J-03 | γ → 0, γ = 1, r = n | γ → 0 is corrective maintenance; γ = 1 is the r = 1 policy on systems whose components are all relevant; r = n is corrective maintenance | EXP-004 |
+| TC-J-04 | Closed forms from the **signature** (independent exponential lifetimes) | corrective: LTMC = (c_set + c_sys + c_comp Σ k·sₖ) / MTTF; r-out-of-n for every r: the cycle ends at failure min(K, r), so length = Σ sₖ E T_{min(k,r):n}, cost = c_set + c_comp Σ sₖ min(k,r) + c_sys Σ_{k≤r} sₖ; both agree with the policy evaluator to 1e-12 on the satellite, Fig. 1, the bridge and random systems | EXP-004 |
+| TC-J-05 | Scaling laws, preconditions, simultaneous failures | costs × 2 → LTMC × 2; λ × 2 → length ÷ 2, LTMC × 2; zero costs → 0; corrective cycle length = MTTF under [Exp], [LSh], [BFR]; invalid policies (repair at the all-working state, no repair at a failed state, wrong size), negative or non-finite costs, r or γ out of range, n > 14 → ModelError | EXP-004 |
+| TC-J-06 | The paper's **Proposition 3** as an independent route | for every threshold policy of the satellite, Fig. 1, the bridge and 10 random systems, under [Exp], [LSh] and [BFR] and three cost sets (> 300 policies): cycle length and cost equal T, c_set + c_comp N + c_sys P computed from state-occupation times without any policy recursion (1e-9) | EXP-004 |
 
 ## 4. Test data
 
@@ -229,9 +236,9 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 
 | Requirement | Test cases |
 |---|---|
-| SYS-001 | TC-C-11, TC-E-01, TC-E-04, TC-E-10, TC-E-11, TC-E-12 |
+| SYS-001 | TC-C-11, TC-E-01, TC-E-04, TC-E-10, TC-E-11, TC-E-12, TC-E-13 |
 | SYS-002 | TC-C-10, TC-E-12, TC-I-03 |
-| SYS-003 | TC-C-12, TC-E-02, TC-E-03 |
+| SYS-003 | TC-C-12, TC-E-02, TC-E-03, TC-E-13 |
 | SYS-004 | TC-A-01, TC-B-01, TC-C-02 |
 | SYS-005 | TC-E-05, TC-E-06 |
 | ALG-001 | TC-A-01, TC-C-01 |
@@ -239,7 +246,7 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | ALG-003 | TC-A-03, TC-B-03, TC-C-06, TC-C-14, TC-C-17, TC-C-18, TC-C-19, TC-F-02 |
 | ALG-004 | TC-C-09, TC-C-16 |
 | ALG-005 | TC-C-03 (plus code inspection) |
-| ALG-006 | TC-G-06 |
+| ALG-006 | TC-G-06, TC-C-22 |
 | REL-001 | TC-A-04, TC-B-04, TC-B-05, TC-C-07, TC-C-08, TC-C-14, TC-C-20, TC-C-21, TC-F-03, TC-F-08 |
 | REL-002 | TC-D-02, TC-D-03, TC-D-04, TC-D-05, TC-D-06, TC-D-07, TC-D-09 … TC-D-14 |
 | REL-003 | TC-A-04, TC-E-07, TC-F-04 |
@@ -250,12 +257,12 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | VER-003 | TC-H-07 (the generated matrix in [traceability-matrix.md](traceability-matrix.md)) |
 | VER-004 | TC-I-01, TC-I-02, TC-I-03, TC-I-04 |
 | EXP-001 | TC-F-05, TC-G-01 |
-| EXP-002 | TC-G-02, TC-G-04, TC-G-05, TC-G-06, TC-G-07 |
+| EXP-002 | TC-G-02, TC-G-04, TC-G-05, TC-G-06, TC-G-07, TC-G-11 |
 | EXP-003 | TC-G-03 |
-| EXP-004 (P2) | TC-J-01, TC-J-02, TC-J-03 (only after the core is verified) |
+| EXP-004 (P2) | TC-J-01 … TC-J-06, TC-G-11, TC-H-08 |
 | DOC-001 | TC-H-03 |
 | DOC-002 | TC-H-03 |
-| INT-001, INT-003 | TC-H-04 |
+| INT-001, INT-003 | TC-H-04, TC-H-08 |
 | INT-002 | TC-G-10 |
 | INT-004 | TC-E-09 |
 | NFR-001 | TC-H-03 (tolerances documented in [verification-report.md](verification-report.md)) |

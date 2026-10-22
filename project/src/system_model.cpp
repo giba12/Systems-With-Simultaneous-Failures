@@ -99,6 +99,7 @@ std::string string_field(const json& object, const char* key, std::string_view w
 //   components = require "components": a non-empty array of {id, bit, [name], [role]}
 //   structure  = require "structure" with a "type":
 //       "and_of_or_groups": groups = array of arrays of component ids -> convert ids to bits
+//       "path_sets"       : paths = array of arrays of component ids (Phi = some path set fully works)
 //       "series"          : every component is its own group
 //       "parallel"        : one group holding every component
 //       anything else     : ModelError("unknown structure type ...")
@@ -163,6 +164,36 @@ SystemModel build_from_json(const json& doc) {
       }
       groups.push_back(std::move(bits));
     }
+  } else if (type == "path_sets") {
+    std::unordered_map<std::string, int> bit_of;
+    for (const Component& c : components) {
+      bit_of.emplace(c.id, c.bit);
+    }
+    const json& path_list = require_field(structure, "paths", "'structure'");
+    if (!path_list.is_array()) {
+      throw ModelError("field 'paths' in 'structure' must be an array of arrays of component ids");
+    }
+    std::vector<std::vector<int>> paths;
+    for (const json& path : path_list) {
+      if (!path.is_array()) {
+        throw ModelError("every entry of 'paths' must be an array of component ids");
+      }
+      std::vector<int> bits;
+      for (const json& id : path) {
+        if (!id.is_string()) {
+          throw ModelError("component ids in 'paths' must be strings");
+        }
+        const auto it = bit_of.find(id.get<std::string>());
+        if (it == bit_of.end()) {
+          throw ModelError("structure refers to unknown component id '" + id.get<std::string>() + "'");
+        }
+        bits.push_back(it->second);
+      }
+      paths.push_back(std::move(bits));
+    }
+    SystemModel model = SystemModel::or_of_and_groups(std::move(components), paths);
+    model.validate();
+    return model;
   } else if (type == "series") {
     for (int i = 0; i < n; ++i) {
       groups.push_back({i});
@@ -175,7 +206,7 @@ SystemModel build_from_json(const json& doc) {
     groups.push_back(std::move(all));
   } else {
     throw ModelError("unknown structure type '" + type +
-                     "' (expected and_of_or_groups, series or parallel)");
+                     "' (expected and_of_or_groups, path_sets, series or parallel)");
   }
 
   SystemModel model = SystemModel::and_of_or_groups(std::move(components), groups);
@@ -257,6 +288,38 @@ SystemModel SystemModel::and_of_or_groups(std::vector<Component> components,
   model.components_ = std::move(components);
   model.structure_ = [masks = std::move(masks)](StateMask x) {
     return std::all_of(masks.begin(), masks.end(), [x](StateMask m) { return (x & m) != 0U; });
+  };
+  return model;
+}
+
+// ALGORITHM
+//   check and sort the components; every path set is a non-empty list of valid bit positions
+//   path_mask[p] = OR of (1 << bit) over the members of path set p
+//   structure = x -> some p has (x & path_mask[p]) == path_mask[p]
+SystemModel SystemModel::or_of_and_groups(std::vector<Component> components,
+                                          const std::vector<std::vector<int>>& path_sets) {
+  normalise_components(components);
+  const int n = static_cast<int>(components.size());
+  std::vector<StateMask> masks;
+  masks.reserve(path_sets.size());
+  for (std::size_t p = 0; p < path_sets.size(); ++p) {
+    if (path_sets[p].empty()) {
+      throw ModelError("path set " + std::to_string(p) + " is empty (it would make the system always work)");
+    }
+    StateMask mask = 0;
+    for (int bit : path_sets[p]) {
+      if (bit < 0 || bit >= n) {
+        throw ModelError("path set " + std::to_string(p) + " refers to bit " + std::to_string(bit) +
+                         " but the components use bits 0.." + std::to_string(n - 1));
+      }
+      mask |= StateMask{1} << bit;
+    }
+    masks.push_back(mask);
+  }
+  SystemModel model;
+  model.components_ = std::move(components);
+  model.structure_ = [masks = std::move(masks)](StateMask x) {
+    return std::any_of(masks.begin(), masks.end(), [x](StateMask m) { return (x & m) == m; });
   };
   return model;
 }

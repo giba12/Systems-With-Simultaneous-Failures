@@ -15,7 +15,8 @@ change when one event can fail several components at once?*
   per state, for independent failures and for common-cause failures (lethal shock, binomial failure rate);
 * checks every answer against an **independent brute-force implementation**, a second equation, closed forms and the
   paper's own worked example;
-* runs **four experiments whose hypotheses were committed before they were run**, and reports the predictions that failed.
+* compares **repair policies** (when to replace failed parts) using the paper's cost model;
+* runs **five experiments whose hypotheses were committed before they were run**, and reports the predictions that failed.
 
 | | |
 |---|---|
@@ -23,7 +24,8 @@ change when one event can fail several components at once?*
 | Two failures, different units | MTTF **0.417** if the failed units are in different pairs, **0** if they are partners |
 | Common cause (β = 0.5), benefit of redundancy | 4.20 → **3.20** (lethal shock), **1.50** (binomial failure rate) |
 | 20 components, 1 048 576 states | analysed exactly in about 3 s and 35 MB |
-| Pre-registered predictions | 36 of 40 supported in the first run, 37 in a repeat; **3 rejections are stable** (a 4th is timing noise) and reported as found |
+| Repair policies (small asymmetric systems) | the MTTF-threshold policy saves up to 8.8 – 23.5 % over "repair after r failures"; on the symmetric satellite the two coincide |
+| Pre-registered predictions | 44 of 48 supported in the first run; **3 rejections are stable** (a 4th is timing noise) and reported as found |
 
 ![Common-cause failures erode the benefit of redundancy](docs/figures/fig2_common_cause.png)
 
@@ -35,7 +37,7 @@ configure downloads GoogleTest and nlohmann/json.
 ```bash
 cmake -S project -B project/build -DCMAKE_BUILD_TYPE=Release
 cmake --build project/build --parallel
-ctest --test-dir project/build --output-on-failure     # 101 tests
+ctest --test-dir project/build --output-on-failure     # 114 tests
 project/demo.sh                                         # a two-minute tour (see docs/demo.md)
 ```
 
@@ -44,6 +46,8 @@ Analyse a system yourself:
 ```bash
 project/build/analyze --config project/configs/satellite_support.json --verify
 project/build/analyze --config project/configs/satellite_support.json --model lsh --beta 0.5 --per-state --out result.json
+# compare repair policies: component cost, system-failure cost, set-up cost
+project/build/analyze --config project/configs/satellite_support.json --c-comp 0.1 --c-sys 1 --c-set 0.05
 ```
 
 ## Reproduce the experiments and figures
@@ -81,10 +85,10 @@ result files are byte-identical when the experiments are repeated.
 
 ## Honest status
 
-Built and tested on Linux (WSL2) with g++ 13.3 and clang++ 18.1: no compiler warnings, 101/101 tests, sanitizer-clean.
+Built and tested on Linux (WSL2) with g++ 13.3 and clang++ 18.1: no compiler warnings, 114/114 tests, sanitizer-clean.
 The CI workflow has been validated and executed locally but has **not yet run on a CI service**. The simultaneous-failure
-models are limited to 16 components (numerical precision). The paper's repair-policy part is not implemented. Components
-are assumed identical, as in the paper. See the [deviation log](docs/deviation-log.md) for the complete list.
+models are limited to 16 components (numerical precision) and repair policies to 14. The paper's optimal state-based policy
+is not implemented, and the repair-policy results come from tiny systems. Components are assumed identical, as in the paper. See the [deviation log](docs/deviation-log.md) for the complete list.
 
 ## Licence
 

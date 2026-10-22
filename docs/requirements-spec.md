@@ -180,4 +180,5 @@ C++ implementation of the recursive algorithm · baseline MTTF and, if completed
 3. Fix the numerical tolerance (suggest 1e-9 with `double` for n ≤ 12). **Decided on Day 2:** the maximum system size is n = 24 (`kMaxComponents`; validation of a 24-component system takes about 0.3 s). **Decided on Day 7:** the Lévy-frailty models apply their own limit of n = 16, set from measurements (see NFR-009).
 4. ~~Choose GoogleTest or Catch2~~ — **decided: GoogleTest 1.14**. JSON parsing: **nlohmann/json 3.11.3** (MIT licence), also decided on Day 2.
 5. Decide whether to use the authors' repository (`github.com/guidolagos/Subsystems`) as a third independent check.
+7. **EXP-004 (optional P2) was implemented on 2026-10-22** as a simpler direct evaluation (n ≤ 14), with every threshold breakpoint searched; the paper's optimal state-based policy (§V-B) and single-pass evaluation (Proposition 3 over classes) are not implemented. See the deviation log (A7).
 6. Confirm the reading of Algorithm 1 regarding the all-failed state: the paper sets its result without calling Φ, while Theorem 2.1 says exactly 2ⁿ evaluations. This specification counts Φ(**0**) too (exactly 2ⁿ calls).

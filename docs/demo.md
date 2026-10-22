@@ -6,9 +6,9 @@ A two-minute tour of the analyzer. It needs only a C++ compiler, CMake and `pyth
 project/demo.sh
 ```
 
-The script builds the tool on the first run, then walks through four steps: the fictional satellite and its
+The script builds the tool on the first run, then walks through five steps: the fictional satellite and its
 independent verification; two states with the same number of failures and very different futures; what common-cause
-failures do to the benefit of redundancy; and the cost of analysing a million states exactly.
+failures do to the benefit of redundancy; the cost of analysing a million states exactly; and when a repair is worth it.
 
 Captured output (the analysis times in step 4 vary by machine; everything else is deterministic):
 
@@ -35,11 +35,19 @@ Captured output (the analysis times in step 4 vary by machine; everything else i
   (absolute lifetime can rise under common cause, but redundancy is worth less relative to a series system)
 
 === 4. The price of exactness: 20 components = 1,048,576 states, every one analysed ===
-  analysis time: 3.19 s, peak memory: 34.5 MB
+  analysis time: 7.85 s, peak memory: 34.7 MB
   structure function evaluations: 1048576  (exactly 2^20)
   counting vectors held at once: 352716  (two levels, instead of all 1,048,576)
 
-Done. Reproduce the four experiments and the figures with the commands in README.md.
+=== 5. When is a repair worth it? (the paper's cost model: replace every failed part, restoring a new system) ===
+  the paper's Fig. 1 system (3 components, replacing a part costs 1/30 of a system failure, no set-up cost):
+    repair when MTTF falls below 0.00 - 0.43 of new: cost per time 0.9238   (paper: 97/105)
+    repair when MTTF falls below 0.43 - 0.86 of new: cost per time 0.7333   (paper: 11/15)
+    repair when MTTF falls below 0.86 - 1.00 of new: cost per time 0.1000   (paper: 1/10)
+  the satellite (replacing everything costs as much as one system failure, each repair visit costs 0.2):
+    best rule: repair after 2 failures, cost per time 2.0002; waiting for the system to fail costs 2.4763
+
+Done. Reproduce the five experiments and the figures with the commands in README.md.
 ```
 
 What to notice:
@@ -51,5 +59,7 @@ What to notice:
   six components in series (4.20 → 3.20 → 1.50). The binomial model hurts more than the lethal shock at the same beta —
   a prediction I had made the other way round (see the [experiment report](experiment-report.md)).
 * **Step 4.** 2²⁰ states analysed exactly in about three seconds, holding about a third of the vectors at once.
+* **Step 5.** The paper's own Fig. 1 repair-policy costs (97/105, 11/15, 1/10) come out of the delivered code; on the
+  satellite, repairing after the second failure beats waiting for the system to fail.
 
 The satellite is a **fictional** educational model.

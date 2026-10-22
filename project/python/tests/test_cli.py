@@ -36,12 +36,14 @@ class AnalyzeCli(unittest.TestCase):
         self.assertEqual(results["operational_states"], 27)
         self.assertEqual(len(results["minimal_path_sets"]), 8)
         self.assertEqual(results["phi_calls"], 64)
+        self.assertEqual(results["integer_additions"], 672)   # n (n+1) 2^(n-2), paper Theorem 2.3
+        self.assertEqual(results["integer_divisions"], 192)    # n 2^(n-1)
         self.assertEqual(output["system"]["n"], 6)
         self.assertEqual(output["system"]["total_states"], 64)
         self.assertEqual(output["failure_model"]["type"], "independent_exponential")
         self.assertEqual(output["tool"]["name"], "analyze")
         self.assertRegex(output["tool"]["version"], r"^\d+\.\d+\.\d+$")
-        self.assertEqual({"analysis_ms", "verification_ms", "total_ms", "peak_rss_kb"}, set(output["timing"]))
+        self.assertEqual({"analysis_ms", "verification_ms", "policies_ms", "total_ms", "peak_rss_kb"}, set(output["timing"]))
         self.assertGreater(output["timing"]["peak_rss_kb"], 0)
 
     # Traceability: TC-H-04
@@ -89,6 +91,47 @@ class AnalyzeCli(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(out, "")
         self.assertEqual(without_timing(json.loads(target.read_text())), without_timing(run_json("--config", SATELLITE)))
+
+    # ---- repair policies -------------------------------------------------------------------------------------
+    def fig1_config(self):
+        return write_json(self.dir / "fig1.json", {
+            "name": "paper_fig1", "components": [{"id": f"x{i + 1}", "bit": i} for i in range(3)],
+            "structure": {"type": "path_sets", "paths": [["x1", "x2"], ["x3"]]}})
+
+    # Traceability: TC-H-08
+    def test_policies_reproduce_the_papers_figure_one(self):
+        output = run_json("--config", self.fig1_config(), "--c-comp", "0.03333333333333333", "--c-sys", "1", "--c-set", "0")
+        policies = output["policies"]
+        costs = [p["long_term_mean_cost"] for p in policies["threshold"]["policies"]]
+        for got, want in zip(costs, [97 / 105, 11 / 15, 1 / 10]):
+            self.assertAlmostEqual(got, want, places=12)
+        self.assertEqual(policies["threshold"]["policy_count"], 3)
+        self.assertEqual(policies["threshold"]["best_index"], 2)
+        self.assertEqual(policies["r_out_of_n"]["best_r"], 1)
+        self.assertAlmostEqual(policies["corrective"]["long_term_mean_cost"], 97 / 105, places=12)
+        self.assertAlmostEqual(policies["corrective"]["mean_cycle_length"], 7 / 6, places=12)
+        self.assertIn("policies_ms", output["timing"])
+
+    # Traceability: TC-H-08
+    def test_policies_are_absent_without_costs_and_work_for_every_failure_model(self):
+        self.assertIsNone(run_json("--config", SATELLITE)["policies"])
+        for model_args in ([], ["--model", "lsh", "--beta", "0.3"], ["--model", "bfr", "--beta", "0.3"]):
+            output = run_json("--config", SATELLITE, *model_args, "--c-comp", "0.1", "--c-sys", "1", "--c-set", "0.05")
+            p = output["policies"]
+            self.assertEqual(p["threshold"]["policy_count"], 4)
+            self.assertEqual(len(p["r_out_of_n"]["policies"]), 6)
+            self.assertGreater(p["corrective"]["long_term_mean_cost"], 0)
+            self.assertAlmostEqual(p["threshold"]["best_long_term_mean_cost"],
+                                   p["threshold"]["policies"][p["threshold"]["best_index"]]["long_term_mean_cost"], places=15)
+
+    # Traceability: TC-H-08
+    def test_policy_option_errors(self):
+        self.assert_fails(["--config", SATELLITE, "--c-comp", "0.1"], 2, "must be given together")
+        self.assert_fails(["--config", SATELLITE, "--c-comp", "0.1", "--c-sys", "1"], 2, "must be given together")
+        self.assert_fails(["--config", SATELLITE, "--c-comp", "-1", "--c-sys", "1", "--c-set", "0"], 1,
+                          "repair costs must be finite and non-negative")
+        big = self.config("fifteen", [f"C{i}" for i in range(15)], {"type": "parallel"})
+        self.assert_fails(["--config", big, "--c-comp", "0.1", "--c-sys", "1", "--c-set", "0"], 1, "between 2 and 14")
 
     # ---- the verification must really fail when something is wrong ---------------------------------------
     # Traceability: TC-H-06

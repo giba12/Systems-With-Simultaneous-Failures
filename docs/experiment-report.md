@@ -2,12 +2,12 @@
 
 | | |
 |---|---|
-| **Date** | 2026-10-21 |
+| **Date** | 2026-10-21 (Experiment 5: 2026-10-22) |
 | **Tool** | `analyze` 0.8.0 (Release build, one core) |
 | **Machine** | Intel Core i7-9750H @ 2.6 GHz, WSL2 Linux, Python 3.12.3 |
-| **Seed** | 20261021 (recorded; all four experiments are deterministic, no random numbers are drawn) |
-| **Hypotheses** | [`project/experiments/hypotheses/`](../project/experiments/hypotheses/), committed as `0a3e51c` **before** the experiment runner existed |
-| **Raw results** | `project/results/exp*/` (not committed; regenerate with the commands in §7) |
+| **Seed** | 20261021 (recorded; all five experiments are deterministic, no random numbers are drawn) |
+| **Hypotheses** | [`project/experiments/hypotheses/`](../project/experiments/hypotheses/), committed as `0a3e51c` (Experiments 1–4) and `91cc7bf` (Experiment 5) **before** the corresponding experiment code existed |
+| **Raw results** | `project/results/exp*/` (not committed; regenerate with the commands in §8) |
 
 This report separates what **reproduces the paper** from what is **new**, states every prediction that was
 **rejected**, and lists the deviations and limits. The system is a **fictional** educational model: nothing here
@@ -21,7 +21,9 @@ is flight-qualified or a claim about any real spacecraft.
 | Algorithm 1 uses exactly 2ⁿ evaluations of Φ and two levels of memory (Theorem 2) | **Reproduced** in Experiment 4 |
 | Lemma 4 (monotone MTTF), Theorem 5 (dominance ⇒ MTTF order) | **Reproduced** by property tests; its converse is shown false with a concrete example (new) |
 | Eq. (21) | **Corrected**: the printed lower summation limit is a typo (see the validation report §6) |
-| Experiments 1–4 on the fictional satellite | **New**, designed for this project (the premise of Experiment 3 is the paper's motivating observation) |
+| The paper's repair-policy cost model (Eqs. (9)–(13)) and its Fig. 1 costs 97/105, 11/15, 1/10 | **Reproduced** by the delivered policy code, which agrees with the paper's independent Proposition 3 on more than 300 policies under three failure models |
+| That the cost curve over the threshold γ is not unimodal | **Reproduced** with a concrete 8-component example (found by random search) |
+| Experiments 1–5 on the fictional satellite and the small asymmetric systems | **New**, designed for this project (the premise of Experiment 3 is the paper's motivating observation) |
 | Comparison of the lethal-shock and binomial-failure-rate models on a multi-pair system | **New** |
 
 ## 2. How the experiments were run
@@ -157,12 +159,73 @@ So of the 40 checks, **3 rejections are stable across both runs** (the binomial-
 closeness, and the "100× slower" verification) and one more flips with timing noise. Predictions about run times should
 be read with that in mind; the structural ones do not vary.
 
-## 7. Reproducing everything
+## 7. Experiment 5 — Repair policies &nbsp;·&nbsp; 8 of 8 predictions supported
+
+![Which components failed matters for repair decisions](figures/fig5_repair_policies.png)
+
+Costs follow the paper: a system failure costs 1, replacing every component costs ρ (so ρ/n per component), and each
+repair visit costs σ. For each of 45 (ρ, σ) pairs the policies compared are corrective maintenance (repair only after the
+system fails), every "repair after r failures" rule, and **every** MTTF-threshold policy (one per distinct operational
+MTTF ratio; the paper warns the cost curve is not unimodal, and a concrete example is pinned in the tests).
+
+**Reproduction.** For the paper's Fig. 1 system with c_comp = 1/30, c_sys = 1, c_set = 0 the three threshold policies cost
+97/105, 11/15 and 1/10, as published; repairing at the first failure is cheapest.
+
+**Predictions (all supported):**
+
+| # | Prediction | Result |
+|---|---|---|
+| 1 | on the satellite the threshold family *is* the r-out-of-n family (derived by symmetry) | identical best costs in all 135 combinations (3 failure models × 45 cost pairs), exactly 4 distinct threshold policies |
+| 2 | cheap components, no set-up cost: repair at the first failure | best r = 1 at ρ = 0.1, σ = 0 |
+| 3 | expensive components: never repair early | at ρ = 10 corrective maintenance is best for every σ |
+| 4 | set-up costs group replacements | the best r never decreases as σ grows, for every ρ |
+| 5 | on asymmetric systems the threshold policy is never worse and sometimes better | never worse in any of 135 combinations; the saving over the best r-out-of-n rule reaches 8.8 % (Fig. 1 system), 17.3 % (bridge) and 23.5 % (8-component system) |
+
+The satellite's best policy by cost pair (independent model; the number is the failures tolerated before repairing,
+4 = only after the system fails):
+
+| σ \ ρ | 0.1 | 0.2 | 0.5 | ⅔ | 1 | 1⅓ | 2 | 4 | 10 |
+|---|---|---|---|---|---|---|---|---|---|
+| 0.5 | 2 | 2 | 3 | 3 | 3 | 3 | 3 | 4 | 4 |
+| 0.2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 3 | 4 |
+| 0.1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 4 |
+| 0.05 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 4 |
+| 0 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 4 |
+
+Savings of the best threshold policy over the best r-out-of-n rule on the asymmetric systems (45 cost pairs each):
+
+| System | Median saving | Largest | Cost pairs above 0.1 % |
+|---|---|---|---|
+| Paper's Fig. 1 system (n = 3) | 0 % | 8.8 % | 22 |
+| Bridge network (n = 5) | 4.0 % | 17.3 % | 37 |
+| 8-component system | 7.3 % | 23.5 % | 45 |
+
+**How much weight these results carry.**
+
+* Prediction 1 is a consequence of symmetry, so its support is a check of the implementation, not a discovery. Predictions
+  2–4 are what common sense suggests and were not hard to meet.
+* The 8-component system was **chosen because a random search found a non-unimodal cost curve on it**; its savings are
+  not representative of 8-component systems. All three asymmetric systems are tiny. The paper's median saving of 4.2 % on
+  22 benchmark networks of up to 30 components is a different population; the numbers here must not be compared with it.
+* The policy costs were checked independently: closed forms from the system signature (corrective maintenance and every
+  r-out-of-n policy), and the paper's own Proposition 3 for every threshold policy under all three failure models. The
+  optimal state-based policy (paper §V-B) was **not** implemented, so nothing here says how far the best threshold policy
+  is from the optimum.
+
+**Observation not pre-registered.** Under both common-cause models (β = 0.2) the best policy at high set-up cost
+tolerates one more failure than under independent failures (at ρ = 0.1, σ = 0.5: r = 3 instead of 2). No explanation was
+tested.
+
+**Limits.** Policies are evaluated by enumerating sub-states (about 3ⁿ work per policy), so the tool accepts n ≤ 14; the
+paper's single-pass evaluation of all thresholds (Proposition 3 with classes of equal counting vectors) is not implemented.
+At these sizes (n ≤ 8) the policy comparison took at most about 8 ms per cost pair.
+
+## 8. Reproducing everything
 
 ```bash
 cmake -S project -B project/build -DCMAKE_BUILD_TYPE=Release && cmake --build project/build
 cd project
-python3 python/run_experiments.py all                  # raw results into results/
+python3 python/run_experiments.py all                  # raw results into results/ (all five experiments)
 .venv/bin/python python/analyze_results.py             # tables and hypothesis_check.md
 .venv/bin/python python/plot_results.py                # figures into results/figures
 ```
@@ -170,7 +233,7 @@ python3 python/run_experiments.py all                  # raw results into result
 (`.venv` holds pandas and matplotlib; `python3 -m venv .venv && .venv/bin/pip install -r python/requirements.txt`.)
 The deterministic result files are byte-identical on a repeat run; run times and memory differ slightly.
 
-## 8. Limitations and deviation log
+## 9. Limitations and deviation log
 
 * **Identical components.** The paper's model requires exchangeable (identical) components, so the three pairs of the
   satellite are modelled with the same lifetime law; real power, communication and computing units would differ.

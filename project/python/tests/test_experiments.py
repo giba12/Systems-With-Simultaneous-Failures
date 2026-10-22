@@ -69,7 +69,7 @@ class ExperimentRunner(unittest.TestCase):
     # TC-G-01: the deterministic result file is byte-identical across runs
     # Traceability: TC-G-08
     def test_results_are_reproducible_byte_for_byte(self):
-        names = ["exp1", "exp2", "exp3", "exp4"]
+        names = ["exp1", "exp2", "exp3", "exp4", "exp5"]
         self.run_into("first", names, max_n=8)
         self.run_into("second", names, max_n=8)
         for name in names:
@@ -130,6 +130,27 @@ class ExperimentRunner(unittest.TestCase):
         self.assertTrue(all(run["verification_ms"] is not None for run in timing["runs"]))  # n <= 14: verified
 
     # Traceability: TC-G-08
+    # Traceability: TC-G-11
+    def test_experiment_5_covers_the_cost_grid_and_the_paper_reproduction(self):
+        self.run_into("out", ["exp5"])
+        data = json.loads((self.root / "out" / "exp5" / "exp5.json").read_text())
+        grid = [item for item in data["raw_results"] if item["label"] != "fig1_paper_costs"]
+        self.assertEqual(len(grid), (3 + 3) * 45)  # satellite under 3 models + 3 asymmetric systems, 45 cost pairs each
+        self.assertEqual({item["label"] for item in grid}, {"satellite", "fig1", "bridge", "eight"})
+        self.assertEqual(sorted({item["rho"] for item in grid}), sorted(runner.RHOS))
+        self.assertEqual(sorted({item["sigma"] for item in grid}), sorted(runner.SIGMAS))
+        # the cost setting of the paper's Fig. 1: three threshold policies, 97/105, 11/15, 1/10
+        paper = [item for item in data["raw_results"] if item["label"] == "fig1_paper_costs"][0]
+        costs = [p["long_term_mean_cost"] for p in paper["output"]["policies"]["threshold"]["policies"]]
+        for got, want in zip(costs, [97 / 105, 11 / 15, 1 / 10]):
+            self.assertAlmostEqual(got, want, places=12)
+        # every run used c_sys = 1 and c_comp = rho / n
+        for item in grid:
+            c = item["output"]["policies"]["costs"]
+            self.assertEqual(c["system"], 1.0)
+            self.assertAlmostEqual(c["component"], item["rho"] / item["output"]["system"]["n"], places=15)
+            self.assertAlmostEqual(c["setup"], item["sigma"], places=15)
+
     def test_command_line_runs_and_reports_errors(self):
         self.assertEqual(runner.main(["exp3", "--analyze", ANALYZE, "--out", str(self.root / "cli")]), 0)
         self.assertTrue((self.root / "cli" / "exp3" / "exp3.json").is_file())
@@ -144,11 +165,11 @@ class AnalysisAndPlots(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.root = Path(cls.tmp.name)
-        for name in ("exp1", "exp2", "exp3", "exp4"):
+        for name in ("exp1", "exp2", "exp3", "exp4", "exp5"):
             runner.run_experiment(name, ANALYZE, cls.root, HYPOTHESES, runner.DEFAULT_SEED, max_n=12)
         import analyze_results
         cls.analysis = analyze_results
-        cls.outcomes = {name: analyze_results.analyze(cls.root, name) for name in ("exp1", "exp2", "exp3", "exp4")}
+        cls.outcomes = {name: analyze_results.analyze(cls.root, name) for name in ("exp1", "exp2", "exp3", "exp4", "exp5")}
 
     @classmethod
     def tearDownClass(cls):
@@ -156,7 +177,7 @@ class AnalysisAndPlots(unittest.TestCase):
 
     # Traceability: TC-G-09
     def test_tables_and_verdict_files_are_written(self):
-        for name in ("exp1", "exp2", "exp3", "exp4"):
+        for name in ("exp1", "exp2", "exp3", "exp4", "exp5"):
             self.assertTrue((self.root / name / "hypothesis_check.md").is_file())
             self.assertTrue(list((self.root / name / "tables").glob("*.csv")))
 
@@ -182,6 +203,17 @@ class AnalysisAndPlots(unittest.TestCase):
         self.assertAlmostEqual(lsh.loc[0.5, "satellite_mttf"], 32 / 35, places=10)
         self.assertAlmostEqual(lsh.loc[0.5, "redundancy_ratio"], 3.2, places=10)
 
+    # Traceability: TC-G-11
+    def test_experiment_5_predictions_hold_and_the_paper_costs_reproduce(self):
+        tables, checks, rejected = self.outcomes["exp5"]
+        self.assertEqual(rejected, [], rejected)  # deterministic: no timing involved
+        names = [name for name, _, _, _ in checks]
+        self.assertTrue(any(name.startswith("reproduction") for name in names))
+        self.assertEqual(sum(1 for name in names if name.startswith("5 asymmetric")), 3)
+        frame = tables["exp5_policies"]
+        sat = frame[(frame["system"] == "satellite") & (frame["model"] == "exp") & (frame["rho"] == 10)]
+        self.assertTrue((sat["best_r"] == 4).all())  # expensive components: never repair early
+
     def test_experiment_4_structural_claims_hold(self):
         _, checks, _ = self.outcomes["exp4"]
         verdicts = {name: passed for name, _, passed, _ in checks}
@@ -203,12 +235,13 @@ class AnalysisAndPlots(unittest.TestCase):
         import plot_results
         # copy ONLY the tables: no raw results, no analyze executable involved
         only_tables = self.root / "only_tables"
-        for name in ("exp1", "exp2", "exp3", "exp4"):
+        for name in ("exp1", "exp2", "exp3", "exp4", "exp5"):
             shutil.copytree(self.root / name / "tables", only_tables / name / "tables")
         self.assertEqual(plot_results.main(["--results", str(only_tables), "--dpi", "60"]), 0)
         pictures = sorted((only_tables / "figures").glob("*.png"))
         self.assertEqual([p.name for p in pictures], ["fig1_redundancy.png", "fig2_common_cause.png",
-                                                      "fig3_equal_failure_counts.png", "fig4_scaling.png"])
+                                                      "fig3_equal_failure_counts.png", "fig4_scaling.png",
+                                                      "fig5_repair_policies.png"])
         for picture in pictures:
             self.assertEqual(picture.read_bytes()[:8], b"\x89PNG\r\n\x1a\n")
             self.assertGreater(picture.stat().st_size, 3000)

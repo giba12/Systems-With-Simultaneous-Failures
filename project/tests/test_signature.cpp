@@ -116,6 +116,25 @@ TEST(Signature, SweepResetsTheCallCounterItself) {
   EXPECT_EQ(result.phi_calls, 64U);  // not 66
 }
 
+// Traceability: TC-C-22
+// Paper Theorem 2.3: the sweep performs sum_states w^2 = n (n+1) 2^(n-2) integer additions and
+// sum_states w = n 2^(n-1) divisions. The counters in the result are MEASURED (incremented in the inner loops),
+// so this checks the implementation against the paper's operation count.
+TEST(Signature, MeasuredOperationCountsMatchThePaperFormulas) {
+  for (int n = 2; n <= 14; ++n) {
+    const SweepResult r = sweep(SystemModel::parallel(n), nullptr, {});
+    const std::uint64_t states = std::uint64_t{1} << n;
+    EXPECT_EQ(r.integer_additions, static_cast<std::uint64_t>(n) * (n + 1) * (states >> 2)) << "n = " << n;
+    EXPECT_EQ(r.integer_divisions, static_cast<std::uint64_t>(n) * (states >> 1)) << "n = " << n;
+  }
+  // the count depends only on n, not on the structure function
+  const SweepResult a = sweep(load_reference(), nullptr, {});
+  EXPECT_EQ(a.integer_additions, 6U * 7U * 16U);   // 672
+  EXPECT_EQ(a.integer_divisions, 6U * 32U);        // 192
+  const SweepResult b = sweep(SystemModel::series(6), nullptr, {});
+  EXPECT_EQ(b.integer_additions, a.integer_additions);
+}
+
 // TC-C-04, C-05, C-14 (paper Fig. 1)
 TEST(Signature, KnownCountingVectors) {
   const SweepResult sat = sweep(load_reference(), nullptr, keep_all());

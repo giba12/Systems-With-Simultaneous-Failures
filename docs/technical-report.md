@@ -13,9 +13,10 @@ This project implements the algorithm of Lagos and Ávila (arXiv:2610.22181), wh
 and **mean time to failure (MTTF) at every one of its 2ⁿ states** for the cost of evaluating the system's structure
 function once per state, including when a single event can fail several components at once. It applies the algorithm
 to a six-component fictional satellite architecture, verifies it against an independent implementation and against
-closed-form results, runs four pre-registered experiments, and reports what held and what did not. Of the 40
-checks derived from the predictions written before the experiments, **36 were supported and 4 rejected in the first run
-(37 and 3 in an independent repeat)**; the rejections are reported as found. Along
+closed-form results, runs five pre-registered experiments, and reports what held and what did not. Of the 48
+checks derived from the predictions written before the experiments, **44 were supported and 4 rejected in the first run
+(45 and 3 in an independent repeat of Experiments 1–4)**; the rejections are reported as found. A final, optional part
+implements the paper's repair-policy cost model and compares repair strategies. Along
 the way the work found a typo in the paper's Eq. (21) and corrected it.
 
 ## 1. The engineering question
@@ -90,7 +91,9 @@ command-line tool `analyze` (JSON in and out), and a Python layer that only call
 
 | Claim | Finding |
 |---|---|
-| The paper's Fig. 1 example (3 components) | counting vectors, signature (0, 2/3, 1/3), MTTF 7/6 and the 86 % / 43 % ratios reproduce exactly and are covered by tests. The figure's repair-policy costs (1/10, 11/15, 97/105) were also reproduced once, during validation, by a separate throw-away script; the repair-policy feature is **not** part of the delivered code and those numbers are not in the test suite |
+| The paper's Fig. 1 example (3 components) | counting vectors, signature (0, 2/3, 1/3), MTTF 7/6 and the 86 % / 43 % ratios reproduce exactly and are covered by tests |
+| Fig. 1's repair-policy costs 97/105, 11/15, 1/10 (Eqs. (9)–(13)) | reproduced by the delivered policy code (tested), which also agrees with the paper's independent Proposition 3 on more than 300 policies under three failure models |
+| The cost curve over the threshold γ is not unimodal | reproduced with a concrete 8-component example; a search that stops at the first rise misses the optimum |
 | Algorithm 1 evaluates Φ exactly 2ⁿ times and holds two levels (Theorem 2) | confirmed for n = 4…20; peak vectors equal the largest sum of two adjacent binomial coefficients |
 | MTTF never rises when more components fail (Lemma 4) | holds on > 40 000 state pairs under four failure models |
 | Signature dominance implies MTTF order (Theorem 5) | holds, strictly, on thousands of pairs; its **converse is false** (a six-component counterexample: MTTF 1.0 against 0.75 although the signatures cross) |
@@ -108,6 +111,7 @@ tables and caveats are in the [experiment report](experiment-report.md).
 | 2 Independent vs simultaneous failures | how does common cause change the benefit of redundancy? | 6 / 8 |
 | 3 Equal failure counts | can equal counts hide very different states? | 9 / 9 |
 | 4 Scaling | how do time and memory grow with n? | 6 / 8 |
+| 5 Repair policies | when to repair, and does the MTTF threshold beat "repair after r failures"? | 8 / 8 |
 
 ![Redundancy lengthens expected life](figures/fig1_redundancy.png)
 
@@ -133,12 +137,25 @@ Analysis time grows ×4.2 to ×5.0 per two components (consistent with O(n²·2�
 3.2 s and 35 MB. **Further predictions were rejected**: verification being at least 100× slower than the analysis at n = 14 (it is 18–23×, in both runs), and, in the first
 run only, a verification-time growth criterion (timing noise at small n; supported on the repeat).
 
+### Repair policies
+
+![Which components failed matters for repair decisions](figures/fig5_repair_policies.png)
+
+When is a repair worth it? With cheap components and no set-up cost, repair at the first failure; as set-up costs grow,
+tolerate more failures and group the replacements; with expensive components, repair only after the system fails.
+On the symmetric satellite the paper's MTTF-threshold policy is exactly the "repair after r failures" rule (a consequence of
+symmetry, and a check of the code). On small **asymmetric** systems it is never worse and saves up to 8.8 % (the paper's
+Fig. 1 system), 17.3 % (a bridge network) and 23.5 % (an 8-component system that was picked because it has a
+non-unimodal cost curve, so its saving is not representative). All eight predictions held; they were mostly easy, and
+the optimal state-based policy was not implemented, so nothing is said about distance from the optimum.
+Details in the [experiment report](experiment-report.md) §7.
+
 ## 7. Verification
 
 The software was verified against two independent implementations, closed forms that need neither, the paper's own
-examples and theorems, deliberate bugs (24 mutations, 23 caught immediately and the survivor closed by new tests),
+examples and theorems, deliberate bugs (29 mutations, 28 caught immediately and the survivor closed by new tests),
 sanitizers, a second compiler, and a machine-checked traceability from every requirement to a test. g++ and clang++
-build with no warnings and pass 101/101 tests; the sanitizer build also passes. Eighteen defects and near-misses found
+build with no warnings and pass 114/114 tests; the sanitizer build also passes. Twenty defects and near-misses found
 along the way, including several mistakes in my own expectations, are listed in the
 [verification report](verification-report.md), which also states what was **not** verified.
 
@@ -150,7 +167,8 @@ along the way, including several mistakes in my own expectations, are listed in 
   faults beyond what the two common-cause models express. Failures are permanent; nothing is repaired.
 * **Size.** The state space is 2ⁿ. The simultaneous-failure models stop at 16 components (numerical precision); the
   brute-force reference at 16; the independent model was run to 20 here (24 in an earlier benchmark).
-* **Models.** Three failure-model families; the paper's repair-policy part is not implemented.
+* **Models and policies.** Three failure-model families. Repair policies are evaluated by direct recursion (n ≤ 14); the
+  paper's single-pass method and its optimal state-based policy are not implemented.
 * **Timing.** One laptop, one core, WSL2; treat times as orders of magnitude.
 * **Not verified:** a run on a CI service, operating systems other than Linux, and a third independent implementation.
 
@@ -159,7 +177,8 @@ along the way, including several mistakes in my own expectations, are listed in 
 (Full list: [deviation-log.md](deviation-log.md).) The paper's Eq. (21) is corrected; Φ(**0**) is evaluated so the count
 is exactly 2ⁿ; the guide's claim that the algorithm *reduces* the number of structure-function evaluations is not repeated
 (it does not: it provides every state's results for the same count); precision handling differs from the paper's 512-bit
-arithmetic and sets a size cap; the optional repair policies were not attempted.
+arithmetic and sets a size cap; precision handling differs from the paper's 512-bit arithmetic and sets a size cap; repair policies use a simpler evaluation
+than the paper's single pass, and the optimal policy is not implemented.
 
 ## 10. How the work was done
 

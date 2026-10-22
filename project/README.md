@@ -5,7 +5,7 @@ A small C++20 tool that implements the per-state signature / MTTF algorithm of L
 Failures*, arXiv:2610.22181) for a **fictional** six-component satellite-support system.
 Educational portfolio project: not a certified or flight-qualified analysis.
 
-**Status: Days 1–9 of the plan are complete** (documents and glossary, state model and structure function, brute-force reference, level sweep, signatures, baseline MTTF, simultaneous failures, command-line tool and experiments). Gates G1–G5 are met. What remains is Day 10 (delivery). Results: [../docs/experiment-report.md](../docs/experiment-report.md); verification: [../docs/verification-report.md](../docs/verification-report.md); deviations and limits: [../docs/deviation-log.md](../docs/deviation-log.md). Everything
+**Status: Days 1–10 and the optional repair-policy extension are complete** (documents and glossary, state model and structure function, brute-force reference, level sweep, signatures, baseline MTTF, simultaneous failures, command-line tool and experiments). Gates G1–G5 are met. Results: [../docs/experiment-report.md](../docs/experiment-report.md); verification: [../docs/verification-report.md](../docs/verification-report.md); deviations and limits: [../docs/deviation-log.md](../docs/deviation-log.md). Everything
 below that line is still a skeleton: those functions throw `NotImplementedError` and their
 tests report *skipped*. Work through [../docs/project-plan.md](../docs/project-plan.md) day by day.
 
@@ -18,10 +18,11 @@ tests report *skipped*. Work through [../docs/project-plan.md](../docs/project-p
 | `signature`: `tail_signature()`, `signature()` | done, tested |
 | `failure_model`: `IndependentExponential`; `mttf` | done, tested |
 | `failure_model`: Lévy-frailty family (lethal shock, binomial failure rate, any Laplace exponent; n ≤ 16) | done, tested |
+| `policy` (repair policies: corrective, r-out-of-n, every MTTF-threshold policy; long-term cost) | done, tested (optional P2) |
 | `main.cpp` (`analyze` CLI) | done, tested |
 | `python/` (experiment runner, analysis, plots) and `experiments/hypotheses/` | done, tested |
 
-Test status: 99 C++ tests, 38 Python end-to-end tests (`python_end_to_end` under ctest) and the traceability check (`traceability`), 101 ctest tests in all, all passing; 7 Python tests skip themselves when pandas / matplotlib are missing. Builds warning-free with g++ 13 and clang++ 18, and passes under AddressSanitizer + UndefinedBehaviorSanitizer.
+Test status: 112 C++ tests, 43 Python end-to-end tests (`python_end_to_end` under ctest) and the traceability check (`traceability`), 114 ctest tests in all, all passing; 8 Python tests skip themselves when pandas / matplotlib are missing. Builds warning-free with g++ 13 and clang++ 18, and passes under AddressSanitizer + UndefinedBehaviorSanitizer.
 
 Measured sweep cost (parallel system, Release build): n = 16 → 0.17 s; n = 20 → 2.9 s, 25 MB; n = 24 → 58 s, 402 MB.
 
@@ -45,6 +46,7 @@ ctest --test-dir build --output-on-failure
 | `include/reliability/signature.hpp`, `src/signature.cpp` | Algorithm 1: level sweep, counting vectors, signatures, minimal path sets | 4–5 |
 | `include/reliability/failure_model.hpp`, `src/failure_model.cpp` | Independent exponential and Lévy-frailty (lethal shock, binomial failure rate) failure models | 6–7 |
 | `include/reliability/mttf.hpp`, `src/mttf.cpp` | Per-state MTTF | 6 |
+| `include/reliability/policy.hpp`, `src/policy.cpp` | Repair policies and long-term cost (paper §V) | optional |
 | `src/main.cpp` | Command-line tool `analyze` | 6–8 |
 | `tests/` | One test file per module; tests are tagged with their test-plan ID | 2–9 |
 | `python/` | Experiment runner, result summaries, plots, and the end-to-end tests (`python/tests/`) | 8 |
@@ -71,6 +73,7 @@ ctest --test-dir build --output-on-failure
 ```bash
 build/analyze --config configs/satellite_support.json --verify          # one analysis, JSON on stdout
 build/analyze --config configs/satellite_support.json --model lsh --beta 0.5 --per-state --out result.json
+build/analyze --config configs/satellite_support.json --c-comp 0.1 --c-sys 1 --c-set 0.05   # also compare repair policies
 
 python3 python/run_experiments.py all                                    # needs experiments/hypotheses/ first
 python3 -m venv .venv && .venv/bin/pip install -r python/requirements.txt  # once, for the next two commands

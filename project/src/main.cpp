@@ -35,6 +35,7 @@
 #include "reliability/errors.hpp"
 #include "reliability/failure_model.hpp"
 #include "reliability/mttf.hpp"
+#include "reliability/policy.hpp"
 #include "reliability/reference.hpp"
 #include "reliability/signature.hpp"
 #include "reliability/state.hpp"
@@ -70,6 +71,9 @@ struct Options {
   std::optional<double> lambda;
   std::optional<double> beta;
   std::optional<std::string> out;
+  std::optional<double> c_comp;  // repair costs: all three or none
+  std::optional<double> c_sys;
+  std::optional<double> c_set;
   bool per_state = false;
   bool verify = false;
   bool help = false;
@@ -77,13 +81,16 @@ struct Options {
 
 const char* kUsage =
     "usage: analyze --config <file.json> [--model exp|lsh|bfr] [--lambda L] [--beta B]\n"
-    "               [--per-state] [--verify] [--out <file.json>]\n"
+    "               [--c-comp C --c-sys C --c-set C] [--per-state] [--verify] [--out <file.json>]\n"
     "\n"
     "  --config     system definition (see configs/satellite_support.json)\n"
     "  --model      failure model: exp (independent exponential), lsh (lethal shock),\n"
     "               bfr (binomial failure rate). Default: the file's \"failure_model\", else exp\n"
     "  --lambda     rate of the exponential model (default 1)\n"
     "  --beta       pairwise beta factor of lsh / bfr, in [0,1] (bfr: in (0,1])\n"
+    "  --c-comp, --c-sys, --c-set\n"
+    "               repair costs per replaced component / per system failure / per repair visit; give all\n"
+    "               three to also compare repair policies (corrective, r-out-of-n, every MTTF-threshold policy)\n"
     "  --per-state  include the counting vector, signature and MTTF of every state\n"
     "  --verify     cross-check against the brute-force reference and Eq. (6)\n"
     "  --out        write the JSON here instead of to standard output\n";
@@ -123,6 +130,12 @@ Options parse_args(int argc, char** argv) {
       options.beta = parse_number(flag, value());
     } else if (flag == "--out") {
       options.out = value();
+    } else if (flag == "--c-comp") {
+      options.c_comp = parse_number(flag, value());
+    } else if (flag == "--c-sys") {
+      options.c_sys = parse_number(flag, value());
+    } else if (flag == "--c-set") {
+      options.c_set = parse_number(flag, value());
     } else if (flag == "--per-state") {
       options.per_state = true;
     } else if (flag == "--verify") {
@@ -133,6 +146,10 @@ Options parse_args(int argc, char** argv) {
   }
   if (!options.help && options.config.empty()) {
     throw UsageError("--config is required");
+  }
+  const int costs_given = (options.c_comp ? 1 : 0) + (options.c_sys ? 1 : 0) + (options.c_set ? 1 : 0);
+  if (costs_given != 0 && costs_given != 3) {
+    throw UsageError("--c-comp, --c-sys and --c-set must be given together");
   }
   if (options.model && *options.model != "exp" && *options.model != "lsh" && *options.model != "bfr") {
     throw UsageError("--model must be exp, lsh or bfr, got '" + *options.model + "'");
@@ -327,6 +344,55 @@ json verify_result(const SystemModel& model, const FailureModel& fm, const std::
   return report;
 }
 
+json evaluation_json(const PolicyEvaluation& e) {
+  return {{"mean_cycle_length", e.mean_cycle_length},
+          {"mean_cycle_cost", e.mean_cycle_cost},
+          {"long_term_mean_cost", e.long_term_mean_cost}};
+}
+
+// ALGORITHM   (--c-comp / --c-sys / --c-set)
+//   corrective maintenance, every r-out-of-n policy, and EVERY MTTF-threshold policy (one per distinct operational
+//   MTTF ratio: the cost curve is not unimodal, so none may be skipped); report the best of each family
+json policies_report(const SystemModel& model, const FailureModel& fm, const RepairCosts& costs) {
+  json report;
+  report["costs"] = {{"component", costs.component}, {"system", costs.system}, {"setup", costs.setup}};
+  report["corrective"] = evaluation_json(evaluate_policy(model, fm, corrective_policy(model), costs));
+
+  const ThresholdSearch threshold = search_threshold_policies(model, fm, costs);
+  json threshold_list = json::array();
+  for (const ThresholdPolicyResult& p : threshold.policies) {
+    json entry = evaluation_json(p.evaluation);
+    entry["gamma_from"] = p.gamma_from;
+    entry["gamma_to"] = p.gamma_to;
+    entry["states_repaired"] = p.states_repaired;
+    threshold_list.push_back(std::move(entry));
+  }
+  const ThresholdPolicyResult& best_threshold = threshold.policies[threshold.best];
+  report["threshold"] = {{"policy_count", threshold.policies.size()},
+                         {"best_index", threshold.best},
+                         {"best_gamma_from", best_threshold.gamma_from},
+                         {"best_gamma_to", best_threshold.gamma_to},
+                         {"best_long_term_mean_cost", best_threshold.evaluation.long_term_mean_cost},
+                         {"policies", threshold_list}};
+
+  const std::vector<RPolicyResult> r_policies = evaluate_r_out_of_n_policies(model, fm, costs);
+  json r_list = json::array();
+  std::size_t best_r = 0;
+  for (std::size_t i = 0; i < r_policies.size(); ++i) {
+    json entry = evaluation_json(r_policies[i].evaluation);
+    entry["r"] = r_policies[i].r;
+    r_list.push_back(std::move(entry));
+    if (r_policies[i].evaluation.long_term_mean_cost < r_policies[best_r].evaluation.long_term_mean_cost * (1.0 - 1e-12)) {
+      best_r = i;
+    }
+  }
+  const double best_r_cost = r_policies[best_r].evaluation.long_term_mean_cost;
+  report["r_out_of_n"] = {{"best_r", r_policies[best_r].r}, {"best_long_term_mean_cost", best_r_cost}, {"policies", r_list}};
+  report["threshold_saving_over_best_r_out_of_n"] =
+      (best_r_cost - best_threshold.evaluation.long_term_mean_cost) / best_r_cost;
+  return report;
+}
+
 int run(const Options& options) {
   const auto started = std::chrono::steady_clock::now();
   const json config_doc = read_json_file(options.config);
@@ -373,7 +439,9 @@ int run(const Options& options) {
                   {"operational_states", operational},
                   {"minimal_path_sets", paths},
                   {"phi_calls", sweep_result.phi_calls},
-                  {"peak_vectors_held", sweep_result.peak_vectors_held}};
+                  {"peak_vectors_held", sweep_result.peak_vectors_held},
+                  {"integer_additions", sweep_result.integer_additions},
+                  {"integer_divisions", sweep_result.integer_divisions}};
   if (options.per_state) {
     json states = json::array();
     for (std::uint64_t xi = 0; xi < mttf.size(); ++xi) {
@@ -414,6 +482,14 @@ int run(const Options& options) {
     }
   }
 
+  json policies = nullptr;
+  double policies_ms = 0.0;
+  if (options.c_comp) {
+    const auto policies_start = std::chrono::steady_clock::now();
+    policies = policies_report(model, fm, RepairCosts{*options.c_comp, *options.c_sys, *options.c_set});
+    policies_ms = elapsed_ms(policies_start);
+  }
+
   json verification = {{"performed", false}};
   double verification_ms = 0.0;
   bool verification_ok = true;
@@ -434,9 +510,11 @@ int run(const Options& options) {
                  {"system", system_info},
                  {"failure_model", chosen.description},
                  {"results", results},
+                 {"policies", policies},
                  {"verification", verification},
                  {"timing", {{"analysis_ms", analysis_ms},
                              {"verification_ms", verification_ms},
+                             {"policies_ms", policies_ms},
                              {"total_ms", elapsed_ms(started)},
                              {"peak_rss_kb", peak_rss_kb()}}}};
 

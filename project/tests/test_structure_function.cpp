@@ -274,3 +274,50 @@ TEST(StructureFunction, PhiCallsAreCountedAndValidationDoesNotPolluteTheCount) {
   EXPECT_THROW(bad.validate(), ModelError);
   EXPECT_EQ(bad.phi_calls(), 0U);
 }
+
+// Traceability: TC-E-13
+// The path-set form (OR of ANDs): the bridge network written as its four minimal path sets, from code and from JSON.
+TEST(StructureFunction, PathSetStructuresWorkFromCodeAndJson) {
+  std::vector<Component> five;
+  for (int i = 0; i < 5; ++i) {
+    five.push_back({"C" + std::to_string(i + 1), "", "", i});
+  }
+  const SystemModel bridge = SystemModel::or_of_and_groups(five, {{0, 3}, {1, 4}, {0, 2, 4}, {1, 2, 3}});
+  ASSERT_NO_THROW(bridge.validate());
+  EXPECT_TRUE(bridge.phi(0b01001));   // {1,4}
+  EXPECT_TRUE(bridge.phi(0b10101));   // {1,3,5}
+  EXPECT_FALSE(bridge.phi(0b00011));  // {1,2}: a cut
+  EXPECT_FALSE(bridge.phi(0b11000));  // {4,5}: a cut
+  EXPECT_TRUE(bridge.phi(0b11111));
+
+  const std::string path = write_temp(
+      "bridge",
+      R"({"components": [{"id":"a","bit":0},{"id":"b","bit":1},{"id":"c","bit":2},{"id":"d","bit":3},{"id":"e","bit":4}],
+          "structure": {"type":"path_sets","paths":[["a","d"],["b","e"],["a","c","e"],["b","c","d"]]}})");
+  const SystemModel from_json = SystemModel::from_json_file(path);
+  for (StateMask x = 0; x < 32; ++x) {
+    EXPECT_EQ(from_json.phi(x), bridge.phi(x)) << x;
+  }
+}
+
+// Traceability: TC-E-13
+TEST(StructureFunction, PathSetStructuresRejectBadInput) {
+  std::vector<Component> two = {{"A", "", "", 0}, {"B", "", "", 1}};
+  ExpectModelError([&] { SystemModel::or_of_and_groups(two, {{0}, {}}); }, "path set 1 is empty");
+  ExpectModelError([&] { SystemModel::or_of_and_groups(two, {{0, 9}}); }, "refers to bit 9");
+  ExpectModelError(
+      [&] {
+        SystemModel::from_json_file(write_temp(
+            "paths_unknown", config_with(R"({"id":"A","bit":0},{"id":"B","bit":1})",
+                                         R"({"type":"path_sets","paths":[["A","Z"]]})")));
+      },
+      "unknown component id 'Z'");
+  ExpectModelError(
+      [&] {
+        SystemModel::from_json_file(write_temp(
+            "paths_missing", config_with(R"({"id":"A","bit":0},{"id":"B","bit":1})", R"({"type":"path_sets"})")));
+      },
+      "missing required field 'paths'");
+  // no path sets at all: the system can never work, which validation rejects
+  ExpectModelError([&] { SystemModel::or_of_and_groups(two, {}).validate(); }, "Phi(1) must be 1");
+}

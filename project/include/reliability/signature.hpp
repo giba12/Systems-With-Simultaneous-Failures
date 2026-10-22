@@ -74,6 +74,11 @@ struct SweepResult {
   std::vector<StateMask> minimal_path_sets;  // states with W0 == 1 and W1 == 0
   std::uint64_t phi_calls = 0;               // must equal 2^n
   std::size_t peak_vectors_held = 0;         // evidence for the two-level memory claim
+  // Work actually done by the sweep, to compare with the paper's Theorem 2.3:
+  //   additions of counting-vector entries (formula (8)): sum over states of w^2 = n (n+1) 2^(n-2)
+  //   divisions by k: sum over states of w = n 2^(n-1)
+  std::uint64_t integer_additions = 0;
+  std::uint64_t integer_divisions = 0;
 };
 
 SweepResult sweep(const SystemModel& model, const StateObserver& observer,

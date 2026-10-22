@@ -43,6 +43,7 @@ EXPERIMENT_FILES = {
     "exp2": "exp2_common_cause",
     "exp3": "exp3_equal_failure_counts",
     "exp4": "exp4_scaling",
+    "exp5": "exp5_repair_policies",
 }
 
 
@@ -71,8 +72,9 @@ def find_analyze(explicit=None):
         "cannot find the 'analyze' executable. Build it first (cmake --build build) or pass --analyze PATH")
 
 
-def run_analyze(analyze, config_path, model=None, lam=None, beta=None, per_state=False, verify=False):
-    """Run ``analyze`` once and return its parsed JSON. A non-zero exit status raises ExperimentError."""
+def run_analyze(analyze, config_path, model=None, lam=None, beta=None, per_state=False, verify=False, costs=None):
+    """Run ``analyze`` once and return its parsed JSON. A non-zero exit status raises ExperimentError.
+    costs = (c_comp, c_sys, c_set) also asks for the repair-policy comparison."""
     command = [analyze, "--config", str(config_path)]
     if model:
         command += ["--model", model]
@@ -80,6 +82,8 @@ def run_analyze(analyze, config_path, model=None, lam=None, beta=None, per_state
         command += ["--lambda", repr(float(lam))]
     if beta is not None:
         command += ["--beta", repr(float(beta))]
+    if costs is not None:
+        command += ["--c-comp", repr(float(costs[0])), "--c-sys", repr(float(costs[1])), "--c-set", repr(float(costs[2]))]
     if per_state:
         command.append("--per-state")
     if verify:
@@ -104,10 +108,11 @@ def split_timing(output):
 # System configurations written on the fly
 # ----------------------------------------------------------------------------------------------------------
 
-def make_config(kind, n):
+def make_config(kind, n, paths=None):
     """ALGORITHM: a configuration (as a dict) for n components C1..Cn.
 
-    kind = 'series'   all n components are needed
+    kind = 'paths'    works if all components of some path set work; `paths` = list of lists of 1-based indices
+           'series'   all n components are needed
            'parallel' any one component is enough
            'pairs'    n/2 redundant pairs, every pair needed (n even); n = 6 is the satellite's shape
     """
@@ -116,6 +121,8 @@ def make_config(kind, n):
         structure = {"type": "series"}
     elif kind == "parallel":
         structure = {"type": "parallel"}
+    elif kind == "paths":
+        structure = {"type": "path_sets", "paths": [[f"C{i}" for i in path] for path in paths]}
     elif kind == "pairs":
         if n % 2:
             raise ExperimentError("'pairs' needs an even number of components")
@@ -126,9 +133,9 @@ def make_config(kind, n):
     return {"name": f"{kind}_{n}", "components": components, "structure": structure}
 
 
-def write_config(directory, kind, n):
-    path = Path(directory) / f"{kind}_{n}.json"
-    path.write_text(json.dumps(make_config(kind, n), indent=2) + "\n")
+def write_config(directory, kind, n, paths=None, name=None):
+    path = Path(directory) / f"{name or f'{kind}_{n}'}.json"
+    path.write_text(json.dumps(make_config(kind, n, paths), indent=2) + "\n")
     return path
 
 
@@ -221,7 +228,59 @@ def experiment_4(analyze, workdir, seed, max_n=20, max_verify_n=14, **_):
     return settings, raw, timing
 
 
-EXPERIMENTS = {"exp1": experiment_1, "exp2": experiment_2, "exp3": experiment_3, "exp4": experiment_4}
+RHOS = [0.1, 0.2, 0.5, 2 / 3, 1, 4 / 3, 2, 4, 10]
+SIGMAS = [0.0, 0.05, 0.1, 0.2, 0.5]
+
+
+def bits_to_path(mask):
+    """A bitmask of component positions -> the 1-based component numbers C1..Cn it names."""
+    return [i + 1 for i in range(mask.bit_length()) if mask >> i & 1]
+
+
+# the three asymmetric systems of experiment 5 (path sets as 1-based component numbers)
+ASYMMETRIC_SYSTEMS = {
+    "fig1": (3, [[1, 2], [3]]),                                               # the paper's Fig. 1: x3 or (x1 and x2)
+    "bridge": (5, [[1, 4], [2, 5], [1, 3, 5], [2, 3, 4]]),                     # the five-component bridge network
+    "eight": (8, [bits_to_path(m) for m in (90, 203, 22, 41)]),                # found to have a non-unimodal cost curve
+}
+
+
+def experiment_5(analyze, workdir, seed, **_):
+    """Repair policies: corrective, r-out-of-n and every MTTF-threshold policy over the paper's cost grid.
+
+    c_sys = 1; c_comp = rho / n; c_set = sigma. The satellite under three failure models, three asymmetric systems under
+    the independent model, and the paper's own Fig. 1 cost setting as a reproduction check."""
+    satellite_models = [("exp", None), ("lsh", 0.2), ("bfr", 0.2)]
+    systems = [("satellite", SATELLITE_CONFIG, 6, satellite_models)]
+    for label, (n, paths) in ASYMMETRIC_SYSTEMS.items():
+        systems.append((label, write_config(workdir, "paths", n, paths=paths, name=label), n, [("exp", None)]))
+    settings = {"rhos": RHOS, "sigmas": SIGMAS, "c_sys": 1.0, "c_comp": "rho / n", "c_set": "sigma",
+                "satellite_models": [{"model": m, "beta": b} for m, b in satellite_models],
+                "asymmetric_systems": {k: {"n": n, "path_sets": p} for k, (n, p) in ASYMMETRIC_SYSTEMS.items()},
+                "reproduction": "fig1 with c_comp = 1/30, c_sys = 1, c_set = 0"}
+    raw, timing = [], []
+    for label, config, n, models in systems:
+        for model, beta in models:
+            for rho in RHOS:
+                for sigma in SIGMAS:
+                    output, t = split_timing(run_analyze(analyze, config, model=model, beta=beta,
+                                                         lam=1.0 if model == "exp" else None, costs=(rho / n, 1.0, sigma)))
+                    raw.append({"label": label, "model": model, "beta": beta, "rho": rho, "sigma": sigma, "output": output})
+                    timing.append({"label": label, "model": model, "beta": beta, "rho": rho, "sigma": sigma,
+                                   "analysis_ms": t["analysis_ms"], "policies_ms": t["policies_ms"]})
+    output, t = split_timing(run_analyze(analyze, workdir_config(workdir, "fig1"), model="exp", lam=1.0,
+                                         costs=(1 / 30, 1.0, 0.0)))
+    raw.append({"label": "fig1_paper_costs", "model": "exp", "beta": None, "rho": None, "sigma": 0.0, "output": output})
+    timing.append({"label": "fig1_paper_costs", "analysis_ms": t["analysis_ms"], "policies_ms": t["policies_ms"]})
+    return settings, raw, timing
+
+
+def workdir_config(workdir, name):
+    return Path(workdir) / f"{name}.json"
+
+
+EXPERIMENTS = {"exp1": experiment_1, "exp2": experiment_2, "exp3": experiment_3, "exp4": experiment_4,
+               "exp5": experiment_5}
 
 
 # ----------------------------------------------------------------------------------------------------------

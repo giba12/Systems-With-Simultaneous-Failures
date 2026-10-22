@@ -42,6 +42,7 @@ add_library(reliability STATIC
   src/signature.cpp
   src/failure_model.cpp
   src/mttf.cpp
+  src/policy.cpp
   src/reference.cpp
 )
 target_include_directories(reliability PUBLIC include)
@@ -73,6 +74,7 @@ if(BUILD_TESTING)
     tests/test_signature.cpp
     tests/test_failure_models.cpp
     tests/test_mttf.cpp
+    tests/test_policy.cpp
     tests/test_properties.cpp
   )
   target_link_libraries(reliability_tests PRIVATE reliability GTest::gtest_main)

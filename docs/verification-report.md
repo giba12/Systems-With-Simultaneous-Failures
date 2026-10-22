@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Date** | 2026-10-22 |
-| **Code version** | `analyze` 0.8.0, after Day 9 cleanup |
+| **Code version** | `analyze` 0.8.0, after Day 9 cleanup and the optional repair-policy extension |
 | **Scope** | requirements in [requirements-spec.md](requirements-spec.md), tests in [test-plan.md](test-plan.md) |
 | **Related** | [traceability-matrix.md](traceability-matrix.md) (generated) · [deviation-log.md](deviation-log.md) · [experiment-report.md](experiment-report.md) · [paper-validation-report.md](paper-validation-report.md) |
 
@@ -33,23 +33,23 @@ ctest --test-dir build --output-on-failure           # C++ tests + python_end_to
 
 | Configuration | Result |
 |---|---|
-| g++ 13.3.0, Release | **101 / 101 passed**, 0 compiler warnings |
-| clang++ 18.1.3, Release | **101 / 101 passed**, 0 compiler warnings |
-| g++ 13.3.0, Debug + ASan + UBSan | **101 / 101 passed**, no sanitizer report |
-| Release, `ctest` repeated 5 times | 5 × 101 / 101 |
-| C++ tests, 10 repetitions × 3 shuffle seeds (1, 77, 2026) | 30 × 99 / 99: no flakiness, no order dependence |
-| Python tests with only the standard library (no pandas / matplotlib) | 38 run, 7 skip themselves cleanly |
+| g++ 13.3.0, Release | **114 / 114 passed**, 0 compiler warnings |
+| clang++ 18.1.3, Release | **114 / 114 passed**, 0 compiler warnings |
+| g++ 13.3.0, Debug + ASan + UBSan | **114 / 114 passed**, no sanitizer report |
+| Release, `ctest` repeated 5 times | 5 × 114 / 114 |
+| C++ tests, 10 repetitions × 3 shuffle seeds (1, 77, 2026) | 30 × 112 / 112: no flakiness, no order dependence |
+| Python tests with only the standard library (no pandas / matplotlib) | 43 run, 8 skip themselves cleanly |
 | Fresh clone-style configure + build (no cached state) | clean, no CMake warning |
 
-**Test inventory.** 99 C++ tests (`Signature` 22, `Mttf` 19, `FailureModels` 18, `Reference` 16, `StructureFunction` 11,
-`State` 8, `Properties` 5) and 38 Python end-to-end tests (`test_cli` 18, `test_experiments` 15,
+**Test inventory.** 112 C++ tests (`Signature` 23, `Mttf` 19, `FailureModels` 18, `Reference` 16, `StructureFunction` 13,
+`Policy` 10, `State` 8, `Properties` 5) and 43 Python end-to-end tests (`test_cli` 21, `test_experiments` 17,
 `test_traceability_tool` 5). `ctest` runs the C++ tests individually (99) plus the Python suite as one test and the
-traceability check as one test: 101. About 5 800 lines of source, tests and scripts.
+traceability check as one test: 114. About 7 400 lines of source, tests and scripts.
 
 **Traceability (VER-003).** `project/tools/check_traceability.py` reads the requirements, the test plan and the tags in
-the test code and fails on any orphan. Current state: **39 requirements, 88 test cases, 82 test cases tagged in
-automated test code, 6 verified another way** (timing in Experiment 4, CI and documentation review, and the three
-unimplemented optional repair-policy cases), **0 problems**. The generated matrix is
+the test code and fails on any orphan. Current state: **39 requirements, 95 test cases, 92 test cases tagged in
+automated test code, 3 verified another way** (timing in Experiment 4, CI, and documentation review), **0 problems**; the
+optional repair-policy cases are now implemented and tagged. The generated matrix is
 [traceability-matrix.md](traceability-matrix.md); the tool runs under `ctest`.
 
 ## 3. How correctness is established
@@ -85,6 +85,7 @@ unimplemented optional repair-policy cases), **0 problems**. The generated matri
 | Day 6 (MTTF) | off-by-one increment; wrong tail entry; Eq. (6) without 1/ν; without binomial weight | 4 / 4 |
 | Day 7 (Lévy-frailty) | Eq. (20) sign; Eq. (21) typo reintroduced; wrong divisor; β swapped; recursion drops a term | 5 / 5 |
 | Day 8 (CLI) | wrong exit code; `--lambda` ignored; wrong operational count; verification verdict forced to pass | 3 / 4 at first |
+| Optional P2 (policies) | set-up cost forgotten in the repair cost (caught **only** by the signature closed forms, since the paper's Fig. 1 has no set-up cost); holding time 1/ν dropped; transition weight without the 1/C split; r-out-of-n repairing one failure late; threshold using `<` for `<=` | 5 / 5 |
 
 The one survivor (verification verdict forced to pass) exposed that **no test made the verification fail**; fault
 injection and three new tests closed the gap, after which the same mutation is caught.
@@ -122,6 +123,8 @@ in my own expectations rather than in the code, which is itself worth recording.
 | Day 8 | an impossible counting vector crashed verification instead of failing it | fault-injection test | reported as a failed verification, exit code 3 |
 | Day 8 | the "verification failed" path was untested | surviving mutant | fault-injection hook and tests |
 | Day 8 | name collision in the plot script (matplotlib `Path` shadowed `pathlib.Path`) | running it | renamed |
+| P2 | Experiment 5's deterministic result file contained the tool's volatile timing block, so two runs differed | the byte-for-byte reproducibility test | timing split out as in the other experiments |
+| P2 | an unpinned claim: the cost curve over γ "can rise and fall" had no concrete example | needing a test for it | random search over the paper's cost grid found an 8-component example, now a test |
 | Day 9 | **CI workflow was in `project/.github/`, where GitHub never reads it** (the repository root is the parent folder) | reviewing the workflow against how GitHub locates workflows | moved to the repository root |
 | Day 9 | a unit test asserted a run-time prediction, failing under the sanitizer build | executing the CI jobs locally | structural predictions are asserted; timing predictions are not |
 | Day 9 | traceability gaps: 22 test cases lacking tags, 3 requirements missing from the matrix, no test for INT-002 | the new traceability checker | tags added, rows added, test TC-G-10 written |
@@ -133,12 +136,12 @@ in my own expectations rather than in the code, which is itself worth recording.
 |---|---|---|
 | SYS-001 … SYS-005 | Met | state/structure-function tests, validation tests, CLI error tests |
 | ALG-001 … ALG-005 | Met | sweep = reference on every state; Φ evaluated exactly 2ⁿ times |
-| ALG-006 | **Partly met** | time and memory growth measured against the paper's bounds (Experiment 4); the integer-addition count is *predicted* by n(n+1)2ⁿ⁻² and tabulated, **not instrumented** |
+| ALG-006 | Met | time and memory growth measured (Experiment 4), and the sweep **measures** its integer additions and divisions: exactly n(n+1)2ⁿ⁻² and n·2ⁿ⁻¹ for n = 2…14 (TC-C-22) |
 | REL-001, REL-003, REL-005 | Met | oracles, closed forms, Eq. (7) = Eq. (6) |
 | REL-002, REL-004 | Met, with a limit | lethal-shock and binomial-failure-rate models, calibration by β; **n ≤ 16** |
 | VER-001 … VER-004 | Met | see §3 |
 | EXP-001 … EXP-003 | Met | byte-identical deterministic results; four experiments; tables and figures from saved results |
-| EXP-004 (P2) | **Not implemented** | optional repair-policy comparison was not attempted; its test cases TC-J-01…03 are unimplemented by design |
+| EXP-004 (P2) | Met, **with limits** | policies evaluated by direct recursion (n ≤ 14), every threshold breakpoint searched; Fig. 1 costs reproduced; closed forms and the paper's Proposition 3 as independent checks (TC-J-01…06); Experiment 5. **Not implemented:** the paper's optimal state-based policy and its single-pass evaluation |
 | DOC-001, DOC-002 | Met | [deviation-log.md](deviation-log.md), [experiment-report.md](experiment-report.md) |
 | INT-001 … INT-004 | Met | CLI tests (output, errors, exit codes, determinism); the Python layer only calls the CLI (TC-G-10) |
 | NFR-001, NFR-006, NFR-008, NFR-009 | Met | tolerances in §4; provenance in every result file; deviation log; precision strategy |
@@ -154,7 +157,9 @@ in my own expectations rather than in the code, which is itself worth recording.
   subordinator is exercised in tests; the paper's other four are not implemented).
 * The paper's empirical results (22 benchmark networks, up to 30 components, repair-policy cost tables) — not a goal of
   this project.
-* The optional repair policies (EXP-004).
+* The optimal state-based policy (paper §V-B) and the paper's single-pass evaluation of all thresholds; policy evaluation
+  above n = 14; any repair-policy claim about realistic, larger systems (Experiment 5 uses systems of 3 to 8 components,
+  one of them chosen because its cost curve is non-unimodal).
 * Agreement with a third implementation (the authors' repository was not consulted).
 * Behaviour with non-identical components, which the paper's assumptions exclude.
 
@@ -189,3 +194,17 @@ ignores: no `build/`, `.venv/` or `results/`) into an empty folder, and the READ
 **Observation.** The repeat run reproduced every structural result exactly but not the timing-based verdicts: one
 Experiment 4 criterion that had been rejected passed (see [experiment-report.md](experiment-report.md) §6.1). Predictions
 about run time should be treated as noise-sensitive.
+
+### 9.1 Repeated after the repair-policy extension (2026-10-22)
+
+The fresh-copy check was repeated on the final tree, including the optional repair-policy work (75 files, nothing from
+`build/`, `.venv/` or `results/`):
+
+| Step | Result |
+|---|---|
+| configure and build (Release) | 0 warnings, 0 errors (about 2 min 50 s with the dependency downloads) |
+| `ctest` | **114 / 114 passed** |
+| `project/demo.sh` | ran to the end, five steps; step 5 prints the paper's Fig. 1 costs 0.9238 / 0.7333 / 0.1000 = 97/105, 11/15, 1/10 |
+| `analyze … --c-comp 0.1 --c-sys 1 --c-set 0.05` | 4 threshold policies, best r = 1 |
+| `run_experiments.py all`, new virtual environment, `analyze_results.py`, `plot_results.py` | five experiments saved, five figures drawn |
+| verdicts | Exp 1 15/15, Exp 2 6/8, Exp 3 9/9, Exp 4 7/8 (the same timing-sensitive criterion as in §9), **Exp 5 8/8** |

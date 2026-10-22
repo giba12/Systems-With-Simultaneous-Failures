@@ -32,11 +32,8 @@ VERIFIED_ELSEWHERE = {
     "TC-H-01": "measured by Experiment 4: analysis of the six-component system takes 0.08 ms (docs/experiment-report.md section 6)",
     "TC-H-02": "clean configure + build + ctest on every push: .github/workflows/ci.yml and the local fresh-build runs in docs/verification-report.md",
     "TC-H-03": "documentation review: docs/deviation-log.md and docs/experiment-report.md section 8",
-    "TC-J-01": "optional P2 repair policies: not implemented (see docs/verification-report.md)",
-    "TC-J-02": "optional P2 repair policies: not implemented (see docs/verification-report.md)",
-    "TC-J-03": "optional P2 repair policies: not implemented (see docs/verification-report.md)",
 }
-NOT_PLANNED_REQS = {"EXP-004": "optional P2 repair policies"}
+NOT_PLANNED_REQS = {}
 
 
 # A tag list: one full id, then any number of "/", ",", "to", ".." or an ellipsis followed by another id, a

@@ -109,6 +109,8 @@ SweepResult sweep(const SystemModel& model, const StateObserver& observer,
         for (std::uint64_t sr : son_rank) {
           total += previous[sr * static_cast<std::uint64_t>(w) + static_cast<std::uint64_t>(k - 1)];
         }
+        result.integer_additions += son_rank.size();
+        result.integer_divisions += 1;
         if (total % static_cast<std::uint64_t>(k) != 0U) {
           throw std::logic_error("Lemma 1 violated at state " + std::to_string(x) + ", k = " +
                                  std::to_string(k) + " (sum " + std::to_string(total) +

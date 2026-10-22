@@ -30,7 +30,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
-from matplotlib.patches import PathPatch  # noqa: E402
+from matplotlib.patches import PathPatch, Rectangle  # noqa: E402
 from matplotlib.path import Path as MplPath  # noqa: E402
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -269,7 +269,79 @@ def figure_4(results, figures_dir, dpi):
     return save(fig, figures_dir, "fig4_scaling", dpi)
 
 
-FIGURES = {"exp1": figure_1, "exp2": figure_2, "exp3": figure_3, "exp4": figure_4}
+# ----------------------------------------------------------------------------------------------------------
+# Figure 5 - repair policies: left, how much the MTTF-threshold policy saves on asymmetric systems; right, which
+# policy is best on the symmetric satellite (an ORDERED quantity -> one blue ramp, labelled cells)
+# ----------------------------------------------------------------------------------------------------------
+
+ORDINAL_BLUES = ["#86b6ef", "#5598e7", "#2a78d6", "#184f95"]   # ramp steps 250, 350, 450, 600 (ordinal floor respected)
+ORDINAL_TEXT = [TEXT_PRIMARY, TEXT_PRIMARY, "#ffffff", "#ffffff"]
+POLICY_NAMES = {1: "1 = after the 1st failure", 2: "2 = after the 2nd", 3: "3 = after the 3rd",
+                4: "–  = only after the system fails"}
+ASYMMETRIC_NAMES = {"fig1": "paper's Fig. 1 system (3 components)", "bridge": "bridge network (5)",
+                    "eight": "8-component system"}
+
+
+def figure_5(results, figures_dir, dpi):
+    table = read_table(results, "exp5", "exp5_policies")
+    fig = new_figure(10.4, 4.9, "Which components failed matters for repair decisions",
+                     "Long-term cost of repair policies; component cost = rho / n of a system failure, set-up cost sigma "
+                     "(units of one system failure)")
+
+    # ---- left: saving of the best MTTF-threshold policy over the best 'repair after r failures' rule ----
+    ax = fig.add_axes([0.075, 0.15, 0.38, 0.62])
+    style_axes(ax)
+    colors = {"fig1": SERIES_1, "bridge": SERIES_2, "eight": "#1baf7a"}
+    sigma = 0.1
+    for name, color in colors.items():
+        rows = table[(table["system"] == name) & (table["sigma"] == sigma)].sort_values("rho")
+        saving = rows["threshold_saving_over_best_r"].to_numpy() * 100.0
+        ax.plot(rows["rho"], saving, color=color, linewidth=2.0, solid_capstyle="round", label=ASYMMETRIC_NAMES[name], zorder=3)
+        ringed_markers(ax, rows["rho"], saving, color)
+    ax.set_xscale("log")
+    ax.set_xticks([0.1, 0.2, 0.5, 1, 2, 4, 10])
+    ax.set_xticklabels(["0.1", "0.2", "0.5", "1", "2", "4", "10"])
+    ax.minorticks_off()
+    ax.set_ylim(-1.0, max(26.0, float(table["threshold_saving_over_best_r"].max() * 100) + 3))
+    ax.axhline(0, color=GRID, linewidth=1.0)
+    ax.set_xlabel(f"rho  (component cost ÷ system-failure cost),  sigma = {sigma}", fontsize=8.6, color=TEXT_SECONDARY)
+    ax.set_ylabel("saving of the best threshold policy\nover the best 'repair after r failures' (%)", fontsize=9, color=TEXT_SECONDARY)
+    ax.set_title("asymmetric systems: the MTTF threshold saves money", fontsize=9.5, color=TEXT_PRIMARY, loc="left", pad=8)
+    ax.legend(frameon=False, fontsize=8.4, labelcolor=TEXT_PRIMARY, loc="upper right")
+
+    # ---- right: the best policy on the satellite, every cost pair ----
+    ax2 = fig.add_axes([0.575, 0.15, 0.40, 0.62])
+    sat = table[(table["system"] == "satellite") & (table["model"] == "exp")]
+    rhos = sorted(sat["rho"].unique())
+    sigmas = sorted(sat["sigma"].unique())
+    ax2.set_facecolor(SURFACE)
+    for side in ax2.spines.values():
+        side.set_visible(False)
+    gap = 0.04
+    for xi, rho in enumerate(rhos):
+        for yi, sig in enumerate(sigmas):
+            r = int(sat[(sat["rho"] == rho) & (sat["sigma"] == sig)]["best_r"].iloc[0])
+            level = min(r, 4) - 1
+            ax2.add_patch(Rectangle((xi + gap / 2, yi + gap / 2), 1 - gap, 1 - gap, facecolor=ORDINAL_BLUES[level], linewidth=0))
+            ax2.text(xi + 0.5, yi + 0.5, str(r) if r < 4 else "–", ha="center", va="center", fontsize=9.5,
+                     color=ORDINAL_TEXT[level], fontweight="bold")
+    ax2.set_xlim(0, len(rhos))
+    ax2.set_ylim(0, len(sigmas))
+    ax2.set_xticks([i + 0.5 for i in range(len(rhos))])
+    ax2.set_xticklabels([f"{v:g}" if v != 2 / 3 and v != 4 / 3 else {2 / 3: "⅔", 4 / 3: "1⅓"}[v] for v in rhos], fontsize=8.5, color=TEXT_SECONDARY)
+    ax2.set_yticks([i + 0.5 for i in range(len(sigmas))])
+    ax2.set_yticklabels([f"{v:g}" for v in sigmas], fontsize=8.5, color=TEXT_SECONDARY)
+    ax2.tick_params(length=0)
+    ax2.set_xlabel("rho  (component cost ÷ system-failure cost)", fontsize=8.6, color=TEXT_SECONDARY)
+    ax2.set_ylabel("sigma  (set-up cost per repair visit)", fontsize=9, color=TEXT_SECONDARY)
+    ax2.set_title("satellite: the cheapest moment to repair", fontsize=9.5, color=TEXT_PRIMARY, loc="left", pad=8)
+    handles = [Rectangle((0, 0), 1, 1, facecolor=ORDINAL_BLUES[i], linewidth=0) for i in range(4)]
+    fig.legend(handles, [POLICY_NAMES[i + 1] for i in range(4)], loc="lower center", ncol=4, frameon=False, fontsize=8.4,
+               labelcolor=TEXT_PRIMARY, bbox_to_anchor=(0.5, -0.005), handlelength=1.2, columnspacing=1.6)
+    return save(fig, figures_dir, "fig5_repair_policies", dpi)
+
+
+FIGURES = {"exp1": figure_1, "exp2": figure_2, "exp3": figure_3, "exp4": figure_4, "exp5": figure_5}
 
 
 def main(argv=None):

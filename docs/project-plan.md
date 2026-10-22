@@ -68,6 +68,18 @@ Deliver                                                     ████
 | 9 | **Done (2026-10-22)** | Cleanup: removed the `NotImplementedError` scaffolding, relabelled pseudo-code headings, fixed the one real strict-warning, silenced a CMake policy warning. **Traceability gate:** `tools/check_traceability.py` (runs under ctest; 39 requirements, 88 test cases, 0 problems) found 22 untagged test cases, 3 missing matrix rows and no test for INT-002; all closed (TC-G-10, TC-H-07 added). **CI:** the workflow was in `project/.github/`, where GitHub never reads it — moved to the repository root, extended to g++ + clang++ + a sanitizer job, and every job's commands executed locally. Verification matrix: g++ and clang++ 101/101 with 0 warnings, ASan/UBSan 101/101, 5 repeated ctest runs and 30 shuffled C++ repetitions stable. [verification-report.md](verification-report.md), [deviation-log.md](deviation-log.md), generated [traceability-matrix.md](traceability-matrix.md). **Gate G6 met locally**; the workflow has not yet run on a CI service (no remote). Optional P2 repair policies (EXP-004) **not attempted**. |
 | 10 | **Done (2026-10-22)** | Portfolio delivery: root [README](../README.md); assembled [technical report](technical-report.md); final [component diagram](uml/component.png) (re-rendered); `project/demo.sh` with a captured transcript ([demo.md](demo.md)); NFR-008 wording review (every hit a disclaimer; one over-claim found and corrected: the Fig. 1 *policy costs* had been reproduced only by a throw-away script, not by delivered code or tests). **Gate G7:** a fresh copy of the repository builds, passes all tests, runs the demo and reproduces experiments following the README alone (see the verification report §9). |
 
+### Optional P2 (repair policies), completed after Day 10 — 2026-10-22
+
+`policy` module (evaluate any state-based policy by recursion over sub-states, corrective maintenance, r-out-of-n,
+MTTF-threshold policies with **every** breakpoint searched; n ≤ 14), `analyze --c-comp/--c-sys/--c-set`, a `path_sets`
+structure type, **Experiment 5** (hypotheses committed as `91cc7bf` before the experiment code existed; 8/8 predictions
+supported) and figure 5. Evidence: the paper's Fig. 1 costs 97/105, 11/15, 1/10 reproduced by delivered code; closed forms
+from the system signature for corrective and every r-out-of-n policy; the paper's Proposition 3 as an independent route for
+every threshold policy under three failure models (> 300 policies); a concrete non-unimodal cost curve; five deliberate bugs
+all caught. Also closed ALG-006: the sweep now **measures** its integer additions and divisions and they equal the paper's
+n(n+1)2ⁿ⁻² and n·2ⁿ⁻¹ exactly. Traceability now 95 test cases, no exemptions. Not done: the optimal state-based policy
+(Dinkelbach) and the paper's single-pass evaluation.
+
 ## 3. Day-by-day work plan
 
 Requirement and test IDs refer to the requirements spec and test plan.

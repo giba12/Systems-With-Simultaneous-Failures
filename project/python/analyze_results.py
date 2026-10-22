@@ -310,11 +310,97 @@ def checks_exp4(det, timing, tables):
     return checks
 
 
+# ----------------------------------------------------------------------------------------------------------
+# Experiment 5
+# ----------------------------------------------------------------------------------------------------------
+
+def tables_exp5(det, timing):
+    rows = []
+    for item in det["raw_results"]:
+        policies = item["output"]["policies"]
+        threshold, r_family = policies["threshold"], policies["r_out_of_n"]
+        best_r_cost = r_family["best_long_term_mean_cost"]
+        best_threshold_cost = threshold["best_long_term_mean_cost"]
+        rows.append({
+            "system": item["label"],
+            "model": item["model"],
+            "beta": item["beta"],
+            "rho": item["rho"],
+            "sigma": item["sigma"],
+            "corrective_cost": policies["corrective"]["long_term_mean_cost"],
+            "best_r": r_family["best_r"],
+            "best_r_cost": best_r_cost,
+            "threshold_policy_count": threshold["policy_count"],
+            "best_threshold_gamma_to": threshold["best_gamma_to"],
+            "best_threshold_cost": best_threshold_cost,
+            "threshold_saving_over_best_r": (best_r_cost - best_threshold_cost) / best_r_cost,
+            "threshold_saving_over_corrective": (policies["corrective"]["long_term_mean_cost"] - best_threshold_cost)
+                                                / policies["corrective"]["long_term_mean_cost"],
+        })
+    frame = pd.DataFrame(rows)
+    paper = [item for item in det["raw_results"] if item["label"] == "fig1_paper_costs"][0]
+    paper_costs = pd.DataFrame([{"gamma_to": p["gamma_to"], "states_repaired": p["states_repaired"],
+                                 "long_term_mean_cost": p["long_term_mean_cost"]}
+                                for p in paper["output"]["policies"]["threshold"]["policies"]])
+    return {"exp5_policies": frame, "exp5_fig1_paper_costs": paper_costs}
+
+
+def checks_exp5(det, timing, tables):
+    frame = tables["exp5_policies"]
+    grid = frame[frame["system"] != "fig1_paper_costs"]
+    checks = []
+
+    paper = tables["exp5_fig1_paper_costs"]["long_term_mean_cost"].tolist()
+    expected = [97 / 105, 11 / 15, 1 / 10]
+    checks.append(("reproduction: the paper's Fig. 1 costs", "three threshold policies costing 97/105, 11/15 and 1/10",
+                   len(paper) == 3 and all(close(a, b, 1e-12) for a, b in zip(paper, expected)),
+                   " ".join(f"{v:.6f}" for v in paper)))
+
+    sat = grid[grid["system"] == "satellite"]
+    relative = (sat["best_threshold_cost"] - sat["best_r_cost"]).abs() / sat["best_r_cost"]
+    counts = sorted(set(sat["threshold_policy_count"]))
+    checks.append(("1 symmetry: threshold = r-out-of-n on the satellite",
+                   "for all 135 combinations the best costs agree within 1e-9 relative, and there are exactly 4 threshold policies",
+                   len(sat) == 135 and bool((relative <= 1e-9).all()) and counts == [4],
+                   f"{len(sat)} combinations, largest relative difference {relative.max():.2e}, policy counts {counts}"))
+
+    exp = sat[sat["model"] == "exp"]
+    cheap = exp[(exp["rho"] == 0.1) & (exp["sigma"] == 0.0)]
+    checks.append(("2 cheap components, no set-up: repair early", "best r = 1 at rho = 0.1, sigma = 0 (independent model)",
+                   len(cheap) == 1 and int(cheap["best_r"].iloc[0]) == 1, f"best r = {cheap['best_r'].tolist()}"))
+
+    dear = exp[exp["rho"] == 10]
+    gap = ((dear["corrective_cost"] - dear["best_r_cost"]) / dear["best_r_cost"]).abs()
+    checks.append(("3 expensive components: corrective maintenance",
+                   "at rho = 10 the corrective cost equals the best cost for every sigma (within 1e-9)",
+                   len(dear) == 5 and bool((gap <= 1e-9).all()), f"largest gap {gap.max():.2e}, best r by sigma {dear.sort_values('sigma')['best_r'].tolist()}"))
+
+    monotone, detail = True, []
+    for rho, group in exp.groupby("rho"):
+        rs = group.sort_values("sigma")["best_r"].tolist()
+        detail.append(f"rho={rho:.2f}: {rs}")
+        monotone = monotone and all(b >= a for a, b in zip(rs, rs[1:]))
+    checks.append(("4 set-up costs group replacements", "for each rho the best r never decreases as sigma grows (independent model)",
+                   monotone, "; ".join(detail)))
+
+    for name in ("fig1", "bridge", "eight"):
+        rows = grid[grid["system"] == name]
+        worst = (rows["best_threshold_cost"] - rows["best_r_cost"]) / rows["best_r_cost"]
+        best_saving = rows["threshold_saving_over_best_r"].max()
+        checks.append((f"5 asymmetric system '{name}'",
+                       "threshold never worse than the best r-out-of-n (1e-9) in any of 45 cost pairs, and more than 0.1 % cheaper in at least one",
+                       len(rows) == 45 and bool((worst <= 1e-9).all()) and bool(best_saving > 0.001),
+                       f"worst excess {worst.max():.2e}; largest saving {best_saving * 100:.2f} % "
+                       f"({int((rows['threshold_saving_over_best_r'] > 0.001).sum())} of 45 pairs above 0.1 %)"))
+    return checks
+
+
 EXPERIMENTS = {
     "exp1": (tables_exp1, checks_exp1, "Redundancy versus reliability"),
     "exp2": (tables_exp2, checks_exp2, "Independent versus simultaneous failures"),
     "exp3": (tables_exp3, checks_exp3, "States with equal failure counts"),
     "exp4": (tables_exp4, checks_exp4, "Scaling and performance"),
+    "exp5": (tables_exp5, checks_exp5, "Repair policies"),
 }
 
 
