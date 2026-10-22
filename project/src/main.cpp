@@ -93,7 +93,8 @@ const char* kUsage =
     "               lfmo-g (0,1); lfmo-ig (0, 0.5858])\n"
     "  --c-comp, --c-sys, --c-set\n"
     "               repair costs per replaced component / per system failure / per repair visit; give all\n"
-    "               three to also compare repair policies (corrective, r-out-of-n, every MTTF-threshold policy)\n"
+    "               three to also compare repair policies (corrective, r-out-of-n, every MTTF-threshold policy,\n"
+    "               and the optimal state-based policy)\n"
     "  --per-state  include the counting vector, signature and MTTF of every state\n"
     "  --verify     cross-check against the brute-force reference and Eq. (6)\n"
     "  --out        write the JSON here instead of to standard output\n";
@@ -382,7 +383,8 @@ json evaluation_json(const PolicyEvaluation& e) {
 
 // ALGORITHM   (--c-comp / --c-sys / --c-set)
 //   corrective maintenance, every r-out-of-n policy, and EVERY MTTF-threshold policy (one per distinct operational
-//   MTTF ratio: the cost curve is not unimodal, so none may be skipped); report the best of each family
+//   MTTF ratio: the cost curve is not unimodal, so none may be skipped); report the best of each family, and the
+//   optimal state-based policy (Dinkelbach) as the benchmark
 json policies_report(const SystemModel& model, const FailureModel& fm, const RepairCosts& costs) {
   json report;
   report["costs"] = {{"component", costs.component}, {"system", costs.system}, {"setup", costs.setup}};
@@ -420,6 +422,16 @@ json policies_report(const SystemModel& model, const FailureModel& fm, const Rep
   report["r_out_of_n"] = {{"best_r", r_policies[best_r].r}, {"best_long_term_mean_cost", best_r_cost}, {"policies", r_list}};
   report["threshold_saving_over_best_r_out_of_n"] =
       (best_r_cost - best_threshold.evaluation.long_term_mean_cost) / best_r_cost;
+
+  // the cheapest state-based policy of all (paper Section V-B), to say how far the best MTTF threshold is from it
+  const OptimalPolicyResult optimal = optimal_state_policy(model, fm, costs);
+  const double best_threshold_cost = best_threshold.evaluation.long_term_mean_cost;
+  report["optimal_state_based"] = evaluation_json(optimal.evaluation);
+  report["optimal_state_based"]["iterations"] = optimal.iterations;
+  report["optimal_state_based"]["states_repaired"] = optimal.states_repaired;
+  report["optimal_state_based"]["threshold_excess_over_optimal"] =
+      best_threshold_cost > 0.0 ? (best_threshold_cost - optimal.evaluation.long_term_mean_cost) / optimal.evaluation.long_term_mean_cost
+                                : 0.0;
   return report;
 }
 

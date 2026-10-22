@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <string>
+#include <utility>
 
 #include "reliability/errors.hpp"
 #include "reliability/mttf.hpp"
@@ -31,6 +32,9 @@ void require_valid_costs(const RepairCosts& costs) {
 // Operational ratios closer than this (relative) are treated as the same value: states whose MTTF is
 // mathematically equal can differ in the last bits of a double.
 constexpr double kRatioTolerance = 1e-12;
+
+// Dinkelbach's method ends after finitely many passes; this is only a guard against a loop caused by rounding.
+constexpr int kMaxOptimalPolicyPasses = 200;
 
 }  // namespace
 
@@ -198,6 +202,80 @@ ThresholdSearch search_threshold_policies(const SystemModel& model, const Failur
     }
   }
   return search;
+}
+
+// ALGORITHM   see policy.hpp: Dinkelbach's method over all state-based policies
+OptimalPolicyResult optimal_state_policy(const SystemModel& model, const FailureModel& failure_model,
+                                         const RepairCosts& costs) {
+  require_policy_size(model, "optimal_state_policy");
+  require_valid_costs(costs);
+  const int n = model.n();
+  const std::size_t states = std::size_t{1} << n;
+
+  std::vector<std::uint8_t> works(states);
+  std::vector<double> repair_cost(states);  // C(x), Eq. (10)
+  for (std::size_t x = 0; x < states; ++x) {
+    const StateMask mask = static_cast<StateMask>(x);
+    works[x] = model.phi(mask) ? 1 : 0;
+    repair_cost[x] = costs.setup + (n - working_count(mask)) * costs.component + (works[x] == 0 ? costs.system : 0.0);
+  }
+  std::vector<std::vector<double>> weight(static_cast<std::size_t>(n) + 1,
+                                          std::vector<double>(static_cast<std::size_t>(n) + 1, 0.0));
+  for (int w = 1; w <= n; ++w) {
+    for (int v = 0; v < w; ++v) {
+      weight[static_cast<std::size_t>(w)][static_cast<std::size_t>(v)] =
+          failure_model.transition_prob(w, v) / static_cast<double>(binomial(w, w - v));
+    }
+  }
+
+  OptimalPolicyResult best;
+  best.repair_at = corrective_policy(model);
+  best.evaluation = evaluate_policy(model, failure_model, best.repair_at, costs);
+  double g = best.evaluation.long_term_mean_cost;
+
+  std::vector<double> h(states, 0.0);
+  for (int pass = 1; pass <= kMaxOptimalPolicyPasses; ++pass) {
+    best.iterations = pass;
+    RepairSet policy(states, 0);
+    for (std::size_t xi = 0; xi < states; ++xi) {
+      const StateMask x = static_cast<StateMask>(xi);
+      if (works[xi] == 0) {
+        h[xi] = repair_cost[xi];
+        policy[xi] = 1;
+        continue;
+      }
+      const int w = working_count(x);
+      double cont = -g / failure_model.exit_rate(w);
+      for (StateMask y = (x - 1U) & x;; y = (y - 1U) & x) {
+        const double p = weight[static_cast<std::size_t>(w)][static_cast<std::size_t>(working_count(y))];
+        if (p != 0.0) {
+          cont += p * h[y];
+        }
+        if (y == 0U) {
+          break;
+        }
+      }
+      if (xi + 1 == states) {  // the all-working state always continues
+        h[xi] = cont;
+      } else if (repair_cost[xi] < cont - kRatioTolerance * std::max(std::abs(cont), repair_cost[xi])) {
+        h[xi] = repair_cost[xi];
+        policy[xi] = 1;
+      } else {
+        h[xi] = cont;
+      }
+    }
+    const PolicyEvaluation evaluation = evaluate_policy(model, failure_model, policy, costs);
+    if (!(evaluation.long_term_mean_cost < g * (1.0 - kRatioTolerance))) {
+      break;  // g did not decrease: the policy held in `best` is optimal
+    }
+    g = evaluation.long_term_mean_cost;
+    best.repair_at = std::move(policy);
+    best.evaluation = evaluation;
+  }
+  for (std::uint8_t flag : best.repair_at) {
+    best.states_repaired += flag;
+  }
+  return best;
 }
 
 // ALGORITHM   r = 1 .. n

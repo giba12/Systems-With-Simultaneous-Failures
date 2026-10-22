@@ -30,6 +30,19 @@
 //   (plus the failed states). That gives k distinct policies (j = 0 is corrective maintenance, gamma in (0, r_1]).
 //   EVERY one of them is evaluated: the paper shows that the cost curve over gamma is not unimodal, so a search that
 //   stops when the cost first rises can miss the best threshold.
+//
+// ALGORITHM of optimal_state_policy   (paper Section V-B: policy iteration = Dinkelbach's method for a ratio)
+//   The cheapest of ALL state-based policies. Start with g = LTMC of corrective maintenance. Repeat:
+//     1. for every state x in increasing order, with w = |x| and cont(x) = -g / nu_w + sum_y P(w,|y|) / C(w,w-|y|) h(y):
+//          failed x            h(x) = C(x), repair
+//          the all-working x   h(x) = cont(x), continue
+//          otherwise           h(x) = min(C(x), cont(x)); repair if C(x) is the smaller one
+//     2. evaluate the policy this gives (evaluate_policy); its cost per unit time is the new g
+//     3. stop when g no longer decreases (in exact arithmetic: when h(all working) = 0)
+//   g decreases strictly until it reaches the optimum, so the loop ends after finitely many passes. The paper uses
+//   the same recursion with level sums (O(n^2 2^n) per pass); here, as for evaluate_policy, sub-states are enumerated
+//   (about 3^n per pass), so n <= kMaxPolicyComponents.
+//   Ties are broken towards NOT repairing (a repair needs to be cheaper by more than rounding error).
 #pragma once
 
 #include <cstddef>
@@ -82,6 +95,16 @@ struct ThresholdSearch {
 
 ThresholdSearch search_threshold_policies(const SystemModel& model, const FailureModel& failure_model,
                                           const RepairCosts& costs);
+
+struct OptimalPolicyResult {
+  RepairSet repair_at;           // the optimal state-based policy
+  PolicyEvaluation evaluation;   // its long-term mean cost, cycle length and cycle cost
+  std::size_t states_repaired = 0;  // states at which it repairs, including the failed ones
+  int iterations = 0;            // passes of the algorithm (step 1 above) until g stopped decreasing
+};
+
+OptimalPolicyResult optimal_state_policy(const SystemModel& model, const FailureModel& failure_model,
+                                         const RepairCosts& costs);
 
 struct RPolicyResult {
   int r = 0;

@@ -421,3 +421,149 @@ TEST(Policy, PreconditionsAreChecked) {
   EXPECT_THROW(evaluate_policy(SystemModel::from_function(1, [](StateMask x) { return x != 0U; }), fm, RepairSet(2, 1), costs),
                ModelError);
 }
+
+namespace {
+
+// Every state-based policy of a small system: repair at every failed state, never at the all-working state, and any
+// choice at the other operational states. Returns the lowest long-term mean cost found by evaluating all of them.
+double brute_force_best_cost(const SystemModel& model, const FailureModel& fm, const RepairCosts& costs) {
+  std::vector<std::size_t> free_states;
+  for (std::size_t x = 0; x + 1 < (std::size_t{1} << model.n()); ++x) {
+    if (model.phi(static_cast<StateMask>(x))) {
+      free_states.push_back(x);
+    }
+  }
+  EXPECT_LE(free_states.size(), 10U) << "too many free states for an exhaustive search";
+  double best = std::numeric_limits<double>::infinity();
+  for (std::uint32_t choice = 0; choice < (1U << free_states.size()); ++choice) {
+    RepairSet policy = corrective_policy(model);
+    for (std::size_t i = 0; i < free_states.size(); ++i) {
+      policy[free_states[i]] = (choice >> i) & 1U;
+    }
+    best = std::min(best, evaluate_policy(model, fm, policy, costs).long_term_mean_cost);
+  }
+  return best;
+}
+
+std::vector<RepairCosts> cost_grid(int n) {
+  std::vector<RepairCosts> grid;
+  for (double rho : {0.1, 0.5, 2.0, 10.0}) {
+    for (double sigma : {0.0, 0.1, 0.5}) {
+      grid.push_back({rho / n, 1.0, sigma});
+    }
+  }
+  return grid;
+}
+
+}  // namespace
+
+// Traceability: TC-J-07
+TEST(Policy, OptimalStatePolicyEqualsTheBestOfAnExhaustiveSearchOverAllStateBasedPolicies) {
+  std::mt19937 rng(20261022);
+  std::vector<SystemModel> systems = {paper_figure_one()};
+  while (systems.size() < 7) {  // random systems of 4 and 5 components with at most 10 free states (2^10 policies each)
+    const SystemModel candidate = random_monotone_system(systems.size() < 4 ? 4 : 5, rng);
+    std::size_t free_states = 0;
+    for (std::size_t x = 0; x + 1 < (std::size_t{1} << candidate.n()); ++x) {
+      free_states += candidate.phi(static_cast<StateMask>(x)) ? 1 : 0;
+    }
+    if (free_states >= 2 && free_states <= 10) {
+      systems.push_back(candidate);
+    }
+  }
+  int compared = 0;
+  for (const SystemModel& model : systems) {
+    const int n = model.n();
+    const std::vector<std::shared_ptr<FailureModel>> models = {
+        std::make_shared<IndependentExponential>(1.0), make_lethal_shock(0.3, n), make_binomial_failure_rate(0.3, n),
+        make_gamma_process(0.3, n)};
+    for (const auto& fm : models) {
+      for (const RepairCosts& costs : cost_grid(n)) {
+        const OptimalPolicyResult optimal = optimal_state_policy(model, *fm, costs);
+        const double exhaustive = brute_force_best_cost(model, *fm, costs);
+        ExpectRel(optimal.evaluation.long_term_mean_cost, exhaustive, 1e-10,
+                  fm->name() + " n=" + std::to_string(n) + " rho*sigma index " + std::to_string(compared));
+        // the policy that is returned really has the cost that is reported
+        ExpectRel(evaluate_policy(model, *fm, optimal.repair_at, costs).long_term_mean_cost,
+                  optimal.evaluation.long_term_mean_cost, 1e-12, "returned policy");
+        ++compared;
+      }
+    }
+  }
+  EXPECT_EQ(compared, 7 * 4 * 12);
+}
+
+// Traceability: TC-J-08
+TEST(Policy, OptimalStatePolicyIsNeverWorseThanAnyOtherFamilyAndSometimesBetter) {
+  const SystemModel satellite = load_reference();
+  std::mt19937 rng(77);
+  std::vector<SystemModel> systems = {satellite, paper_figure_one(), bridge_network()};
+  for (int i = 0; i < 4; ++i) {
+    systems.push_back(random_monotone_system(7, rng));
+  }
+  int strictly_better_than_threshold = 0;
+  for (const SystemModel& model : systems) {
+    const int n = model.n();
+    const IndependentExponential fm(1.0);
+    const auto lsh = make_lethal_shock(0.2, n);
+    for (const FailureModel* m : {static_cast<const FailureModel*>(&fm), static_cast<const FailureModel*>(lsh.get())}) {
+      for (const RepairCosts& costs : cost_grid(n)) {
+        const double v = optimal_state_policy(model, *m, costs).evaluation.long_term_mean_cost;
+        const ThresholdSearch threshold = search_threshold_policies(model, *m, costs);
+        const double best_threshold = threshold.policies[threshold.best].evaluation.long_term_mean_cost;
+        double best_r = std::numeric_limits<double>::infinity();
+        for (const RPolicyResult& r : evaluate_r_out_of_n_policies(model, *m, costs)) {
+          best_r = std::min(best_r, r.evaluation.long_term_mean_cost);
+        }
+        const double corrective = evaluate_policy(model, *m, corrective_policy(model), costs).long_term_mean_cost;
+        EXPECT_LE(v, best_threshold * (1 + 1e-10));
+        EXPECT_LE(v, best_r * (1 + 1e-10));
+        EXPECT_LE(v, corrective * (1 + 1e-10));
+        if (v < best_threshold * (1 - 1e-6)) {
+          ++strictly_better_than_threshold;
+        }
+      }
+    }
+  }
+  // the optimum is a different thing from the best MTTF threshold on at least some systems; if it never were, this test
+  // would be checking nothing about the algorithm
+  EXPECT_GT(strictly_better_than_threshold, 0);
+}
+
+// Traceability: TC-J-09
+TEST(Policy, OptimalStatePolicyOnThePapersFigureOneRepairsAtTheFirstFailure) {
+  const SystemModel model = paper_figure_one();
+  const IndependentExponential fm(1.0);
+  const OptimalPolicyResult optimal = optimal_state_policy(model, fm, RepairCosts{1.0 / 30.0, 1.0, 0.0});
+  ExpectRel(optimal.evaluation.long_term_mean_cost, 1.0 / 10.0, 1e-12, "the cheapest threshold policy of the paper is optimal");
+  EXPECT_GE(optimal.iterations, 1);
+  // it repairs at every state with at least one failed component (and at the failed ones)
+  for (StateMask x = 0; x + 1 < 8; ++x) {
+    EXPECT_EQ(optimal.repair_at[x], 1) << x;
+  }
+  EXPECT_EQ(optimal.repair_at[7], 0);
+  EXPECT_EQ(optimal.states_repaired, 7U);
+}
+
+// Traceability: TC-J-10
+TEST(Policy, OptimalStatePolicyDegenerateCasesAndPreconditions) {
+  const SystemModel model = load_reference();
+  const IndependentExponential fm(1.0);
+  // costly repairs: corrective maintenance is optimal and the first pass already shows it
+  const OptimalPolicyResult corrective = optimal_state_policy(model, fm, RepairCosts{10.0 / 6.0, 1.0, 0.5});
+  ExpectRel(corrective.evaluation.long_term_mean_cost,
+            evaluate_policy(model, fm, corrective_policy(model), RepairCosts{10.0 / 6.0, 1.0, 0.5}).long_term_mean_cost, 1e-12,
+            "corrective");
+  // all costs zero: every policy costs 0 and the algorithm must stop, not loop
+  const OptimalPolicyResult free_repairs = optimal_state_policy(model, fm, RepairCosts{0.0, 0.0, 0.0});
+  EXPECT_EQ(free_repairs.evaluation.long_term_mean_cost, 0.0);
+  EXPECT_LE(free_repairs.iterations, 3);
+  // scaling: costs x 2 -> cost x 2 and the same policy
+  const RepairCosts base{0.2, 1.0, 0.1};
+  const OptimalPolicyResult one = optimal_state_policy(model, fm, base);
+  const OptimalPolicyResult two = optimal_state_policy(model, fm, RepairCosts{0.4, 2.0, 0.2});
+  ExpectRel(two.evaluation.long_term_mean_cost, 2 * one.evaluation.long_term_mean_cost, 1e-10, "scaling");
+  EXPECT_EQ(one.repair_at, two.repair_at);
+  EXPECT_THROW(optimal_state_policy(model, fm, RepairCosts{-1.0, 1.0, 0.0}), ModelError);
+  EXPECT_THROW(optimal_state_policy(SystemModel::parallel(kMaxPolicyComponents + 1), fm, base), ModelError);
+}

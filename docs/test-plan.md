@@ -225,6 +225,10 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | TC-J-03 | γ → 0, γ = 1, r = n | γ → 0 is corrective maintenance; γ = 1 is the r = 1 policy on systems whose components are all relevant; r = n is corrective maintenance | EXP-004 |
 | TC-J-04 | Closed forms from the **signature** (independent exponential lifetimes) | corrective: LTMC = (c_set + c_sys + c_comp Σ k·sₖ) / MTTF; r-out-of-n for every r: the cycle ends at failure min(K, r), so length = Σ sₖ E T_{min(k,r):n}, cost = c_set + c_comp Σ sₖ min(k,r) + c_sys Σ_{k≤r} sₖ; both agree with the policy evaluator to 1e-12 on the satellite, Fig. 1, the bridge and random systems | EXP-004 |
 | TC-J-05 | Scaling laws, preconditions, simultaneous failures | costs × 2 → LTMC × 2; λ × 2 → length ÷ 2, LTMC × 2; zero costs → 0; corrective cycle length = MTTF under [Exp], [LSh], [BFR]; invalid policies (repair at the all-working state, no repair at a failed state, wrong size), negative or non-finite costs, r or γ out of range, n > 14 → ModelError | EXP-004 |
+| TC-J-07 | The optimal state-based policy against an **exhaustive search** | for the paper's Fig. 1 system and six random systems of 4–5 components, under [Exp], [LSh], [BFR] and [LFMO-G] and 12 cost pairs (336 cases), the Dinkelbach result equals the lowest cost found by evaluating every state-based policy (≤ 10 free states) to 1e-10; the returned policy has the reported cost | EXP-004 |
+| TC-J-08 | The optimum is never worse than any family, and not always equal to one | satellite, Fig. 1, bridge and four random 7-component systems under [Exp] and [LSh]: optimum ≤ best threshold, best r-out-of-n and corrective maintenance; it is strictly cheaper than the best threshold in at least one case | EXP-004 |
+| TC-J-09 | The optimum on the paper's Fig. 1 example | with c_comp = 1/30, c_sys = 1, c_set = 0 the optimal cost is 1/10 (the paper's cheapest threshold policy) and the policy repairs in every state but the all-working one | EXP-004 |
+| TC-J-10 | Degenerate cases and preconditions of the optimal policy | costly repairs give corrective maintenance; all costs zero ends in at most 3 passes with cost 0; costs × 2 give cost × 2 and the same policy; negative costs and n > 14 are rejected | EXP-004 |
 | TC-J-06 | The paper's **Proposition 3** as an independent route | for every threshold policy of the satellite, Fig. 1, the bridge and 10 random systems, under [Exp], [LSh] and [BFR] and three cost sets (> 300 policies): cycle length and cost equal T, c_set + c_comp N + c_sys P computed from state-occupation times without any policy recursion (1e-9) | EXP-004 |
 
 ## 4. Test data
@@ -267,7 +271,7 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | EXP-001 | TC-F-05, TC-G-01 |
 | EXP-002 | TC-G-02, TC-G-04, TC-G-05, TC-G-06, TC-G-07, TC-G-11, TC-G-12 |
 | EXP-003 | TC-G-03, TC-G-12 |
-| EXP-004 (P2) | TC-J-01 … TC-J-06, TC-G-11, TC-H-08 |
+| EXP-004 (P2) | TC-J-01 … TC-J-10, TC-G-11, TC-H-08 |
 | DOC-001 | TC-H-03 |
 | DOC-002 | TC-H-03 |
 | INT-001, INT-003 | TC-H-04, TC-H-08, TC-H-09 |

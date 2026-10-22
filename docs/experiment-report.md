@@ -210,7 +210,7 @@ Savings of the best threshold policy over the best r-out-of-n rule on the asymme
   22 benchmark networks of up to 30 components is a different population; the numbers here must not be compared with it.
 * The policy costs were checked independently: closed forms from the system signature (corrective maintenance and every
   r-out-of-n policy), and the paper's own Proposition 3 for every threshold policy under all three failure models. The
-  optimal state-based policy (paper §V-B) was **not** implemented, so nothing here says how far the best threshold policy
+  optimal state-based policy (paper §V-B) was **not** implemented when this experiment was run (it has been added since, and the CLI now reports it, but the saved Experiment 5 results predate it), so nothing here says how far the best threshold policy
   is from the optimum.
 
 **Observation not pre-registered.** Under both common-cause models (β = 0.2) the best policy at high set-up cost

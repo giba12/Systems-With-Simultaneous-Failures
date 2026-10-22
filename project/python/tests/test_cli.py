@@ -141,6 +141,12 @@ class AnalyzeCli(unittest.TestCase):
         self.assertAlmostEqual(policies["corrective"]["long_term_mean_cost"], 97 / 105, places=12)
         self.assertAlmostEqual(policies["corrective"]["mean_cycle_length"], 7 / 6, places=12)
         self.assertIn("policies_ms", output["timing"])
+        # the optimum over all state-based policies: here the cheapest threshold policy (repair at the first failure) is optimal
+        optimal = policies["optimal_state_based"]
+        self.assertAlmostEqual(optimal["long_term_mean_cost"], 1 / 10, places=12)
+        self.assertAlmostEqual(optimal["threshold_excess_over_optimal"], 0.0, places=12)
+        self.assertEqual(optimal["states_repaired"], 7)
+        self.assertGreaterEqual(optimal["iterations"], 1)
 
     # Traceability: TC-H-08
     def test_policies_are_absent_without_costs_and_work_for_every_failure_model(self):
@@ -153,6 +159,12 @@ class AnalyzeCli(unittest.TestCase):
             self.assertGreater(p["corrective"]["long_term_mean_cost"], 0)
             self.assertAlmostEqual(p["threshold"]["best_long_term_mean_cost"],
                                    p["threshold"]["policies"][p["threshold"]["best_index"]]["long_term_mean_cost"], places=15)
+            optimal = p["optimal_state_based"]
+            # the optimum over ALL state-based policies is at most the best of every family
+            self.assertLessEqual(optimal["long_term_mean_cost"], p["threshold"]["best_long_term_mean_cost"] * (1 + 1e-10))
+            self.assertLessEqual(optimal["long_term_mean_cost"], p["r_out_of_n"]["best_long_term_mean_cost"] * (1 + 1e-10))
+            self.assertLessEqual(optimal["long_term_mean_cost"], p["corrective"]["long_term_mean_cost"] * (1 + 1e-10))
+            self.assertGreaterEqual(optimal["threshold_excess_over_optimal"], -1e-10)
 
     # Traceability: TC-H-08
     def test_policy_option_errors(self):

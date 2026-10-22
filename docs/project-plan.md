@@ -90,6 +90,15 @@ systems under each model; Lemma 4 over eight models. New test cases TC-D-15 … 
 102 test cases; 120/120 tests under g++, clang++ and the sanitizers. Not done: the paper's other 25 failure models.
 A pre-registered cross-model experiment (Experiment 6) was considered and not started.
 
+### Optimal state-based policy (Dinkelbach), 2026-10-22
+
+`optimal_state_policy` (paper §V-B): policy iteration on the cost of a cycle per unit time, reusing `evaluate_policy`, 3ⁿ per
+pass (n ≤ 14); reported by `analyze` as `policies.optimal_state_based`, including how much more the best MTTF-threshold
+policy costs than the optimum. New test cases TC-J-07 … TC-J-10: equality with an **exhaustive search over every state-based
+policy** (336 cases), never worse than any other family and strictly better than the best threshold in some cases, the
+paper's Fig. 1 optimum 1/10, degenerate cases; four deliberate bugs all caught. Not done: the paper's O(n²2ⁿ) level-sum
+version and single-pass threshold evaluation.
+
 ## 3. Day-by-day work plan
 
 Requirement and test IDs refer to the requirements spec and test plan.

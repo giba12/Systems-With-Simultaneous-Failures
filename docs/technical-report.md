@@ -147,7 +147,7 @@ On the symmetric satellite the paper's MTTF-threshold policy is exactly the "rep
 symmetry, and a check of the code). On small **asymmetric** systems it is never worse and saves up to 8.8 % (the paper's
 Fig. 1 system), 17.3 % (a bridge network) and 23.5 % (an 8-component system that was picked because it has a
 non-unimodal cost curve, so its saving is not representative). All eight predictions held; they were mostly easy, and
-the optimal state-based policy was not implemented, so nothing is said about distance from the optimum.
+the optimal state-based policy was not yet implemented when Experiment 5 was run, so that experiment says nothing about distance from the optimum (it is implemented now; see the deviation log, A7).
 Details in the [experiment report](experiment-report.md) §7.
 
 ### Six common-cause models, one pairwise β
@@ -165,7 +165,7 @@ help the first and hurt the second). Six of seven predictions held. Details in t
 The software was verified against two independent implementations, closed forms that need neither, the paper's own
 examples and theorems, deliberate bugs (29 mutations, 28 caught immediately and the survivor closed by new tests),
 sanitizers, a second compiler, and a machine-checked traceability from every requirement to a test. g++ and clang++
-build with no warnings and pass 120/120 tests; the sanitizer build also passes. Twenty defects and near-misses found
+build with no warnings and pass 124/124 tests; the sanitizer build also passes. Twenty defects and near-misses found
 along the way, including several mistakes in my own expectations, are listed in the
 [verification report](verification-report.md), which also states what was **not** verified.
 
@@ -178,7 +178,7 @@ along the way, including several mistakes in my own expectations, are listed in 
 * **Size.** The state space is 2ⁿ. The simultaneous-failure models stop at 16 components (numerical precision); the
   brute-force reference at 16; the independent model was run to 20 here (24 in an earlier benchmark).
 * **Models and policies.** Three failure-model families. Repair policies are evaluated by direct recursion (n ≤ 14); the
-  paper's single-pass method and its optimal state-based policy are not implemented.
+  paper's single-pass method is not implemented (the optimal state-based policy is, with the same enumeration).
 * **Timing.** One laptop, one core, WSL2; treat times as orders of magnitude.
 * **Not verified:** a run on a CI service, operating systems other than Linux, and a third independent implementation.
 
