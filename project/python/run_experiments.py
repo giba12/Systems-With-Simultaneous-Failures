@@ -44,6 +44,7 @@ EXPERIMENT_FILES = {
     "exp3": "exp3_equal_failure_counts",
     "exp4": "exp4_scaling",
     "exp5": "exp5_repair_policies",
+    "exp6": "exp6_six_models",
 }
 
 
@@ -275,12 +276,34 @@ def experiment_5(analyze, workdir, seed, **_):
     return settings, raw, timing
 
 
+SIX_MODELS = ["lsh", "bfr", "lfmo-c", "lfmo-g", "lfmo-ig", "lfmo-s"]
+SIX_MODEL_BETAS = [0.05, 0.2, 0.5]
+
+
+def experiment_6(analyze, workdir, seed, **_):
+    """Six common-cause models, one pairwise beta: a redundant pair, the satellite and the series system of six."""
+    systems = [("pair", write_config(workdir, "parallel", 2)), ("satellite", SATELLITE_CONFIG),
+               ("series6", write_config(workdir, "series", 6))]
+    settings = {"models": SIX_MODELS, "betas": SIX_MODEL_BETAS, "verify": True,
+                "systems": ["pair (two components, either suffices)", "satellite (three redundant pairs in series)",
+                            "series6 (the same six components in series)"]}
+    raw, timing = [], []
+    for model in SIX_MODELS:
+        for beta in SIX_MODEL_BETAS:
+            for label, config in systems:
+                result, median_ms, rss, _ = timed_runs(analyze, config, 1, model=model, beta=beta, verify=True)
+                raw.append({"label": label, "model": model, "beta": beta, "output": result})
+                timing.append({"label": label, "model": model, "beta": beta, "analysis_ms": median_ms,
+                               "peak_rss_kb": rss})
+    return settings, raw, timing
+
+
 def workdir_config(workdir, name):
     return Path(workdir) / f"{name}.json"
 
 
 EXPERIMENTS = {"exp1": experiment_1, "exp2": experiment_2, "exp3": experiment_3, "exp4": experiment_4,
-               "exp5": experiment_5}
+               "exp5": experiment_5, "exp6": experiment_6}
 
 
 # ----------------------------------------------------------------------------------------------------------
@@ -364,7 +387,7 @@ def run_experiment(name, analyze, out_dir, hypotheses_dir, seed, max_n=20):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Run the reliability experiments and save raw results.")
-    parser.add_argument("experiments", nargs="+", help="exp1 exp2 exp3 exp4, or 'all'")
+    parser.add_argument("experiments", nargs="+", help="exp1 .. exp6, or 'all'")
     parser.add_argument("--analyze", help="path of the analyze executable (default: ../build/analyze)")
     parser.add_argument("--out", default=str(PROJECT_ROOT / "results"))
     parser.add_argument("--hypotheses", default=str(PROJECT_ROOT / "experiments" / "hypotheses"))

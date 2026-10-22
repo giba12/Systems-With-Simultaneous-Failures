@@ -69,7 +69,7 @@ class ExperimentRunner(unittest.TestCase):
     # TC-G-01: the deterministic result file is byte-identical across runs
     # Traceability: TC-G-08
     def test_results_are_reproducible_byte_for_byte(self):
-        names = ["exp1", "exp2", "exp3", "exp4", "exp5"]
+        names = ["exp1", "exp2", "exp3", "exp4", "exp5", "exp6"]
         self.run_into("first", names, max_n=8)
         self.run_into("second", names, max_n=8)
         for name in names:
@@ -165,11 +165,11 @@ class AnalysisAndPlots(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.root = Path(cls.tmp.name)
-        for name in ("exp1", "exp2", "exp3", "exp4", "exp5"):
+        for name in ("exp1", "exp2", "exp3", "exp4", "exp5", "exp6"):
             runner.run_experiment(name, ANALYZE, cls.root, HYPOTHESES, runner.DEFAULT_SEED, max_n=12)
         import analyze_results
         cls.analysis = analyze_results
-        cls.outcomes = {name: analyze_results.analyze(cls.root, name) for name in ("exp1", "exp2", "exp3", "exp4", "exp5")}
+        cls.outcomes = {name: analyze_results.analyze(cls.root, name) for name in ("exp1", "exp2", "exp3", "exp4", "exp5", "exp6")}
 
     @classmethod
     def tearDownClass(cls):
@@ -177,7 +177,7 @@ class AnalysisAndPlots(unittest.TestCase):
 
     # Traceability: TC-G-09
     def test_tables_and_verdict_files_are_written(self):
-        for name in ("exp1", "exp2", "exp3", "exp4", "exp5"):
+        for name in ("exp1", "exp2", "exp3", "exp4", "exp5", "exp6"):
             self.assertTrue((self.root / name / "hypothesis_check.md").is_file())
             self.assertTrue(list((self.root / name / "tables").glob("*.csv")))
 
@@ -214,6 +214,22 @@ class AnalysisAndPlots(unittest.TestCase):
         sat = frame[(frame["system"] == "satellite") & (frame["model"] == "exp") & (frame["rho"] == 10)]
         self.assertTrue((sat["best_r"] == 4).all())  # expensive components: never repair early
 
+    # Traceability: TC-G-12
+    def test_experiment_6_reports_the_rejected_ranking_prediction_as_found(self):
+        tables, checks, rejected = self.outcomes["exp6"]
+        # five predictions and the two bookkeeping checks hold; prediction 5 was rejected by the data and stays rejected
+        self.assertEqual(rejected, ["5: series and satellite rank the models identically"])
+        self.assertEqual(len(checks), 7)
+        cases = tables["exp6_cases"]
+        self.assertEqual(len(cases), 18)  # 6 models x 3 betas
+        self.assertTrue(cases["verified"].all())
+        # the rejection is not noise: the two rankings are exactly opposite at every beta
+        self.assertTrue(tables["exp6_rankings"]["exactly_reversed"].all())
+        # the independent Python Psi reproduces the tool's series MTTF, and the lethal-shock satellite is exact
+        lsh = cases[(cases["model"] == "lsh") & (cases["beta"] == 0.5)].iloc[0]
+        self.assertAlmostEqual(lsh["satellite_mttf"], 32 / 35, places=12)
+        self.assertAlmostEqual(lsh["series6_expected"], 1 / (0.5 * 6 + 0.5), places=12)
+
     def test_experiment_4_structural_claims_hold(self):
         _, checks, _ = self.outcomes["exp4"]
         verdicts = {name: passed for name, _, passed, _ in checks}
@@ -235,13 +251,13 @@ class AnalysisAndPlots(unittest.TestCase):
         import plot_results
         # copy ONLY the tables: no raw results, no analyze executable involved
         only_tables = self.root / "only_tables"
-        for name in ("exp1", "exp2", "exp3", "exp4", "exp5"):
+        for name in ("exp1", "exp2", "exp3", "exp4", "exp5", "exp6"):
             shutil.copytree(self.root / name / "tables", only_tables / name / "tables")
         self.assertEqual(plot_results.main(["--results", str(only_tables), "--dpi", "60"]), 0)
         pictures = sorted((only_tables / "figures").glob("*.png"))
         self.assertEqual([p.name for p in pictures], ["fig1_redundancy.png", "fig2_common_cause.png",
                                                       "fig3_equal_failure_counts.png", "fig4_scaling.png",
-                                                      "fig5_repair_policies.png"])
+                                                      "fig5_repair_policies.png", "fig6_six_models.png"])
         for picture in pictures:
             self.assertEqual(picture.read_bytes()[:8], b"\x89PNG\r\n\x1a\n")
             self.assertGreater(picture.stat().st_size, 3000)

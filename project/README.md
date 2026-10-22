@@ -22,7 +22,7 @@ tests report *skipped*. Work through [../docs/project-plan.md](../docs/project-p
 | `main.cpp` (`analyze` CLI) | done, tested |
 | `python/` (experiment runner, analysis, plots) and `experiments/hypotheses/` | done, tested |
 
-Test status: 118 C++ tests, 45 Python end-to-end tests (`python_end_to_end` under ctest) and the traceability check (`traceability`), 120 ctest tests in all, all passing; 8 Python tests skip themselves when pandas / matplotlib are missing. Builds warning-free with g++ 13 and clang++ 18, and passes under AddressSanitizer + UndefinedBehaviorSanitizer.
+Test status: 118 C++ tests, 46 Python end-to-end tests (`python_end_to_end` under ctest) and the traceability check (`traceability`), 120 ctest tests in all, all passing; 8 Python tests skip themselves when pandas / matplotlib are missing. Builds warning-free with g++ 13 and clang++ 18, and passes under AddressSanitizer + UndefinedBehaviorSanitizer.
 
 Measured sweep cost (parallel system, Release build): n = 16 → 0.17 s; n = 20 → 2.9 s, 25 MB; n = 24 → 58 s, 402 MB.
 

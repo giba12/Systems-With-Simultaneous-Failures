@@ -26,8 +26,8 @@ tags in the test code. Do not edit by hand; run the tool to regenerate.
 | VER-003 | TC-H-07 | TC-H-07: `python/tests/test_traceability_tool.py` |
 | VER-004 | TC-I-01, TC-I-02, TC-I-03, TC-I-04 | TC-I-01: `tests/test_properties.cpp`<br>TC-I-02: `tests/test_properties.cpp`<br>TC-I-03: `tests/test_properties.cpp`, `tests/test_signature.cpp`<br>TC-I-04: `tests/test_properties.cpp` |
 | EXP-001 | TC-F-05, TC-G-01 | TC-F-05: `tests/test_signature.cpp`<br>TC-G-01: `python/tests/test_experiments.py` |
-| EXP-002 | TC-G-02, TC-G-04, TC-G-05, TC-G-06, TC-G-07, TC-G-11 | TC-G-02: `python/tests/test_experiments.py`<br>TC-G-04: `python/tests/test_experiments.py`<br>TC-G-05: `python/tests/test_experiments.py`<br>TC-G-06: `python/tests/test_experiments.py`<br>TC-G-07: `python/tests/test_experiments.py`<br>TC-G-11: `python/tests/test_experiments.py` |
-| EXP-003 | TC-G-03 | TC-G-03: `python/tests/test_experiments.py` |
+| EXP-002 | TC-G-02, TC-G-04, TC-G-05, TC-G-06, TC-G-07, TC-G-11, TC-G-12 | TC-G-02: `python/tests/test_experiments.py`<br>TC-G-04: `python/tests/test_experiments.py`<br>TC-G-05: `python/tests/test_experiments.py`<br>TC-G-06: `python/tests/test_experiments.py`<br>TC-G-07: `python/tests/test_experiments.py`<br>TC-G-11: `python/tests/test_experiments.py`<br>TC-G-12: `python/tests/test_experiments.py` |
+| EXP-003 | TC-G-03, TC-G-12 | TC-G-03: `python/tests/test_experiments.py`<br>TC-G-12: `python/tests/test_experiments.py` |
 | EXP-004 | TC-G-11, TC-H-08, TC-J-01, TC-J-02, TC-J-03, TC-J-04, TC-J-05, TC-J-06 | TC-G-11: `python/tests/test_experiments.py`<br>TC-H-08: `python/tests/test_cli.py`<br>TC-J-01: `tests/test_policy.cpp`<br>TC-J-02: `tests/test_policy.cpp`<br>TC-J-03: `tests/test_policy.cpp`<br>TC-J-04: `tests/test_policy.cpp`<br>TC-J-05: `tests/test_policy.cpp`<br>TC-J-06: `tests/test_policy.cpp` |
 | DOC-001 | TC-H-03 | TC-H-03: documentation review: docs/deviation-log.md and docs/experiment-report.md section 8 |
 | DOC-002 | TC-H-03 | TC-H-03: documentation review: docs/deviation-log.md and docs/experiment-report.md section 8 |
@@ -45,4 +45,4 @@ tags in the test code. Do not edit by hand; run the tool to regenerate.
 | NFR-008 | TC-H-03 | TC-H-03: documentation review: docs/deviation-log.md and docs/experiment-report.md section 8 |
 | NFR-009 | TC-F-07 | TC-F-07: `tests/test_failure_models.cpp`, `tests/test_mttf.cpp` |
 
-**39 requirements, 102 test cases defined: 99 carry a tag in automated test code, 3 are verified elsewhere (see the classification in the tool).**
+**39 requirements, 103 test cases defined: 100 carry a tag in automated test code, 3 are verified elsewhere (see the classification in the tool).**

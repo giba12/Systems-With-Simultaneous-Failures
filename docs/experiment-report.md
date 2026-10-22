@@ -2,12 +2,12 @@
 
 | | |
 |---|---|
-| **Date** | 2026-10-21 (Experiment 5: 2026-10-22) |
+| **Date** | 2026-10-21 (Experiments 5 and 6: 2026-10-22) |
 | **Tool** | `analyze` 0.8.0 (Release build, one core) |
 | **Machine** | Intel Core i7-9750H @ 2.6 GHz, WSL2 Linux, Python 3.12.3 |
-| **Seed** | 20261021 (recorded; all five experiments are deterministic, no random numbers are drawn) |
-| **Hypotheses** | [`project/experiments/hypotheses/`](../project/experiments/hypotheses/), committed as `0a3e51c` (Experiments 1–4) and `91cc7bf` (Experiment 5) **before** the corresponding experiment code existed |
-| **Raw results** | `project/results/exp*/` (not committed; regenerate with the commands in §8) |
+| **Seed** | 20261021 (recorded; all six experiments are deterministic, no random numbers are drawn) |
+| **Hypotheses** | [`project/experiments/hypotheses/`](../project/experiments/hypotheses/), committed as `0a3e51c` (Experiments 1–4), `91cc7bf` (Experiment 5) and `c049dc6` (Experiment 6) **before** the corresponding experiment code existed |
+| **Raw results** | `project/results/exp*/` (not committed; regenerate with the commands in §9) |
 
 This report separates what **reproduces the paper** from what is **new**, states every prediction that was
 **rejected**, and lists the deviations and limits. The system is a **fictional** educational model: nothing here
@@ -23,8 +23,9 @@ is flight-qualified or a claim about any real spacecraft.
 | Eq. (21) | **Corrected**: the printed lower summation limit is a typo (see the validation report §6) |
 | The paper's repair-policy cost model (Eqs. (9)–(13)) and its Fig. 1 costs 97/105, 11/15, 1/10 | **Reproduced** by the delivered policy code, which agrees with the paper's independent Proposition 3 on more than 300 policies under three failure models |
 | That the cost curve over the threshold γ is not unimodal | **Reproduced** with a concrete 8-component example (found by random search) |
-| Experiments 1–5 on the fictional satellite and the small asymmetric systems | **New**, designed for this project (the premise of Experiment 3 is the paper's motivating observation) |
-| Comparison of the lethal-shock and binomial-failure-rate models on a multi-pair system | **New** |
+| Experiments 1–6 on the fictional satellite and the small asymmetric systems | **New**, designed for this project (the premise of Experiment 3 is the paper's motivating observation) |
+| Comparison of the lethal-shock and binomial-failure-rate models on a multi-pair system (Experiment 2), and of all six Table I models calibrated to one pairwise β (Experiment 6) | **New** |
+| Table I parameters (p, η, η, α for β = 5 %, 20 %, 50 %) and the n/Ψ(30) ranges of the five common-cause models | **Reproduced** (unit tests TC-D-15, TC-D-16) |
 
 ## 2. How the experiments were run
 
@@ -220,12 +221,47 @@ tested.
 paper's single-pass evaluation of all thresholds (Proposition 3 with classes of equal counting vectors) is not implemented.
 At these sizes (n ≤ 8) the policy comparison took at most about 8 ms per cost pair.
 
-## 8. Reproducing everything
+## 8. Experiment 6 — Six common-cause models, one pairwise β &nbsp;·&nbsp; 6 of 7 supported, **1 rejected**
+
+![Series system against satellite, one dot per failure model](figures/fig6_six_models.png)
+
+All six models of the paper's Table I are calibrated to the same pairwise β = 2 − Ψ(2); they differ in how large the
+simultaneous-failure bundles are when more than two components are involved. The experiment runs a redundant pair, the
+satellite and the series system of six under each model at β = 0.05, 0.2 and 0.5 (54 runs, every one verified).
+
+**Reproduction checks (not predictions).** The one-pair MTTF is the same under all six models (worst difference 3e-16
+relative) and the series MTTF equals 1/Ψ(6) computed by a separate Python implementation of Table I (6.7e-16).
+
+**Supported predictions.**
+
+* *Pair is blind to the model shape* — it depends only on Ψ(1) and Ψ(2).
+* *Small β: models nearly interchangeable* — the largest satellite MTTF is 1.015 times the smallest at β = 0.05.
+* *Spread grows with β* — 1.015, 1.067, 1.203 at β = 0.05, 0.2, 0.5. (The redundancy ratio, satellite ÷ series, spreads far
+  more: 1.10, 1.45 and 2.14 — a figure not pre-registered.)
+* *Bundle size orders the redundancy ratio* — at every β the ratio ranks BFR < LFMO-C < LFMO-G < LFMO-IG < LFMO-S < LSh,
+  exactly the reverse of the ranking by mean bundle size 6/Ψ(6).
+
+**Rejected: prediction 5 (series and satellite rank the models identically).** They rank them in **exactly opposite**
+orders at all three β (table `exp6_rankings`). The series system has the *longest* MTTF under BFR (large bundles mean fewer
+independent failure events) and the satellite the *shortest*. Consequently the prediction is wrong in a way that is not
+noise: the pair of conclusions "bigger bundles help a series system" and "bigger bundles hurt redundancy" are both true, and
+for the satellite the second effect is larger than the first. This was a poor prediction: prediction 4 and the series
+formula 1/Ψ(6), both known when the hypotheses were written, already pointed towards a conflict, and I did not follow it
+through. It is reported, not repaired.
+
+**What this means, and does not mean.** For a system of redundant pairs a single pairwise β is **not** enough to
+characterise the common-cause risk: at β = 0.5 the satellite's MTTF ranges from 0.760 (BFR) to 0.914 (LSh) with the same
+β, a factor 1.20, and the redundancy ratio from 1.50 to 3.20. The ordering by bundle size is a result about these six
+Table I families on this one fictional system, not a general law; the explanation above (opposing effects) is an
+interpretation consistent with the numbers, not something that was tested separately. Components are identical, the
+paper's calibration is used, and n = 6.
+
+## 9. Reproducing everything
 
 ```bash
 cmake -S project -B project/build -DCMAKE_BUILD_TYPE=Release && cmake --build project/build
 cd project
-python3 python/run_experiments.py all                  # raw results into results/ (all five experiments)
+python3 python/run_experiments.py all                  # raw results into results/ (all six experiments)
 .venv/bin/python python/analyze_results.py             # tables and hypothesis_check.md
 .venv/bin/python python/plot_results.py                # figures into results/figures
 ```
@@ -233,7 +269,7 @@ python3 python/run_experiments.py all                  # raw results into result
 (`.venv` holds pandas and matplotlib; `python3 -m venv .venv && .venv/bin/pip install -r python/requirements.txt`.)
 The deterministic result files are byte-identical on a repeat run; run times and memory differ slightly.
 
-## 9. Limitations and deviation log
+## 10. Limitations and deviation log
 
 * **Identical components.** The paper's model requires exchangeable (identical) components, so the three pairs of the
   satellite are modelled with the same lifetime law; real power, communication and computing units would differ.

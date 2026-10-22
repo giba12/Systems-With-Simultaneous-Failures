@@ -150,6 +150,16 @@ non-unimodal cost curve, so its saving is not representative). All eight predict
 the optimal state-based policy was not implemented, so nothing is said about distance from the optimum.
 Details in the [experiment report](experiment-report.md) §7.
 
+### Six common-cause models, one pairwise β
+
+![Series system against satellite, one dot per failure model](figures/fig6_six_models.png)
+
+The paper calibrates all its common-cause models to the same pairwise β. For a redundant pair that is enough: the six
+models give identical MTTF. For the satellite it is not: at β = 0.5 its MTTF runs from 0.760 (binomial failure rate) to
+0.914 (lethal shock), and the redundancy ratio from 1.50 to 3.20. One pre-registered prediction was **rejected**: the
+models rank in exactly opposite orders for a series system and for the satellite (bigger simultaneous-failure bundles
+help the first and hurt the second). Six of seven predictions held. Details in the [experiment report](experiment-report.md) §8.
+
 ## 7. Verification
 
 The software was verified against two independent implementations, closed forms that need neither, the paper's own

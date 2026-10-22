@@ -395,12 +395,116 @@ def checks_exp5(det, timing, tables):
     return checks
 
 
+# ----------------------------------------------------------------------------------------------------------
+# Experiment 6
+# ----------------------------------------------------------------------------------------------------------
+
+def psi_independent(model, beta, x):
+    """Psi of the paper's Table I, calibrated to the pairwise beta (Psi(2) = 2 - beta), written again here in Python
+    with plain floats so that the series-system check does not lean on the C++ code it is checking."""
+    if model == "lsh":
+        return (1 - beta) * x + beta
+    if model == "bfr":
+        return (1 - (1 - beta) ** x) / beta
+    if model == "lfmo-c":
+        p = beta / (2 - beta)
+        return x / (1 + p * (x - 1))
+    if model == "lfmo-s":
+        return x ** math.log2(2 - beta)
+    if model == "lfmo-g":
+        def shape(eta, y):
+            return math.log1p(y / eta) / math.log1p(1 / eta)
+    elif model == "lfmo-ig":
+        def shape(eta, y):
+            return (2 * y / (math.sqrt(2 * y + eta * eta) + eta)) / (2 / (math.sqrt(2 + eta * eta) + eta))
+    else:
+        raise ResultsError(f"unknown model '{model}'")
+    low, high = math.log(1e-12), math.log(1e15)      # shape(eta, 2) rises towards 2 as eta grows
+    for _ in range(300):
+        middle = (low + high) / 2
+        if shape(math.exp(middle), 2) < 2 - beta:
+            low = middle
+        else:
+            high = middle
+    return shape(math.exp((low + high) / 2), x)
+
+
+def tables_exp6(det, timing):
+    by_case = {}
+    for item in det["raw_results"]:
+        by_case.setdefault((item["model"], item["beta"]), {})[item["label"]] = item["output"]
+    rows = []
+    for (model, beta), systems in by_case.items():
+        pair = systems["pair"]["results"]["mttf_all_working"]
+        satellite = systems["satellite"]["results"]["mttf_all_working"]
+        series = systems["series6"]["results"]["mttf_all_working"]
+        psi6 = psi_independent(model, beta, 6)
+        rows.append({"model": model, "beta": beta, "pair_mttf": pair, "satellite_mttf": satellite,
+                     "series6_mttf": series, "series6_expected": 1 / psi6, "mean_bundle_6": 6 / psi6,
+                     "redundancy_ratio": satellite / series,
+                     "verified": bool(all(s["verification"]["passed"] for s in systems.values()))})
+    cases = pd.DataFrame(rows)
+    spread = []
+    for beta, group in cases.groupby("beta"):
+        spread.append({"beta": beta, "satellite_max_over_min": group["satellite_mttf"].max() / group["satellite_mttf"].min(),
+                       "ratio_max_over_min": group["redundancy_ratio"].max() / group["redundancy_ratio"].min()})
+    # descriptive, not a prediction: how the two rankings of prediction 5 relate
+    rankings = []
+    for beta, group in cases.groupby("beta"):
+        by_satellite = list(group.sort_values("satellite_mttf")["model"])
+        by_series = list(group.sort_values("series6_mttf")["model"])
+        rankings.append({"beta": beta, "satellite_ascending": " < ".join(by_satellite),
+                         "series_ascending": " < ".join(by_series), "exactly_reversed": by_satellite == by_series[::-1]})
+    return {"exp6_cases": cases, "exp6_spread": pd.DataFrame(spread), "exp6_rankings": pd.DataFrame(rankings)}
+
+
+def checks_exp6(det, timing, tables):
+    cases, spread = tables["exp6_cases"], tables["exp6_spread"].set_index("beta")
+    betas = sorted(cases["beta"].unique())
+    checks = []
+    worst_pair = max(abs(g["pair_mttf"] / g["pair_mttf"].iloc[0] - 1).max() for _, g in cases.groupby("beta"))
+    checks.append(("1: the pair is blind to the model shape", "six one-pair MTTFs agree within 1e-9 relative at every beta",
+                   worst_pair <= 1e-9, f"worst relative difference {worst_pair:.2e}"))
+    reproduction = max(abs(cases["series6_mttf"] / cases["series6_expected"] - 1))
+    checks.append(("reproduction check", "series MTTF equals 1/Psi(6) from the independent Python Psi within 1e-9",
+                   reproduction <= 1e-9, f"worst relative difference {reproduction:.2e}"))
+    small = spread.loc[min(betas), "satellite_max_over_min"]
+    checks.append(("2: models interchangeable at small beta", f"max/min satellite MTTF below 1.10 at beta = {min(betas)}",
+                   small < 1.10, f"{small:.4f}"))
+    values = [spread.loc[b, "satellite_max_over_min"] for b in betas]
+    checks.append(("3: the spread grows with beta", "max/min satellite MTTF strictly increases over beta = "
+                   + ", ".join(str(b) for b in betas), all(a < b for a, b in zip(values, values[1:])),
+                   " -> ".join(f"{v:.4f}" for v in values)))
+    mismatches, evidence = [], []
+    for beta in betas:
+        group = cases[cases["beta"] == beta]
+        by_bundle = list(group.sort_values("mean_bundle_6", ascending=False)["model"])
+        by_ratio = list(group.sort_values("redundancy_ratio", ascending=True)["model"])
+        evidence.append(f"beta {beta}: " + " > ".join(by_bundle))
+        if by_bundle != by_ratio or group["mean_bundle_6"].nunique() < len(group) or group["redundancy_ratio"].nunique() < len(group):
+            mismatches.append(f"beta {beta}: ratio order is {' > '.join(reversed(by_ratio))}")
+    checks.append(("4: bundle size orders the redundancy ratio",
+                   "ranking by redundancy ratio is the reverse of the ranking by 6/Psi(6), strictly, at every beta",
+                   not mismatches, "; ".join(mismatches) if mismatches else "bundle order (largest first), ratio ascending: "
+                   + " | ".join(evidence)))
+    differing = []
+    for beta in betas:
+        group = cases[cases["beta"] == beta]
+        if list(group.sort_values("satellite_mttf")["model"]) != list(group.sort_values("series6_mttf")["model"]):
+            differing.append(f"beta {beta}")
+    checks.append(("5: series and satellite rank the models identically", "same ranking by satellite MTTF and by series MTTF",
+                   not differing, "identical at every beta" if not differing else "differs at " + ", ".join(differing)))
+    checks.append(("verification", "every run's independent verification passed", bool(cases["verified"].all()), "all runs"))
+    return checks
+
+
 EXPERIMENTS = {
     "exp1": (tables_exp1, checks_exp1, "Redundancy versus reliability"),
     "exp2": (tables_exp2, checks_exp2, "Independent versus simultaneous failures"),
     "exp3": (tables_exp3, checks_exp3, "States with equal failure counts"),
     "exp4": (tables_exp4, checks_exp4, "Scaling and performance"),
     "exp5": (tables_exp5, checks_exp5, "Repair policies"),
+    "exp6": (tables_exp6, checks_exp6, "Six common-cause models"),
 }
 
 

@@ -109,4 +109,4 @@ print(f"    best rule: repair after {r['best_r']} failures, cost per time {r['be
 PY
 
 echo
-echo "Done. Reproduce the five experiments and the figures with the commands in README.md."
+echo "Done. Reproduce the six experiments and the figures with the commands in README.md."

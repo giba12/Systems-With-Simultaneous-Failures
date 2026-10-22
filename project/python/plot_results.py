@@ -341,7 +341,39 @@ def figure_5(results, figures_dir, dpi):
     return save(fig, figures_dir, "fig5_repair_policies", dpi)
 
 
-FIGURES = {"exp1": figure_1, "exp2": figure_2, "exp3": figure_3, "exp4": figure_4, "exp5": figure_5}
+MODEL_LABELS = {"lsh": "LSh", "bfr": "BFR", "lfmo-c": "LFMO-C", "lfmo-g": "LFMO-G", "lfmo-ig": "LFMO-IG", "lfmo-s": "LFMO-S"}
+
+
+def figure_6(results, figures_dir, dpi):
+    table = read_table(results, "exp6", "exp6_cases")
+    fig = new_figure(10.4, 4.2, "Same pairwise beta, different systems: the models rank in opposite order",
+                     "Series system of six components (x) against the satellite (y), one dot per failure model; "
+                     "MTTF with all components working")
+    betas = sorted(table["beta"].unique())
+    for i, beta in enumerate(betas):
+        ax = fig.add_axes([0.065 + i * 0.325, 0.14, 0.26, 0.6])
+        style_axes(ax, x_grid=True)
+        rows = table[table["beta"] == beta]
+        x, y = rows["series6_mttf"].to_numpy(), rows["satellite_mttf"].to_numpy()
+        ringed_markers(ax, x, y, SERIES_1)
+        xpad, ypad = (x.max() - x.min()) * 0.28, (y.max() - y.min()) * 0.2
+        ax.set_xlim(x.min() - xpad * 0.4, x.max() + xpad)
+        ax.set_ylim(y.min() - ypad, y.max() + ypad)
+        # the dots run from upper left to lower right; alternate the labels between the two free sides so that
+        # dots that sit close together keep readable names
+        for k, idx in enumerate(np.argsort(x)):
+            above = k % 2 == 0
+            ax.annotate(MODEL_LABELS[rows["model"].iloc[idx]], (x[idx], y[idx]), textcoords="offset points",
+                        xytext=(8, 5) if above else (-8, -13), ha="left" if above else "right", fontsize=8.4,
+                        color=TEXT_PRIMARY)
+        ax.set_title(f"pairwise beta = {beta:g}", fontsize=9.5, color=TEXT_PRIMARY, loc="left", pad=8)
+        ax.set_xlabel("series system MTTF  (higher = larger bundles)", fontsize=8.6, color=TEXT_SECONDARY)
+        if i == 0:
+            ax.set_ylabel("satellite MTTF", fontsize=9, color=TEXT_SECONDARY)
+    return save(fig, figures_dir, "fig6_six_models", dpi)
+
+
+FIGURES = {"exp1": figure_1, "exp2": figure_2, "exp3": figure_3, "exp4": figure_4, "exp5": figure_5, "exp6": figure_6}
 
 
 def main(argv=None):

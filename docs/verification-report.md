@@ -42,7 +42,7 @@ ctest --test-dir build --output-on-failure           # C++ tests + python_end_to
 | Fresh clone-style configure + build (no cached state) | clean, no CMake warning |
 
 **Test inventory.** 118 C++ tests (`Signature` 23, `Mttf` 21, `FailureModels` 22, `Reference` 16, `StructureFunction` 13,
-`Policy` 10, `State` 8, `Properties` 5) and 45 Python end-to-end tests (`test_cli` 23, `test_experiments` 17,
+`Policy` 10, `State` 8, `Properties` 5) and 46 Python end-to-end tests (`test_cli` 23, `test_experiments` 18,
 `test_traceability_tool` 5). `ctest` runs the C++ tests individually (118) plus the Python suite as one test and the
 traceability check as one test: 120. About 7 400 lines of source, tests and scripts.
 
