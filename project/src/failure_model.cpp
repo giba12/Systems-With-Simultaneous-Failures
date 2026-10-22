@@ -222,6 +222,92 @@ double LevyFrailty::increment_eq21(int w, int k) const {
   return static_cast<double>(total);
 }
 
+// ---------------- the paper's Table I: Laplace exponents and calibration ----------------
+
+namespace {
+
+constexpr double kInverseGaussianMaxBeta = 2.0 - 1.4142135623730950488;  // 2 - sqrt(2): Psi(2) cannot go below sqrt(2)
+
+void require_beta_in(double beta, double low, double high, bool low_inclusive, bool high_inclusive, const char* model) {
+  const bool ok = std::isfinite(beta) && (low_inclusive ? beta >= low : beta > low) &&
+                  (high_inclusive ? beta <= high : beta < high);
+  if (!ok) {
+    std::ostringstream message;
+    message << "beta must lie in " << (low_inclusive ? "[" : "(") << low << ", " << high << (high_inclusive ? "]" : ")")
+            << " for the " << model << " model, got " << beta;
+    throw ModelError(message.str());
+  }
+}
+
+// IG numerator 2x / (sqrt(2x + eta^2) + eta) = sqrt(2x + eta^2) - eta, written without cancellation
+double inverse_gaussian_core(double eta, double x) { return 2.0 * x / (std::sqrt(2.0 * x + eta * eta) + eta); }
+
+double gamma_psi(double eta, double x) { return std::log1p(x / eta) / std::log1p(1.0 / eta); }
+double inverse_gaussian_psi(double eta, double x) {
+  return inverse_gaussian_core(eta, x) / inverse_gaussian_core(eta, 1.0);
+}
+
+// Solve  ratio(eta) = 2 - beta  for eta by bisection on log(eta). Both ratios increase from their lower limit
+// (1 for the gamma process, sqrt(2) for the inverse Gaussian) at eta -> 0 to 2 at eta -> infinity.
+template <typename Ratio>
+double solve_eta(Ratio ratio, double target) {
+  double low = std::log(1e-14);
+  double high = std::log(1e17);
+  for (int i = 0; i < 300; ++i) {
+    const double mid = 0.5 * (low + high);
+    (ratio(std::exp(mid)) < target ? low : high) = mid;
+  }
+  return std::exp(0.5 * (low + high));
+}
+
+}  // namespace
+
+double compound_poisson_p(double beta) {
+  require_beta_in(beta, 0.0, 1.0, true, true, "compound Poisson [LFMO-C]");
+  return beta / (2.0 - beta);
+}
+
+double gamma_process_eta(double beta) {
+  require_beta_in(beta, 0.0, 1.0, false, false, "gamma process [LFMO-G]");
+  return solve_eta([](double eta) { return gamma_psi(eta, 2.0); }, 2.0 - beta);
+}
+
+double inverse_gaussian_eta(double beta) {
+  require_beta_in(beta, 0.0, kInverseGaussianMaxBeta, false, true, "inverse Gaussian [LFMO-IG]");
+  if (beta >= kInverseGaussianMaxBeta * (1.0 - 1e-12)) {
+    return 0.0;  // the limit: Psi(x) = sqrt(x)
+  }
+  return solve_eta([](double eta) { return inverse_gaussian_psi(eta, 2.0); }, 2.0 - beta);
+}
+
+double stable_alpha(double beta) {
+  require_beta_in(beta, 0.0, 1.0, true, true, "stable subordinator [LFMO-S]");
+  return std::log2(2.0 - beta);
+}
+
+double psi_lethal_shock(double beta, double x) { return x <= 0.0 ? 0.0 : (1.0 - beta) * x + beta; }
+
+double psi_binomial_failure_rate(double beta, double x) {
+  if (x <= 0.0) {
+    return 0.0;
+  }
+  const double log_survive = beta >= 1.0 ? -std::numeric_limits<double>::infinity() : std::log1p(-beta);
+  return -std::expm1(x * log_survive) / beta;
+}
+
+double psi_compound_poisson(double beta, double x) {
+  const double p = compound_poisson_p(beta);
+  return x <= 0.0 ? 0.0 : x / (1.0 + p * (x - 1.0));
+}
+
+double psi_gamma_process(double beta, double x) { return x <= 0.0 ? 0.0 : gamma_psi(gamma_process_eta(beta), x); }
+
+double psi_inverse_gaussian(double beta, double x) {
+  return x <= 0.0 ? 0.0 : inverse_gaussian_psi(inverse_gaussian_eta(beta), x);
+}
+
+double psi_stable(double beta, double x) { return x <= 0.0 ? 0.0 : std::pow(x, stable_alpha(beta)); }
+
 // ---------------- factories ----------------
 
 // ALGORITHM   return a new IndependentExponential(lambda)
@@ -265,6 +351,45 @@ std::unique_ptr<FailureModel> make_binomial_failure_rate(double beta, int max_n)
         return -std::expm1(static_cast<double>(x) * log_survive) / beta;
       },
       max_n);
+}
+
+namespace {
+
+std::string model_label(const char* name, double beta) {
+  std::ostringstream label;
+  label << std::setprecision(17) << name << "(beta=" << beta << ")";
+  return label.str();
+}
+
+}  // namespace
+
+// ALGORITHM   [LFMO-C]: compound Poisson process with exponential jumps; p = beta / (2 - beta)
+std::unique_ptr<FailureModel> make_compound_poisson(double beta, int max_n) {
+  const double p = compound_poisson_p(beta);
+  return std::make_unique<LevyFrailty>(
+      model_label("compound_poisson", beta), [p](int x) { return x == 0 ? 0.0 : x / (1.0 + p * (x - 1.0)); }, max_n);
+}
+
+// ALGORITHM   [LFMO-G]: gamma process; eta is found once by bisection so that Psi(2) = 2 - beta
+std::unique_ptr<FailureModel> make_gamma_process(double beta, int max_n) {
+  const double eta = gamma_process_eta(beta);
+  return std::make_unique<LevyFrailty>(model_label("gamma_process", beta),
+                                       [eta](int x) { return x == 0 ? 0.0 : gamma_psi(eta, x); }, max_n);
+}
+
+// ALGORITHM   [LFMO-IG]: inverse Gaussian process; eta found once by bisection (beta <= 2 - sqrt 2 = 0.586)
+std::unique_ptr<FailureModel> make_inverse_gaussian(double beta, int max_n) {
+  const double eta = inverse_gaussian_eta(beta);
+  return std::make_unique<LevyFrailty>(model_label("inverse_gaussian", beta),
+                                       [eta](int x) { return x == 0 ? 0.0 : inverse_gaussian_psi(eta, x); }, max_n);
+}
+
+// ALGORITHM   [LFMO-S]: stable subordinator; alpha = log2(2 - beta)
+std::unique_ptr<FailureModel> make_stable_subordinator(double beta, int max_n) {
+  const double alpha = stable_alpha(beta);
+  return std::make_unique<LevyFrailty>(model_label("stable_subordinator", beta),
+                                       [alpha](int x) { return x == 0 ? 0.0 : std::pow(static_cast<double>(x), alpha); },
+                                       max_n);
 }
 
 }  // namespace reliability

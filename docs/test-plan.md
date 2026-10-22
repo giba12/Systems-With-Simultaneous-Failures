@@ -138,6 +138,12 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | TC-D-12 | Other Ψ families and edge cases | Stable subordinator Ψ(x) = x^α gives a valid kernel; a non-concave Ψ (x²), a decreasing or uncalibrated Ψ are rejected; β = 1 fails everything at once (all increments after the first are 0, every working state has MTTF 1) | REL-002, REL-004 |
 | TC-D-13 | Satellite under [LSh]: all 64 states, plus series/parallel | Independent integral closed forms agree (satellite 1e-11, series 1e-12, parallel 1e-9); exact values 32/35 (β = 0.5), 6003/7735 (0.2), 147467/205436 (0.05) | REL-002 |
 | TC-D-14 | Eq. (6) vs Eq. (7) under [LSh], [BFR], stable | Agree to 1e-10 on 28 systems × 5 models | REL-005, REL-002 |
+| TC-D-15 | Table I parameters | Calibrating to β = 5 %, 20 %, 50 % gives the paper's parameters: [LFMO-C] p = 0.0256 / 0.111 / 0.333, [LFMO-G] η = 18.51 / 3.537 / 0.618, [LFMO-IG] η = 4.188 / 1.634 / 0.289, [LFMO-S] α = 0.963 / 0.848 / 0.585 | REL-004, REL-002 |
+| TC-D-16 | Bundle-size ranges at n = 30 | n/Ψ(30) for [LSh] and [BFR] equals the paper's quoted ranges (1.051–1.935 and 1.910–15.000), [LSh] being the minimum and [BFR] the maximum of the six models | REL-002 |
+| TC-D-17 | Six-model calibration, kernel and Remark 1 | For each new model: Ψ(1) = 1, β = 2 − Ψ(2), kernel rows sum to 1, no negative entry, and the kernel matches the closed-form mean bundle size | REL-002, REL-004 |
+| TC-D-18 | Parameter ranges and degenerate cases | Out-of-range β is rejected per model ([LFMO-IG] ≤ 2−√2, [LFMO-G] in (0,1)); β = 0 gives [Exp]; β = 1 gives the all-at-once limit; the [LFMO-IG] boundary limit is Ψ(x) = √x | REL-004 |
+| TC-D-19 | One redundant pair is model-independent | The MTTF of one pair is identical under all six models (same β), while the satellite's differs | REL-002 |
+| TC-D-20 | Eq. (6) vs Eq. (7) under the four new models | Agree to 1e-10 on the same 28 systems | REL-005, REL-002 |
 
 ### Test E — Invalid models and inputs
 
@@ -191,6 +197,7 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | TC-H-03 | Documentation review | Limitations, complexity, deviations, fictional-system label and the reproduced-vs-new separation are present | DOC-001, DOC-002, NFR-008 |
 | TC-H-04 | CLI end-to-end | `analyze --config configs/satellite_support.json` writes results with exit code 0; JSON fields, per-state records, `--out`, determinism apart from `timing`, all three failure models, failure model from the config file with the command line winning | INT-001, INT-003 |
 | TC-H-05 | CLI errors | Invalid input → exit 1 with a message naming the problem (missing file, malformed JSON, n = 1, duplicate id, missing/invalid β or λ, unwritable output, n > 16 for the simultaneous-failure models); usage errors → exit 2 | INT-004 |
+| TC-H-09 | CLI: all six common-cause models | `--model lsh|bfr|lfmo-c|lfmo-g|lfmo-ig|lfmo-s` each run, pass `--verify` and compare policies on the satellite, with six different results; β ranges and the missing-β error are reported by the tool; the model can come from the configuration file | INT-001, REL-002 |
 | TC-H-08 | CLI repair policies | `--c-comp/--c-sys/--c-set` reproduce the paper's Fig. 1 costs through the tool; no policies without costs; works for every failure model; giving only some of the three flags is a usage error (2); negative costs and n > 14 are input errors (1) | EXP-004, INT-001 |
 | TC-H-07 | Traceability is machine-checked | `project/tools/check_traceability.py` finds no problem: every requirement has a test case, every matrix entry exists, every test case carries a tag in test code or is classified as verified another way; it runs under ctest | VER-003 |
 | TC-H-06 | The verification can fail | With a labelled fault injected (miscounted vector or drifting MTTF) `--verify` exits 3, still writes the JSON, names the first mismatching state, and an impossible vector is a failed verification, not a crash; the injection does nothing without `--verify` | VER-001, INT-004 |
@@ -248,9 +255,9 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | ALG-005 | TC-C-03 (plus code inspection) |
 | ALG-006 | TC-G-06, TC-C-22 |
 | REL-001 | TC-A-04, TC-B-04, TC-B-05, TC-C-07, TC-C-08, TC-C-14, TC-C-20, TC-C-21, TC-F-03, TC-F-08 |
-| REL-002 | TC-D-02, TC-D-03, TC-D-04, TC-D-05, TC-D-06, TC-D-07, TC-D-09 … TC-D-14 |
+| REL-002 | TC-D-02, TC-D-03, TC-D-04, TC-D-05, TC-D-06, TC-D-07, TC-D-09 … TC-D-20, TC-H-09 |
 | REL-003 | TC-A-04, TC-E-07, TC-F-04 |
-| REL-004 | TC-D-01, TC-D-04, TC-D-08, TC-E-08 |
+| REL-004 | TC-D-01, TC-D-04, TC-D-08, TC-D-15, TC-D-17, TC-D-18, TC-E-08 |
 | REL-005 | TC-C-13, TC-D-06 |
 | VER-001 | TC-C-03, TC-F-05 |
 | VER-002 | TC-F-01, TC-F-03 |
@@ -262,7 +269,7 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | EXP-004 (P2) | TC-J-01 … TC-J-06, TC-G-11, TC-H-08 |
 | DOC-001 | TC-H-03 |
 | DOC-002 | TC-H-03 |
-| INT-001, INT-003 | TC-H-04, TC-H-08 |
+| INT-001, INT-003 | TC-H-04, TC-H-08, TC-H-09 |
 | INT-002 | TC-G-10 |
 | INT-004 | TC-E-09 |
 | NFR-001 | TC-H-03 (tolerances documented in [verification-report.md](verification-report.md)) |

@@ -33,21 +33,21 @@ ctest --test-dir build --output-on-failure           # C++ tests + python_end_to
 
 | Configuration | Result |
 |---|---|
-| g++ 13.3.0, Release | **114 / 114 passed**, 0 compiler warnings |
-| clang++ 18.1.3, Release | **114 / 114 passed**, 0 compiler warnings |
-| g++ 13.3.0, Debug + ASan + UBSan | **114 / 114 passed**, no sanitizer report |
-| Release, `ctest` repeated 5 times | 5 × 114 / 114 |
-| C++ tests, 10 repetitions × 3 shuffle seeds (1, 77, 2026) | 30 × 112 / 112: no flakiness, no order dependence |
+| g++ 13.3.0, Release | **120 / 120 passed**, 0 compiler warnings |
+| clang++ 18.1.3, Release | **120 / 120 passed**, 0 compiler warnings |
+| g++ 13.3.0, Debug + ASan + UBSan | **120 / 120 passed**, no sanitizer report |
+| Release, `ctest` repeated 5 times | 5 × 120 / 120 |
+| C++ tests, 10 repetitions × 3 shuffle seeds (1, 77, 2026) | 30 × 118 / 118: no flakiness, no order dependence |
 | Python tests with only the standard library (no pandas / matplotlib) | 43 run, 8 skip themselves cleanly |
 | Fresh clone-style configure + build (no cached state) | clean, no CMake warning |
 
-**Test inventory.** 112 C++ tests (`Signature` 23, `Mttf` 19, `FailureModels` 18, `Reference` 16, `StructureFunction` 13,
-`Policy` 10, `State` 8, `Properties` 5) and 43 Python end-to-end tests (`test_cli` 21, `test_experiments` 17,
-`test_traceability_tool` 5). `ctest` runs the C++ tests individually (99) plus the Python suite as one test and the
-traceability check as one test: 114. About 7 400 lines of source, tests and scripts.
+**Test inventory.** 118 C++ tests (`Signature` 23, `Mttf` 21, `FailureModels` 22, `Reference` 16, `StructureFunction` 13,
+`Policy` 10, `State` 8, `Properties` 5) and 45 Python end-to-end tests (`test_cli` 23, `test_experiments` 17,
+`test_traceability_tool` 5). `ctest` runs the C++ tests individually (118) plus the Python suite as one test and the
+traceability check as one test: 120. About 7 400 lines of source, tests and scripts.
 
 **Traceability (VER-003).** `project/tools/check_traceability.py` reads the requirements, the test plan and the tags in
-the test code and fails on any orphan. Current state: **39 requirements, 95 test cases, 92 test cases tagged in
+the test code and fails on any orphan. Current state: **39 requirements, 102 test cases, 99 test cases tagged in
 automated test code, 3 verified another way** (timing in Experiment 4, CI, and documentation review), **0 problems**; the
 optional repair-policy cases are now implemented and tagged. The generated matrix is
 [traceability-matrix.md](traceability-matrix.md); the tool runs under `ctest`.
@@ -86,6 +86,11 @@ optional repair-policy cases are now implemented and tagged. The generated matri
 | Day 7 (Lévy-frailty) | Eq. (20) sign; Eq. (21) typo reintroduced; wrong divisor; β swapped; recursion drops a term | 5 / 5 |
 | Day 8 (CLI) | wrong exit code; `--lambda` ignored; wrong operational count; verification verdict forced to pass | 3 / 4 at first |
 | Optional P2 (policies) | set-up cost forgotten in the repair cost (caught **only** by the signature closed forms, since the paper's Fig. 1 has no set-up cost); holding time 1/ν dropped; transition weight without the 1/C split; r-out-of-n repairing one failure late; threshold using `<` for `<=` | 5 / 5 |
+| Table I models ([LFMO-C], [LFMO-G], [LFMO-IG], [LFMO-S]) | five deliberate bugs in the new Ψ functions and the calibration | 4 / 5 (see below) |
+
+The survivor among the Table I mutations changed a constant factor of Ψ for [LFMO-IG]. It is an **equivalent mutant**, not
+a test gap: Ψ is normalised by Ψ(1) = 1, so a constant factor cancels in every ratio Ψ(x)/Ψ(1) that the code and the
+tests can observe.
 
 The one survivor (verification verdict forced to pass) exposed that **no test made the verification fail**; fault
 injection and three new tests closed the gap, after which the same mutation is caught.
@@ -203,7 +208,7 @@ The fresh-copy check was repeated on the final tree, including the optional repa
 | Step | Result |
 |---|---|
 | configure and build (Release) | 0 warnings, 0 errors (about 2 min 50 s with the dependency downloads) |
-| `ctest` | **114 / 114 passed** |
+| `ctest` | **120 / 120 passed** |
 | `project/demo.sh` | ran to the end, five steps; step 5 prints the paper's Fig. 1 costs 0.9238 / 0.7333 / 0.1000 = 97/105, 11/15, 1/10 |
 | `analyze … --c-comp 0.1 --c-sys 1 --c-set 0.05` | 4 threshold policies, best r = 1 |
 | `run_experiments.py all`, new virtual environment, `analyze_results.py`, `plot_results.py` | five experiments saved, five figures drawn |

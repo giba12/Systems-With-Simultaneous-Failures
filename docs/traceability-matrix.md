@@ -19,8 +19,8 @@ tags in the test code. Do not edit by hand; run the tool to regenerate.
 | REL-003 | TC-A-04, TC-E-07, TC-F-04 | TC-A-04: `tests/test_mttf.cpp`<br>TC-E-07: `tests/test_failure_models.cpp`<br>TC-F-04: `tests/test_mttf.cpp` |
 | REL-001 | TC-A-04, TC-B-04, TC-B-05, TC-C-07, TC-C-08, TC-C-14, TC-C-20, TC-C-21, TC-F-03, TC-F-08 | TC-A-04: `tests/test_mttf.cpp`<br>TC-B-04: `tests/test_mttf.cpp`<br>TC-B-05: `tests/test_mttf.cpp`<br>TC-C-07: `tests/test_mttf.cpp`<br>TC-C-08: `tests/test_mttf.cpp`<br>TC-C-14: `tests/test_mttf.cpp`, `tests/test_signature.cpp`<br>TC-C-20: `tests/test_mttf.cpp`<br>TC-C-21: `tests/test_mttf.cpp`<br>TC-F-03: `tests/test_mttf.cpp`<br>TC-F-08: `tests/test_mttf.cpp` |
 | REL-005 | TC-C-13, TC-D-06 | TC-C-13: `tests/test_mttf.cpp`<br>TC-D-06: `tests/test_failure_models.cpp`, `tests/test_mttf.cpp` |
-| REL-002 | TC-D-02, TC-D-03, TC-D-04, TC-D-05, TC-D-06, TC-D-07, TC-D-09, TC-D-10, TC-D-11, TC-D-12, TC-D-13, TC-D-14 | TC-D-02: `tests/test_failure_models.cpp`<br>TC-D-03: `tests/test_failure_models.cpp`<br>TC-D-04: `tests/test_mttf.cpp`<br>TC-D-05: `tests/test_mttf.cpp`<br>TC-D-06: `tests/test_failure_models.cpp`, `tests/test_mttf.cpp`<br>TC-D-07: `tests/test_failure_models.cpp`<br>TC-D-09: `tests/test_failure_models.cpp`<br>TC-D-10: `tests/test_failure_models.cpp`<br>TC-D-11: `tests/test_failure_models.cpp`<br>TC-D-12: `tests/test_failure_models.cpp`<br>TC-D-13: `tests/test_mttf.cpp`<br>TC-D-14: `tests/test_mttf.cpp` |
-| REL-004 | TC-D-01, TC-D-04, TC-D-08, TC-E-08 | TC-D-01: `tests/test_failure_models.cpp`, `tests/test_mttf.cpp`<br>TC-D-04: `tests/test_mttf.cpp`<br>TC-D-08: `tests/test_failure_models.cpp`<br>TC-E-08: `tests/test_failure_models.cpp` |
+| REL-002 | TC-D-02, TC-D-03, TC-D-04, TC-D-05, TC-D-06, TC-D-07, TC-D-09, TC-D-10, TC-D-11, TC-D-12, TC-D-13, TC-D-14, TC-D-15, TC-D-16, TC-D-17, TC-D-18, TC-D-19, TC-D-20, TC-H-09 | TC-D-02: `tests/test_failure_models.cpp`<br>TC-D-03: `tests/test_failure_models.cpp`<br>TC-D-04: `tests/test_mttf.cpp`<br>TC-D-05: `tests/test_mttf.cpp`<br>TC-D-06: `tests/test_failure_models.cpp`, `tests/test_mttf.cpp`<br>TC-D-07: `tests/test_failure_models.cpp`<br>TC-D-09: `tests/test_failure_models.cpp`<br>TC-D-10: `tests/test_failure_models.cpp`<br>TC-D-11: `tests/test_failure_models.cpp`<br>TC-D-12: `tests/test_failure_models.cpp`<br>TC-D-13: `tests/test_mttf.cpp`<br>TC-D-14: `tests/test_mttf.cpp`<br>TC-D-15: `tests/test_failure_models.cpp`<br>TC-D-16: `tests/test_failure_models.cpp`<br>TC-D-17: `tests/test_failure_models.cpp`<br>TC-D-18: `tests/test_failure_models.cpp`<br>TC-D-19: `tests/test_mttf.cpp`<br>TC-D-20: `tests/test_mttf.cpp`<br>TC-H-09: `python/tests/test_cli.py` |
+| REL-004 | TC-D-01, TC-D-04, TC-D-08, TC-D-15, TC-D-17, TC-D-18, TC-E-08 | TC-D-01: `tests/test_failure_models.cpp`, `tests/test_mttf.cpp`<br>TC-D-04: `tests/test_mttf.cpp`<br>TC-D-08: `tests/test_failure_models.cpp`<br>TC-D-15: `tests/test_failure_models.cpp`<br>TC-D-17: `tests/test_failure_models.cpp`<br>TC-D-18: `tests/test_failure_models.cpp`<br>TC-E-08: `tests/test_failure_models.cpp` |
 | VER-001 | TC-C-03, TC-F-05 | TC-C-03: `tests/test_signature.cpp`<br>TC-F-05: `tests/test_signature.cpp` |
 | VER-002 | TC-F-01, TC-F-03 | TC-F-01: `tests/test_reference.cpp`<br>TC-F-03: `tests/test_mttf.cpp` |
 | VER-003 | TC-H-07 | TC-H-07: `python/tests/test_traceability_tool.py` |
@@ -31,9 +31,9 @@ tags in the test code. Do not edit by hand; run the tool to regenerate.
 | EXP-004 | TC-G-11, TC-H-08, TC-J-01, TC-J-02, TC-J-03, TC-J-04, TC-J-05, TC-J-06 | TC-G-11: `python/tests/test_experiments.py`<br>TC-H-08: `python/tests/test_cli.py`<br>TC-J-01: `tests/test_policy.cpp`<br>TC-J-02: `tests/test_policy.cpp`<br>TC-J-03: `tests/test_policy.cpp`<br>TC-J-04: `tests/test_policy.cpp`<br>TC-J-05: `tests/test_policy.cpp`<br>TC-J-06: `tests/test_policy.cpp` |
 | DOC-001 | TC-H-03 | TC-H-03: documentation review: docs/deviation-log.md and docs/experiment-report.md section 8 |
 | DOC-002 | TC-H-03 | TC-H-03: documentation review: docs/deviation-log.md and docs/experiment-report.md section 8 |
-| INT-001 | TC-H-04, TC-H-08 | TC-H-04: `python/tests/test_cli.py`<br>TC-H-08: `python/tests/test_cli.py` |
+| INT-001 | TC-H-04, TC-H-08, TC-H-09 | TC-H-04: `python/tests/test_cli.py`<br>TC-H-08: `python/tests/test_cli.py`<br>TC-H-09: `python/tests/test_cli.py` |
 | INT-002 | TC-G-10 | TC-G-10: `python/tests/test_experiments.py` |
-| INT-003 | TC-H-04, TC-H-08 | TC-H-04: `python/tests/test_cli.py`<br>TC-H-08: `python/tests/test_cli.py` |
+| INT-003 | TC-H-04, TC-H-08, TC-H-09 | TC-H-04: `python/tests/test_cli.py`<br>TC-H-08: `python/tests/test_cli.py`<br>TC-H-09: `python/tests/test_cli.py` |
 | INT-004 | TC-E-09 | TC-E-09: `python/tests/test_cli.py`, `tests/test_structure_function.cpp` |
 | NFR-001 | TC-H-03 | TC-H-03: documentation review: docs/deviation-log.md and docs/experiment-report.md section 8 |
 | NFR-002 | TC-H-01 | TC-H-01: measured by Experiment 4: analysis of the six-component system takes 0.08 ms (docs/experiment-report.md section 6) |
@@ -45,4 +45,4 @@ tags in the test code. Do not edit by hand; run the tool to regenerate.
 | NFR-008 | TC-H-03 | TC-H-03: documentation review: docs/deviation-log.md and docs/experiment-report.md section 8 |
 | NFR-009 | TC-F-07 | TC-F-07: `tests/test_failure_models.cpp`, `tests/test_mttf.cpp` |
 
-**39 requirements, 95 test cases defined: 92 carry a tag in automated test code, 3 are verified elsewhere (see the classification in the tool).**
+**39 requirements, 102 test cases defined: 99 carry a tag in automated test code, 3 are verified elsewhere (see the classification in the tool).**

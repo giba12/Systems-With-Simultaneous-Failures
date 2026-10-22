@@ -5,7 +5,9 @@
 #include <cmath>
 #include <random>
 #include <string>
+#include <functional>
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "reliability/errors.hpp"
@@ -440,4 +442,60 @@ TEST(Mttf, SimultaneousFailuresChangeTheAnswerComparedWithIndependentFailures) {
   const double independent = compute_all_mttf(model, IndependentExponential(1.0))[63];
   const double shocked = compute_all_mttf(model, *make_lethal_shock(0.5, 6))[63];
   EXPECT_GT(std::fabs(shocked - independent), 0.1);
+}
+
+// Traceability: TC-D-19
+// The paper calibrates all six models to agree on every PAIR of components (Section VII-B). So a single redundant pair has
+// exactly the same MTTF under all of them, while the satellite, which has several pairs, does not.
+TEST(Mttf, AllSixModelsAgreeOnOnePairButNotOnTheSatellite) {
+  const SystemModel pair = SystemModel::parallel(2);
+  const SystemModel model = load_reference();
+  const std::vector<std::pair<std::string, std::function<std::unique_ptr<FailureModel>(double, int)>>> makers = {
+      {"lethal shock", make_lethal_shock}, {"binomial failure rate", make_binomial_failure_rate},
+      {"compound Poisson", make_compound_poisson}, {"gamma process", make_gamma_process},
+      {"inverse Gaussian", make_inverse_gaussian}, {"stable subordinator", make_stable_subordinator}};
+  for (double beta : {0.05, 0.2, 0.5}) {
+    const double reference_pair = compute_all_mttf(pair, *makers[0].second(beta, 2))[3];
+    double lowest = 1e9, highest = 0.0;
+    for (const auto& [name, make] : makers) {
+      const double pair_mttf = compute_all_mttf(pair, *make(beta, 2))[3];
+      ExpectRelNear(pair_mttf, reference_pair, 1e-10, name + " one pair, beta=" + std::to_string(beta));
+      const double satellite = compute_all_mttf(model, *make(beta, 6))[63];
+      lowest = std::min(lowest, satellite);
+      highest = std::max(highest, satellite);
+    }
+    EXPECT_GT(highest - lowest, 1e-3) << "the models must differ on a system with several pairs, beta=" << beta;
+  }
+}
+
+// Traceability: TC-D-20
+// Eq. (7) (through the sweep) equals Eq. (6) (solved directly) under every one of the six models, on many systems.
+TEST(Mttf, SweepMatchesDirectSolveUnderAllSixCommonCauseModels) {
+  std::vector<SystemModel> systems;
+  systems.push_back(load_reference());
+  systems.push_back(paper_figure_one());
+  systems.push_back(bridge_network());
+  std::mt19937 rng(161803);
+  for (int t = 0; t < 12; ++t) {
+    systems.push_back(random_monotone_system(3 + static_cast<int>(rng() % 6U), rng));
+  }
+  std::vector<std::unique_ptr<FailureModel>> models;
+  for (double beta : {0.1, 0.45}) {
+    models.push_back(make_lethal_shock(beta, 8));
+    models.push_back(make_binomial_failure_rate(beta, 8));
+    models.push_back(make_compound_poisson(beta, 8));
+    models.push_back(make_gamma_process(beta, 8));
+    models.push_back(make_inverse_gaussian(beta, 8));
+    models.push_back(make_stable_subordinator(beta, 8));
+  }
+  for (std::size_t idx = 0; idx < systems.size(); ++idx) {
+    for (const auto& fm : models) {
+      const std::vector<double> sweep_m = compute_all_mttf(systems[idx], *fm);
+      const std::vector<double> direct_m = solve_mttf_direct(systems[idx], *fm);
+      for (std::size_t x = 0; x < sweep_m.size(); ++x) {
+        ExpectRelNear(sweep_m[x], direct_m[x], 1e-10,
+                      fm->name() + ", system " + std::to_string(idx) + ", state " + std::to_string(x));
+      }
+    }
+  }
 }

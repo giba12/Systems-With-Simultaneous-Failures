@@ -115,11 +115,31 @@ class LevyFrailty final : public FailureModel {
   std::vector<double> increments_;        // delta[w][k], flat
 };
 
+// ---- the paper's Table I: six Levy-frailty Marshall-Olkin models, all calibrated so that Psi(1) = 1 and parameterised
+// by the pairwise beta factor beta = 2 - Psi(2). The Laplace exponents are exposed so that tests and tools can evaluate
+// them at ANY x (for example n = 30, beyond the size limit of the models themselves). ----
+double psi_lethal_shock(double beta, double x);          // [LSh]      (1 - beta) x + beta
+double psi_binomial_failure_rate(double beta, double x); // [BFR]      (1 - (1-beta)^x) / beta
+double psi_compound_poisson(double beta, double x);      // [LFMO-C]   x / (1 + p (x - 1)),                p = beta / (2 - beta)
+double psi_gamma_process(double beta, double x);         // [LFMO-G]   log(1 + x/eta) / log(1 + 1/eta),    eta solves Psi(2) = 2 - beta
+double psi_inverse_gaussian(double beta, double x);      // [LFMO-IG]  (sqrt(2x + eta^2) - eta) / (sqrt(2 + eta^2) - eta)
+double psi_stable(double beta, double x);                // [LFMO-S]   x^alpha,                            alpha = log2(2 - beta)
+// the calibrated parameters of Table I
+double compound_poisson_p(double beta);    // beta in [0, 1]
+double gamma_process_eta(double beta);     // beta in (0, 1)
+double inverse_gaussian_eta(double beta);  // beta in (0, 2 - sqrt(2)]
+double stable_alpha(double beta);          // beta in [0, 1]
+
 std::unique_ptr<FailureModel> make_exponential(double lambda);
 // Lethal-shock model [LSh]: Psi(x) = (1 - beta) x + beta for x > 0. beta in [0, 1].
 std::unique_ptr<FailureModel> make_lethal_shock(double beta, int max_n);
 // Binomial failure rate model [BFR], driftless, calibrated: Psi(x) = (1 - (1 - beta)^x) / beta.
 // Here beta = p is the probability that a common-cause shock fails a given working component. beta in (0, 1].
 std::unique_ptr<FailureModel> make_binomial_failure_rate(double beta, int max_n);
+// The other four models of the paper's Table I.
+std::unique_ptr<FailureModel> make_compound_poisson(double beta, int max_n);   // [LFMO-C]
+std::unique_ptr<FailureModel> make_gamma_process(double beta, int max_n);      // [LFMO-G]
+std::unique_ptr<FailureModel> make_inverse_gaussian(double beta, int max_n);    // [LFMO-IG]
+std::unique_ptr<FailureModel> make_stable_subordinator(double beta, int max_n); // [LFMO-S]
 
 }  // namespace reliability

@@ -2,9 +2,11 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "reliability/errors.hpp"
 #include "reliability/failure_model.hpp"
@@ -317,5 +319,138 @@ TEST(FailureModels, FullyCommonCauseFailsEverythingAtOnce) {
     for (int k = 1; k < w; ++k) {
       EXPECT_NEAR(fm->increment(w, k), 0.0, 1e-12);  // no time passes between "failures": they coincide
     }
+  }
+}
+
+// ---- the paper's Table I: all six common-cause models ---------------------------------------------------------
+
+namespace {
+
+struct NamedModel {
+  const char* name;
+  std::function<double(double, double)> psi;                                // Laplace exponent at (beta, x)
+  std::function<std::unique_ptr<FailureModel>(double, int)> make;
+  double max_beta;                                                           // largest beta the model supports
+};
+
+std::vector<NamedModel> table_one_models() {
+  return {{"lethal shock", psi_lethal_shock, make_lethal_shock, 1.0},
+          {"binomial failure rate", psi_binomial_failure_rate, make_binomial_failure_rate, 1.0},
+          {"compound Poisson", psi_compound_poisson, make_compound_poisson, 1.0},
+          {"gamma process", psi_gamma_process, make_gamma_process, 0.99},
+          {"inverse Gaussian", psi_inverse_gaussian, make_inverse_gaussian, 0.5857},
+          {"stable subordinator", psi_stable, make_stable_subordinator, 1.0}};
+}
+
+}  // namespace
+
+// Traceability: TC-D-15
+// The calibrated parameters of the paper's Table I, at the pairwise beta factors 5 %, 20 % and 50 %. These numbers are
+// printed in the paper (three or four significant digits), so this compares our calibration with a THIRD PARTY.
+TEST(FailureModels, CalibratedParametersMatchThePapersTableOne) {
+  const double betas[] = {0.05, 0.2, 0.5};
+  const double compound_p[] = {0.0256, 0.111, 0.333};
+  const double gamma_eta[] = {18.51, 3.537, 0.618};
+  const double inverse_gaussian_eta_published[] = {4.188, 1.634, 0.289};
+  const double stable_a[] = {0.963, 0.848, 0.585};
+  for (int i = 0; i < 3; ++i) {
+    // tolerances are half a unit of the last printed digit
+    EXPECT_NEAR(compound_poisson_p(betas[i]), compound_p[i], i == 0 ? 0.00005 : 0.0005) << betas[i];
+    EXPECT_NEAR(gamma_process_eta(betas[i]), gamma_eta[i], i == 0 ? 0.005 : 0.0005) << betas[i];
+    EXPECT_NEAR(inverse_gaussian_eta(betas[i]), inverse_gaussian_eta_published[i], 0.0005) << betas[i];
+    EXPECT_NEAR(stable_alpha(betas[i]), stable_a[i], 0.0005) << betas[i];
+  }
+  // the lethal-shock and binomial models use beta itself as their parameter (theta = beta, p = beta)
+  EXPECT_NEAR(psi_lethal_shock(0.2, 1.0), 1.0, 1e-15);
+  EXPECT_NEAR(psi_binomial_failure_rate(0.2, 2.0), 1.8, 1e-14);  // Psi(2) = 2 - beta
+}
+
+// Traceability: TC-D-16
+// Section VII-B of the paper: with n = 30 components the mean number of components failing together at the first failure
+// epoch, n / Psi(n), "ranges from 1.05 ([LSh]) to 1.91 ([BFR]) in the realistic scenario (beta = 5 %), from 1.24 to 6.0 in
+// the poorly separated one (20 %), and from 1.94 to 15.0 in the stressed one (50 %)". All six models must give values in
+// that range with the lethal shock at the bottom and the binomial model at the top.
+TEST(FailureModels, MeanBundleSizeAtThirtyComponentsReproducesThePaper) {
+  const double betas[] = {0.05, 0.2, 0.5};
+  const double published_low[] = {1.05, 1.24, 1.94};   // [LSh]
+  const double published_high[] = {1.91, 6.0, 15.0};   // [BFR]
+  const double high_tolerance[] = {0.005, 0.05, 0.05};
+  for (int i = 0; i < 3; ++i) {
+    double lowest = 1e9, highest = 0.0;
+    std::string lowest_name, highest_name;
+    for (const NamedModel& m : table_one_models()) {
+      const double bundle = 30.0 / m.psi(betas[i], 30.0);
+      EXPECT_GE(bundle, 1.0) << m.name;  // a failure event fails at least one component
+      if (bundle < lowest) { lowest = bundle; lowest_name = m.name; }
+      if (bundle > highest) { highest = bundle; highest_name = m.name; }
+    }
+    EXPECT_EQ(lowest_name, "lethal shock") << "beta " << betas[i];
+    EXPECT_EQ(highest_name, "binomial failure rate") << "beta " << betas[i];
+    EXPECT_NEAR(lowest, published_low[i], 0.006) << "beta " << betas[i];
+    EXPECT_NEAR(highest, published_high[i], high_tolerance[i]) << "beta " << betas[i];
+  }
+}
+
+// Traceability: TC-D-17
+// Every model, several beta: calibrated (Psi(1) = 1, beta = 2 - Psi(2)), Psi(w)/w non-increasing (Remark 1), and the
+// transition kernel is a distribution whose mean number of failing components per event is w Psi(1) / Psi(w).
+TEST(FailureModels, AllSixModelsAreCalibratedValidAndBundleAsRemarkOneSays) {
+  for (const NamedModel& m : table_one_models()) {
+    for (double beta : {0.05, 0.2, 0.5}) {
+      const std::unique_ptr<FailureModel> fm = m.make(beta, 10);
+      EXPECT_NEAR(fm->exit_rate(1), 1.0, 1e-12) << m.name << " " << beta;
+      EXPECT_NEAR(2.0 - fm->exit_rate(2), beta, 1e-9) << m.name << " " << beta;
+      double previous = 1.0;
+      for (int w = 1; w <= 10; ++w) {
+        const double inverse_degree = fm->exit_rate(w) / w;
+        EXPECT_LE(inverse_degree, previous + 1e-12) << m.name << " w=" << w;  // Psi(w)/w never increases
+        EXPECT_GT(inverse_degree, 0.0);
+        previous = inverse_degree;
+        double sum = 0.0, mean_failing = 0.0;
+        for (int w2 = 0; w2 < w; ++w2) {
+          const double p = fm->transition_prob(w, w2);
+          EXPECT_GE(p, 0.0) << m.name << " w=" << w;
+          sum += p;
+          mean_failing += (w - w2) * p;
+        }
+        EXPECT_NEAR(sum, 1.0, 1e-10) << m.name << " beta " << beta << " w=" << w;
+        EXPECT_NEAR(mean_failing, w * fm->exit_rate(1) / fm->exit_rate(w), 1e-9) << m.name << " w=" << w;
+      }
+    }
+  }
+}
+
+// Traceability: TC-D-18
+TEST(FailureModels, ParameterRangesAreEnforcedAndDegenerateCasesAreTheIndependentModel) {
+  EXPECT_THROW(make_gamma_process(0.0, 6), ModelError);     // eta would be infinite: use the exponential model
+  EXPECT_THROW(make_gamma_process(1.0, 6), ModelError);
+  EXPECT_THROW(make_inverse_gaussian(0.0, 6), ModelError);
+  EXPECT_THROW(make_inverse_gaussian(0.6, 6), ModelError);  // beta cannot exceed 2 - sqrt(2) = 0.5858
+  EXPECT_NO_THROW(make_inverse_gaussian(0.5857, 6));
+  for (double bad : {-0.1, 1.1, std::numeric_limits<double>::quiet_NaN()}) {
+    EXPECT_THROW(make_compound_poisson(bad, 6), ModelError) << bad;
+    EXPECT_THROW(make_stable_subordinator(bad, 6), ModelError) << bad;
+    EXPECT_THROW(make_gamma_process(bad, 6), ModelError) << bad;
+    EXPECT_THROW(make_inverse_gaussian(bad, 6), ModelError) << bad;
+  }
+  // beta = 0 gives Psi(x) = x, the independent model, for the two models that allow it
+  const IndependentExponential exponential(1.0);
+  for (const std::unique_ptr<FailureModel>& fm : {make_compound_poisson(0.0, 8), make_stable_subordinator(0.0, 8)}) {
+    for (int w = 1; w <= 8; ++w) {
+      for (int k = 0; k < w; ++k) {
+        EXPECT_NEAR(fm->increment(w, k), exponential.increment(w, k), 1e-12) << fm->name() << " " << w << "," << k;
+      }
+    }
+  }
+  // beta = 1: every event is fatal for all components, for the compound Poisson and the stable model
+  for (const std::unique_ptr<FailureModel>& fm : {make_compound_poisson(1.0, 6), make_stable_subordinator(1.0, 6)}) {
+    for (int w = 1; w <= 6; ++w) {
+      EXPECT_NEAR(fm->exit_rate(w), 1.0, 1e-12) << fm->name();
+      EXPECT_NEAR(fm->transition_prob(w, 0), 1.0, 1e-9) << fm->name();
+    }
+  }
+  // the inverse Gaussian limit beta = 2 - sqrt(2) is the stable model with alpha = 1/2: Psi(x) = sqrt(x)
+  for (int x = 1; x <= 12; ++x) {
+    EXPECT_NEAR(psi_inverse_gaussian(2.0 - std::sqrt(2.0), x), std::sqrt(static_cast<double>(x)), 1e-9);
   }
 }

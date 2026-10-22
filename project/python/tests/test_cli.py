@@ -92,6 +92,36 @@ class AnalyzeCli(unittest.TestCase):
         self.assertEqual(out, "")
         self.assertEqual(without_timing(json.loads(target.read_text())), without_timing(run_json("--config", SATELLITE)))
 
+    # Traceability: TC-H-09
+    def test_all_six_common_cause_models_run_verify_and_compare_policies(self):
+        names = {"lsh": "lethal_shock", "bfr": "binomial_failure_rate", "lfmo-c": "compound_poisson",
+                 "lfmo-g": "gamma_process", "lfmo-ig": "inverse_gaussian", "lfmo-s": "stable_subordinator"}
+        mttf = {}
+        for short, long_name in names.items():
+            code, out, err = run("--config", SATELLITE, "--model", short, "--beta", "0.2", "--verify",
+                                 "--c-comp", "0.1", "--c-sys", "1", "--c-set", "0.05")
+            self.assertEqual(code, 0, f"{short}: {err}")
+            output = json.loads(out)
+            self.assertEqual(output["failure_model"]["type"], long_name)
+            self.assertTrue(output["verification"]["passed"], short)       # Eq. (7) = Eq. (6), reference, sanity
+            self.assertEqual(output["policies"]["threshold"]["policy_count"], 4)
+            mttf[short] = output["results"]["mttf_all_working"]
+        self.assertEqual(len({round(v, 6) for v in mttf.values()}), 6)     # six different models, six different answers
+        # the lethal shock keeps its exact value; the others are calibrated to the same pairwise beta
+        self.assertAlmostEqual(mttf["lsh"], 6003 / 7735, places=12)
+
+    # Traceability: TC-H-09
+    def test_new_model_parameter_ranges_are_enforced_by_the_tool(self):
+        self.assert_fails(["--config", SATELLITE, "--model", "lfmo-ig", "--beta", "0.6"], 1, "beta must lie in (0, 0.585786")
+        self.assert_fails(["--config", SATELLITE, "--model", "lfmo-g", "--beta", "1"], 1, "beta must lie in (0, 1)")
+        self.assert_fails(["--config", SATELLITE, "--model", "lfmo-c"], 1, "needs a beta factor")
+        # the model can come from the configuration file as well
+        config = self.config("stable_in_file", ["A", "B", "C"], {"type": "series"},
+                             failure_model={"type": "stable_subordinator", "beta": 0.5})
+        output = run_json("--config", config)
+        self.assertEqual(output["failure_model"]["type"], "stable_subordinator")
+        self.assertAlmostEqual(output["results"]["mttf_all_working"], 1 / (3 ** 0.5849625007211562), places=9)  # series: 1/Psi(3)
+
     # ---- repair policies -------------------------------------------------------------------------------------
     def fig1_config(self):
         return write_json(self.dir / "fig1.json", {
@@ -231,7 +261,7 @@ class AnalyzeCli(unittest.TestCase):
     def test_usage_errors_exit_2(self):
         self.assert_fails([], 2, "--config is required")
         self.assert_fails(["--config", SATELLITE, "--bogus"], 2, "unknown option '--bogus'")
-        self.assert_fails(["--config", SATELLITE, "--model", "weibull"], 2, "--model must be exp, lsh or bfr")
+        self.assert_fails(["--config", SATELLITE, "--model", "weibull"], 2, "--model must be one of exp, lsh, bfr, lfmo-c")
         self.assert_fails(["--config", SATELLITE, "--lambda", "fast"], 2, "must be a number")
         self.assert_fails(["--config"], 2, "missing value after --config")
 

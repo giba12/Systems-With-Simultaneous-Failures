@@ -84,10 +84,13 @@ const char* kUsage =
     "               [--c-comp C --c-sys C --c-set C] [--per-state] [--verify] [--out <file.json>]\n"
     "\n"
     "  --config     system definition (see configs/satellite_support.json)\n"
-    "  --model      failure model: exp (independent exponential), lsh (lethal shock),\n"
-    "               bfr (binomial failure rate). Default: the file's \"failure_model\", else exp\n"
+    "  --model      failure model: exp (independent exponential) or one of the paper's common-cause models:\n"
+    "               lsh (lethal shock), bfr (binomial failure rate), lfmo-c (compound Poisson), lfmo-g (gamma\n"
+    "               process), lfmo-ig (inverse Gaussian), lfmo-s (stable subordinator).\n"
+    "               Default: the file's \"failure_model\", else exp\n"
     "  --lambda     rate of the exponential model (default 1)\n"
-    "  --beta       pairwise beta factor of lsh / bfr, in [0,1] (bfr: in (0,1])\n"
+    "  --beta       pairwise beta factor of the common-cause models (ranges: lsh, lfmo-c, lfmo-s [0,1]; bfr (0,1];\n"
+    "               lfmo-g (0,1); lfmo-ig (0, 0.5858])\n"
     "  --c-comp, --c-sys, --c-set\n"
     "               repair costs per replaced component / per system failure / per repair visit; give all\n"
     "               three to also compare repair policies (corrective, r-out-of-n, every MTTF-threshold policy)\n"
@@ -106,6 +109,20 @@ double parse_number(const std::string& flag, const std::string& text) {
   } catch (const std::exception&) {
     throw UsageError("the value of " + flag + " must be a number, got '" + text + "'");
   }
+}
+
+// --model name -> failure model type (the names used in the "failure_model" section of a configuration); "" if unknown
+std::string model_type(const std::string& name) {
+  static const std::vector<std::pair<std::string, std::string>> known = {
+      {"exp", "independent_exponential"}, {"lsh", "lethal_shock"}, {"bfr", "binomial_failure_rate"},
+      {"lfmo-c", "compound_poisson"}, {"lfmo-g", "gamma_process"}, {"lfmo-ig", "inverse_gaussian"},
+      {"lfmo-s", "stable_subordinator"}};
+  for (const auto& [short_name, type] : known) {
+    if (name == short_name) {
+      return type;
+    }
+  }
+  return "";
 }
 
 Options parse_args(int argc, char** argv) {
@@ -151,8 +168,8 @@ Options parse_args(int argc, char** argv) {
   if (costs_given != 0 && costs_given != 3) {
     throw UsageError("--c-comp, --c-sys and --c-set must be given together");
   }
-  if (options.model && *options.model != "exp" && *options.model != "lsh" && *options.model != "bfr") {
-    throw UsageError("--model must be exp, lsh or bfr, got '" + *options.model + "'");
+  if (options.model && model_type(*options.model).empty()) {
+    throw UsageError("--model must be one of exp, lsh, bfr, lfmo-c, lfmo-g, lfmo-ig, lfmo-s, got '" + *options.model + "'");
   }
   return options;
 }
@@ -189,8 +206,7 @@ struct ChosenModel {
 ChosenModel choose_failure_model(const Options& options, const json& section, int n) {
   std::string type = "independent_exponential";
   if (options.model) {
-    type = *options.model == "exp" ? "independent_exponential"
-                                   : (*options.model == "lsh" ? "lethal_shock" : "binomial_failure_rate");
+    type = model_type(*options.model);
   } else if (section.is_object() && section.contains("type") && section.at("type").is_string()) {
     type = section.at("type").get<std::string>();
   }
@@ -207,17 +223,31 @@ ChosenModel choose_failure_model(const Options& options, const json& section, in
     const double lambda = options.lambda.value_or(from_file("lambda").value_or(1.0));
     chosen.model = make_exponential(lambda);
     chosen.description = {{"type", type}, {"name", chosen.model->name()}, {"parameters", {{"lambda", lambda}}}};
-  } else if (type == "lethal_shock" || type == "binomial_failure_rate") {
+  } else if (type == "lethal_shock" || type == "binomial_failure_rate" || type == "compound_poisson" ||
+             type == "gamma_process" || type == "inverse_gaussian" || type == "stable_subordinator") {
     const std::optional<double> beta = options.beta ? options.beta : from_file("beta");
     if (!beta) {
       throw ModelError("the " + type + " model needs a beta factor: pass --beta B (or put \"beta\" in the "
                        "configuration's failure_model)");
     }
-    chosen.model = type == "lethal_shock" ? make_lethal_shock(*beta, n) : make_binomial_failure_rate(*beta, n);
+    if (type == "lethal_shock") {
+      chosen.model = make_lethal_shock(*beta, n);
+    } else if (type == "binomial_failure_rate") {
+      chosen.model = make_binomial_failure_rate(*beta, n);
+    } else if (type == "compound_poisson") {
+      chosen.model = make_compound_poisson(*beta, n);
+    } else if (type == "gamma_process") {
+      chosen.model = make_gamma_process(*beta, n);
+    } else if (type == "inverse_gaussian") {
+      chosen.model = make_inverse_gaussian(*beta, n);
+    } else {
+      chosen.model = make_stable_subordinator(*beta, n);
+    }
     chosen.description = {{"type", type}, {"name", chosen.model->name()}, {"parameters", {{"beta", *beta}}}};
   } else {
     throw ModelError("unknown failure model type '" + type +
-                     "' (expected independent_exponential, lethal_shock or binomial_failure_rate)");
+                     "' (expected independent_exponential, lethal_shock, binomial_failure_rate, compound_poisson, "
+                     "gamma_process, inverse_gaussian or stable_subordinator)");
   }
   return chosen;
 }

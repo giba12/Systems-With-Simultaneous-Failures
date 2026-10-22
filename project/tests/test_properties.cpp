@@ -87,6 +87,10 @@ TEST(Properties, MttfNeverIncreasesWhenMoreComponentsFail) {
   models.push_back(make_lethal_shock(0.2, 8));
   models.push_back(make_lethal_shock(0.5, 8));
   models.push_back(make_binomial_failure_rate(0.3, 8));
+  models.push_back(make_compound_poisson(0.3, 8));
+  models.push_back(make_gamma_process(0.3, 8));
+  models.push_back(make_inverse_gaussian(0.3, 8));
+  models.push_back(make_stable_subordinator(0.3, 8));
   std::size_t pairs = 0;
   for (const auto& model_ptr : models)
   for (const SystemModel& model : test_systems()) {
@@ -104,7 +108,7 @@ TEST(Properties, MttfNeverIncreasesWhenMoreComponentsFail) {
       }
     }
   }
-  EXPECT_GT(pairs, 40000U);
+  EXPECT_GT(pairs, 80000U);
 }
 
 // TC-I-01, paper Theorem 5: if x dominates y (same number of working components) then m(x) >= m(y),

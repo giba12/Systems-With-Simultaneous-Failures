@@ -80,6 +80,16 @@ all caught. Also closed ALG-006: the sweep now **measures** its integer addition
 n(n+1)2ⁿ⁻² and n·2ⁿ⁻¹ exactly. Traceability now 95 test cases, no exemptions. Not done: the optimal state-based policy
 (Dinkelbach) and the paper's single-pass evaluation.
 
+### The remaining Table I failure models — 2026-10-22
+
+[LFMO-C] (compound Poisson), [LFMO-G] (gamma process), [LFMO-IG] (inverse Gaussian) and [LFMO-S] (stable subordinator) are
+implemented beside [LSh] and [BFR] as generic Lévy-frailty models, each calibrated to the pairwise β by bisection, and
+available as `analyze --model lfmo-c|lfmo-g|lfmo-ig|lfmo-s`. Evidence: the paper's Table I parameters reproduced for
+β = 5 %, 20 %, 50 %; the paper's n/Ψ(30) ranges (with [LSh] the minimum and [BFR] the maximum); Eq. (6) = Eq. (7) on 28
+systems under each model; Lemma 4 over eight models. New test cases TC-D-15 … TC-D-20 and TC-H-09; traceability now
+102 test cases; 120/120 tests under g++, clang++ and the sanitizers. Not done: the paper's other 25 failure models.
+A pre-registered cross-model experiment (Experiment 6) was considered and not started.
+
 ## 3. Day-by-day work plan
 
 Requirement and test IDs refer to the requirements spec and test plan.
