@@ -69,9 +69,9 @@ class ExperimentRunner(unittest.TestCase):
     # TC-G-01: the deterministic result file is byte-identical across runs
     # Traceability: TC-G-08
     def test_results_are_reproducible_byte_for_byte(self):
-        names = ["exp1", "exp2", "exp3", "exp4", "exp5", "exp6"]
-        self.run_into("first", names, max_n=8)
-        self.run_into("second", names, max_n=8)
+        names = ["exp1", "exp2", "exp3", "exp4", "exp5", "exp6", "exp7"]
+        self.run_into("first", names, max_n=8, systems_per_size=2)
+        self.run_into("second", names, max_n=8, systems_per_size=2)
         for name in names:
             first = (self.root / "first" / name / f"{name}.json").read_bytes()
             second = (self.root / "second" / name / f"{name}.json").read_bytes()
@@ -165,11 +165,11 @@ class AnalysisAndPlots(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.root = Path(cls.tmp.name)
-        for name in ("exp1", "exp2", "exp3", "exp4", "exp5", "exp6"):
-            runner.run_experiment(name, ANALYZE, cls.root, HYPOTHESES, runner.DEFAULT_SEED, max_n=12)
+        for name in ("exp1", "exp2", "exp3", "exp4", "exp5", "exp6", "exp7"):
+            runner.run_experiment(name, ANALYZE, cls.root, HYPOTHESES, runner.DEFAULT_SEED, max_n=12, systems_per_size=2)
         import analyze_results
         cls.analysis = analyze_results
-        cls.outcomes = {name: analyze_results.analyze(cls.root, name) for name in ("exp1", "exp2", "exp3", "exp4", "exp5", "exp6")}
+        cls.outcomes = {name: analyze_results.analyze(cls.root, name) for name in ("exp1", "exp2", "exp3", "exp4", "exp5", "exp6", "exp7")}
 
     @classmethod
     def tearDownClass(cls):
@@ -177,7 +177,7 @@ class AnalysisAndPlots(unittest.TestCase):
 
     # Traceability: TC-G-09
     def test_tables_and_verdict_files_are_written(self):
-        for name in ("exp1", "exp2", "exp3", "exp4", "exp5", "exp6"):
+        for name in ("exp1", "exp2", "exp3", "exp4", "exp5", "exp6", "exp7"):
             self.assertTrue((self.root / name / "hypothesis_check.md").is_file())
             self.assertTrue(list((self.root / name / "tables").glob("*.csv")))
 
@@ -230,6 +230,25 @@ class AnalysisAndPlots(unittest.TestCase):
         self.assertAlmostEqual(lsh["satellite_mttf"], 32 / 35, places=12)
         self.assertAlmostEqual(lsh["series6_expected"], 1 / (0.5 * 6 + 0.5), places=12)
 
+    # Traceability: TC-G-13
+    def test_experiment_7_optimum_is_a_lower_bound_and_the_random_systems_are_reproducible(self):
+        tables, checks, _ = self.outcomes["exp7"]
+        verdicts = {name: passed for name, _, passed, _ in checks}
+        self.assertTrue(verdicts["1: the optimum is a lower bound"])  # theory, independent of the sample drawn
+        combos = tables["exp7_combinations"]
+        # reduced run: 2 random systems per size x 3 models x 45 cost pairs, plus the satellite (3 models x 45)
+        self.assertEqual(len(combos), 135 + 2 * 2 * 3 * 45)
+        self.assertTrue((combos["excess"] >= -1e-9).all())
+        self.assertLessEqual(int(combos["dinkelbach_passes"].max()), 10)
+        # the same seed draws the same systems; another seed draws different ones
+        import random
+        self.assertEqual(runner.random_path_sets(random.Random(5), 10), runner.random_path_sets(random.Random(5), 10))
+        self.assertNotEqual(runner.random_path_sets(random.Random(5), 10), runner.random_path_sets(random.Random(6), 10))
+        for n in (6, 10):
+            for paths in (runner.random_path_sets(random.Random(s), n) for s in range(20)):
+                self.assertTrue(3 <= len(paths) <= 6)
+                self.assertTrue(all(2 <= len(p) <= (n + 1) // 2 and p == sorted(set(p)) and 1 <= p[0] and p[-1] <= n for p in paths))
+
     def test_experiment_4_structural_claims_hold(self):
         _, checks, _ = self.outcomes["exp4"]
         verdicts = {name: passed for name, _, passed, _ in checks}
@@ -251,13 +270,13 @@ class AnalysisAndPlots(unittest.TestCase):
         import plot_results
         # copy ONLY the tables: no raw results, no analyze executable involved
         only_tables = self.root / "only_tables"
-        for name in ("exp1", "exp2", "exp3", "exp4", "exp5", "exp6"):
+        for name in ("exp1", "exp2", "exp3", "exp4", "exp5", "exp6", "exp7"):
             shutil.copytree(self.root / name / "tables", only_tables / name / "tables")
         self.assertEqual(plot_results.main(["--results", str(only_tables), "--dpi", "60"]), 0)
         pictures = sorted((only_tables / "figures").glob("*.png"))
         self.assertEqual([p.name for p in pictures], ["fig1_redundancy.png", "fig2_common_cause.png",
                                                       "fig3_equal_failure_counts.png", "fig4_scaling.png",
-                                                      "fig5_repair_policies.png", "fig6_six_models.png"])
+                                                      "fig5_repair_policies.png", "fig6_six_models.png", "fig7_distance_to_optimal.png"])
         for picture in pictures:
             self.assertEqual(picture.read_bytes()[:8], b"\x89PNG\r\n\x1a\n")
             self.assertGreater(picture.stat().st_size, 3000)

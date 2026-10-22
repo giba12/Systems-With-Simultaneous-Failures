@@ -2,12 +2,12 @@
 
 | | |
 |---|---|
-| **Date** | 2026-10-21 (Experiments 5 and 6: 2026-10-22) |
+| **Date** | 2026-10-21 (Experiments 5 to 7: 2026-10-22) |
 | **Tool** | `analyze` 0.8.0 (Release build, one core) |
 | **Machine** | Intel Core i7-9750H @ 2.6 GHz, WSL2 Linux, Python 3.12.3 |
-| **Seed** | 20261021 (recorded; all six experiments are deterministic, no random numbers are drawn) |
-| **Hypotheses** | [`project/experiments/hypotheses/`](../project/experiments/hypotheses/), committed as `257394a` (Experiments 1–4), `ee43a39` (Experiment 5) and `40d272e` (Experiment 6) **before** the corresponding experiment code existed |
-| **Raw results** | `project/results/exp*/` (not committed; regenerate with the commands in §9) |
+| **Seed** | 20261021 (recorded; all seven experiments are deterministic, no random numbers are drawn) |
+| **Hypotheses** | [`project/experiments/hypotheses/`](../project/experiments/hypotheses/), committed as `257394a` (Experiments 1–4), `ee43a39` (Experiment 5), `40d272e` (Experiment 6) and `081aa56` (Experiment 7) **before** the corresponding experiment code existed |
+| **Raw results** | `project/results/exp*/` (not committed; regenerate with the commands in §10) |
 
 This report separates what **reproduces the paper** from what is **new**, states every prediction that was
 **rejected**, and lists the deviations and limits. The system is a **fictional** educational model: nothing here
@@ -23,7 +23,7 @@ is flight-qualified or a claim about any real spacecraft.
 | Eq. (21) | **Corrected**: the printed lower summation limit is a typo (see the validation report §6) |
 | The paper's repair-policy cost model (Eqs. (9)–(13)) and its Fig. 1 costs 97/105, 11/15, 1/10 | **Reproduced** by the delivered policy code, which agrees with the paper's independent Proposition 3 on more than 300 policies under three failure models |
 | That the cost curve over the threshold γ is not unimodal | **Reproduced** with a concrete 8-component example (found by random search) |
-| Experiments 1–6 on the fictional satellite and the small asymmetric systems | **New**, designed for this project (the premise of Experiment 3 is the paper's motivating observation) |
+| Experiments 1–7 on the fictional satellite and the small asymmetric systems | **New**, designed for this project (the premise of Experiment 3 is the paper's motivating observation) |
 | Comparison of the lethal-shock and binomial-failure-rate models on a multi-pair system (Experiment 2), and of all six Table I models calibrated to one pairwise β (Experiment 6) | **New** |
 | Table I parameters (p, η, η, α for β = 5 %, 20 %, 50 %) and the n/Ψ(30) ranges of the five common-cause models | **Reproduced** (unit tests TC-D-15, TC-D-16) |
 
@@ -256,12 +256,55 @@ Table I families on this one fictional system, not a general law; the explanatio
 interpretation consistent with the numbers, not something that was tested separately. Components are identical, the
 paper's calibration is used, and n = 6.
 
-## 9. Reproducing everything
+## 9. Experiment 7 — Distance of the MTTF threshold from the optimal policy &nbsp;·&nbsp; 7 of 7 predictions supported
+
+![Excess cost of the best MTTF-threshold policy over the optimal state-based policy](figures/fig7_distance_to_optimal.png)
+
+The optimal state-based policy (paper §V-B, Dinkelbach's method) is the benchmark against which the MTTF-threshold rule of
+Experiment 5 can finally be judged. Excess = cost of the best threshold policy ÷ cost of the optimum − 1, over the 45 cost
+pairs of Experiment 5, on the satellite (3 models, 135 combinations) and on **16 random systems** (8 of 6 and 8 of 10
+components, drawn from the recorded seed as unions of 3–6 path sets) under independent failures and the two simultaneous-
+failure models at β = 0.5 (2 160 combinations). The hypotheses were committed first (`081aa56`); the paper's own Table III
+had been read before, which the hypothesis file says.
+
+**Predictions (all supported):**
+
+* The optimum is never more expensive than the best threshold, r-out-of-n or corrective policy (checked over all 2 295 combinations).
+* **Satellite:** the threshold is optimal in 134 of 135 combinations (99.3 %). The single exception is [BFR], ρ = 4, σ = 0,
+  where the optimum costs 0.26 % less. That is the only combination where the optimum on this symmetric system is not a threshold
+  rule; why was not examined.
+* **Random systems, independent failures:** median excess 0.000 % (the threshold is optimal in about half of the combinations),
+  90th percentile 2.8 %, maximum 33.9 %.
+* The optimum is not always a threshold: 52 % of the random-system combinations have an excess above 1e-9, 48 % do not.
+* The gap shrinks with β: mean excess 1.14 % under independent failures, 0.32 % under [LSh] and 0.07 % under [BFR] (β = 0.5).
+* It is larger for cheap components (mean 0.80 % for ρ ≤ 0.2, 0.34 % for ρ ≥ 4) and for the larger systems (0.25 % at n = 6,
+  0.77 % at n = 10).
+
+**What these results do and do not say.**
+
+* **Same pattern as the paper, not the same numbers.** The paper reports, for 26 505 combinations of benchmark networks with
+  up to 27 components, a median excess of 0.36 %, a 90th percentile of 3.4 %, a smaller gap with larger β, a larger gap for
+  cheap components and bigger systems, and gaps of 30–35 % for ρ = 0.1, σ = 0.05, nearly independent failures and the
+  largest systems. Here the largest gap, 33.9 % (ρ = 0.1, σ = 0.1, independent failures), also occurs in the largest systems
+  with cheap components, but it comes from **a single system** (`random10_2`); the next-worst system's gap is 16 %, and most
+  systems stay below 10 %. The populations differ (random systems of 6 and 10 components, not benchmark networks), so the
+  medians (0.000 % against 1.4 % for [Exp] in the paper) should not be compared.
+* **The predictions were easy.** The thresholds (2 %, 10 %, 95 %) were generous, and all seven directions had already been
+  reported by the paper. The informative part is the size of the tail and that it comes from one system, which no
+  prediction stated.
+* **The size effect is a comparison of two groups of 8 random systems** and one outlier contributes most of the difference
+  at n = 10; it is not evidence about how the gap scales.
+* **Observations not pre-registered.** The mean excess is not monotone in ρ (it rises again at ρ = 4 under independent
+  failures and at ρ = 2 under [LSh]) and it is largest at small positive set-up costs (σ = 0.05 and 0.1: 0.76 % and 0.87 %)
+  and smaller at σ = 0 and σ = 0.5 (0.35 % and 0.13 %); the paper also reports the largest gap for small positive set-up
+  costs. No explanation was tested.
+
+## 10. Reproducing everything
 
 ```bash
 cmake -S project -B project/build -DCMAKE_BUILD_TYPE=Release && cmake --build project/build
 cd project
-python3 python/run_experiments.py all                  # raw results into results/ (all six experiments)
+python3 python/run_experiments.py all                  # raw results into results/ (all seven experiments)
 .venv/bin/python python/analyze_results.py             # tables and hypothesis_check.md
 .venv/bin/python python/plot_results.py                # figures into results/figures
 ```
@@ -269,7 +312,7 @@ python3 python/run_experiments.py all                  # raw results into result
 (`.venv` holds pandas and matplotlib; `python3 -m venv .venv && .venv/bin/pip install -r python/requirements.txt`.)
 The deterministic result files are byte-identical on a repeat run; run times and memory differ slightly.
 
-## 10. Limitations and deviation log
+## 11. Limitations and deviation log
 
 * **Identical components.** The paper's model requires exchangeable (identical) components, so the three pairs of the
   satellite are modelled with the same lifetime law; real power, communication and computing units would differ.

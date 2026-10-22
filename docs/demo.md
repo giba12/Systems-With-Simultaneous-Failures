@@ -47,7 +47,7 @@ Captured output (the analysis times in step 4 vary by machine; everything else i
   the satellite (replacing everything costs as much as one system failure, each repair visit costs 0.2):
     best rule: repair after 2 failures, cost per time 2.0002; waiting for the system to fail costs 2.4763
 
-Done. Reproduce the six experiments and the figures with the commands in README.md.
+Done. Reproduce the seven experiments and the figures with the commands in README.md.
 ```
 
 What to notice:

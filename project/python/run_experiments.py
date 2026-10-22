@@ -45,6 +45,7 @@ EXPERIMENT_FILES = {
     "exp4": "exp4_scaling",
     "exp5": "exp5_repair_policies",
     "exp6": "exp6_six_models",
+    "exp7": "exp7_distance_to_optimal",
 }
 
 
@@ -298,12 +299,61 @@ def experiment_6(analyze, workdir, seed, **_):
     return settings, raw, timing
 
 
+RANDOM_SYSTEM_SIZES = (6, 10)
+RANDOM_SYSTEMS_PER_SIZE = 8
+
+
+def random_path_sets(rng, n):
+    """ALGORITHM: 3 to 6 path sets, each of 2 to ceil(n/2) distinct components (1-based), drawn with `rng`;
+    the system works if all components of some path set work."""
+    paths = []
+    for _ in range(rng.randint(3, 6)):
+        size = rng.randint(2, (n + 1) // 2)
+        paths.append(sorted(rng.sample(range(1, n + 1), size)))
+    return paths
+
+
+def experiment_7(analyze, workdir, seed, systems_per_size=RANDOM_SYSTEMS_PER_SIZE, **_):
+    """Distance of the best MTTF-threshold policy from the optimal state-based policy (Experiment 7).
+
+    Same cost grid as experiment 5. The satellite under three models; 8 random systems of 6 and 8 of 10 components,
+    drawn with random.Random(seed), under [Exp] and the two common-cause models at beta = 0.5."""
+    rng = random.Random(seed)
+    satellite_models = [("exp", None), ("lsh", 0.2), ("bfr", 0.2)]
+    random_models = [("exp", None), ("lsh", 0.5), ("bfr", 0.5)]
+    systems = [("satellite", SATELLITE_CONFIG, 6, satellite_models)]
+    random_systems = {}
+    for n in RANDOM_SYSTEM_SIZES:
+        for index in range(1, systems_per_size + 1):
+            label = f"random{n}_{index}"
+            paths = random_path_sets(rng, n)
+            random_systems[label] = {"n": n, "path_sets": paths}
+            systems.append((label, write_config(workdir, "paths", n, paths=paths, name=label), n, random_models))
+    settings = {"rhos": RHOS, "sigmas": SIGMAS, "c_sys": 1.0, "c_comp": "rho / n", "c_set": "sigma",
+                "systems_per_size": systems_per_size,
+                "satellite_models": [{"model": m, "beta": b} for m, b in satellite_models],
+                "random_models": [{"model": m, "beta": b} for m, b in random_models],
+                "random_systems": random_systems}
+    raw, timing = [], []
+    for label, config, n, models in systems:
+        for model, beta in models:
+            for rho in RHOS:
+                for sigma in SIGMAS:
+                    output, t = split_timing(run_analyze(analyze, config, model=model, beta=beta,
+                                                         lam=1.0 if model == "exp" else None, costs=(rho / n, 1.0, sigma)))
+                    raw.append({"label": label, "n": n, "model": model, "beta": beta, "rho": rho, "sigma": sigma,
+                                "output": output})
+                    timing.append({"label": label, "model": model, "beta": beta, "rho": rho, "sigma": sigma,
+                                   "analysis_ms": t["analysis_ms"], "policies_ms": t["policies_ms"]})
+    return settings, raw, timing
+
+
 def workdir_config(workdir, name):
     return Path(workdir) / f"{name}.json"
 
 
 EXPERIMENTS = {"exp1": experiment_1, "exp2": experiment_2, "exp3": experiment_3, "exp4": experiment_4,
-               "exp5": experiment_5, "exp6": experiment_6}
+               "exp5": experiment_5, "exp6": experiment_6, "exp7": experiment_7}
 
 
 # ----------------------------------------------------------------------------------------------------------
@@ -328,7 +378,7 @@ def require_hypothesis(hypotheses_dir, name):
     return path
 
 
-def run_experiment(name, analyze, out_dir, hypotheses_dir, seed, max_n=20):
+def run_experiment(name, analyze, out_dir, hypotheses_dir, seed, max_n=20, systems_per_size=RANDOM_SYSTEMS_PER_SIZE):
     """ALGORITHM
         1. require the hypothesis file; remember when this run started
         2. random.Random(seed) is created for the record (all experiments here are deterministic)
@@ -342,7 +392,7 @@ def run_experiment(name, analyze, out_dir, hypotheses_dir, seed, max_n=20):
     out = Path(out_dir) / name
     out.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as workdir:
-        settings, raw, timing = EXPERIMENTS[name](analyze, workdir, seed, max_n=max_n)
+        settings, raw, timing = EXPERIMENTS[name](analyze, workdir, seed, max_n=max_n, systems_per_size=systems_per_size)
         # keep a copy of every generated configuration next to the results (traceability)
         configs_dir = out / "configs"
         configs_dir.mkdir(exist_ok=True)
@@ -387,12 +437,14 @@ def run_experiment(name, analyze, out_dir, hypotheses_dir, seed, max_n=20):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Run the reliability experiments and save raw results.")
-    parser.add_argument("experiments", nargs="+", help="exp1 .. exp6, or 'all'")
+    parser.add_argument("experiments", nargs="+", help="exp1 .. exp7, or 'all'")
     parser.add_argument("--analyze", help="path of the analyze executable (default: ../build/analyze)")
     parser.add_argument("--out", default=str(PROJECT_ROOT / "results"))
     parser.add_argument("--hypotheses", default=str(PROJECT_ROOT / "experiments" / "hypotheses"))
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
     parser.add_argument("--max-n", type=int, default=20, help="largest n of experiment 4 (default 20)")
+    parser.add_argument("--systems-per-size", type=int, default=RANDOM_SYSTEMS_PER_SIZE,
+                        help="random systems per size in experiment 7 (default 8; fewer only for quick tests)")
     args = parser.parse_args(argv)
 
     names = list(EXPERIMENTS) if args.experiments == ["all"] else args.experiments
@@ -403,7 +455,7 @@ def main(argv=None):
         analyze = find_analyze(args.analyze)
         for name in names:
             print(f"running {name} ...", file=sys.stderr)
-            out = run_experiment(name, analyze, args.out, args.hypotheses, args.seed, args.max_n)
+            out = run_experiment(name, analyze, args.out, args.hypotheses, args.seed, args.max_n, args.systems_per_size)
             print(f"  saved to {out}", file=sys.stderr)
     except ExperimentError as error:
         print(f"run_experiments: {error}", file=sys.stderr)

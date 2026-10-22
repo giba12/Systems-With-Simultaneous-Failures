@@ -498,6 +498,84 @@ def checks_exp6(det, timing, tables):
     return checks
 
 
+# ----------------------------------------------------------------------------------------------------------
+# Experiment 7
+# ----------------------------------------------------------------------------------------------------------
+
+EXCESS_TOLERANCE = 1e-9  # "equal to the optimum": the same tolerance as the hypothesis file
+
+
+def tables_exp7(det, timing):
+    rows = []
+    for item in det["raw_results"]:
+        policies = item["output"]["policies"]
+        optimal = policies["optimal_state_based"]["long_term_mean_cost"]
+        best_threshold = policies["threshold"]["best_long_term_mean_cost"]
+        rows.append({"system": item["label"], "group": "satellite" if item["label"] == "satellite" else "random",
+                     "n": item["n"], "model": item["model"], "beta": 0.0 if item["beta"] is None else item["beta"],
+                     "rho": item["rho"], "sigma": item["sigma"], "optimal": optimal, "best_threshold": best_threshold,
+                     "best_r_out_of_n": policies["r_out_of_n"]["best_long_term_mean_cost"],
+                     "corrective": policies["corrective"]["long_term_mean_cost"],
+                     "excess": best_threshold / optimal - 1.0,
+                     "dinkelbach_passes": policies["optimal_state_based"]["iterations"]})
+    combos = pd.DataFrame(rows)
+
+    def summarise(frame, keys):
+        out = []
+        for key, group in frame.groupby(keys):
+            key = key if isinstance(key, tuple) else (key,)
+            record = dict(zip(keys, key))
+            record.update({"combinations": len(group), "share_optimal": float((group["excess"] < EXCESS_TOLERANCE).mean()),
+                           "mean_excess": float(group["excess"].mean()), "median_excess": float(group["excess"].median()),
+                           "p90_excess": float(group["excess"].quantile(0.9)), "max_excess": float(group["excess"].max())})
+            out.append(record)
+        return pd.DataFrame(out)
+
+    random_rows = combos[combos["group"] == "random"]
+    return {"exp7_combinations": combos,
+            "exp7_by_model": summarise(combos, ["group", "model", "beta"]),
+            "exp7_by_size": summarise(random_rows, ["n"]),
+            "exp7_by_rho": summarise(random_rows, ["rho"])}
+
+
+def checks_exp7(det, timing, tables):
+    combos = tables["exp7_combinations"]
+    satellite = combos[combos["group"] == "satellite"]
+    random_rows = combos[combos["group"] == "random"]
+    exp_rows = random_rows[random_rows["model"] == "exp"]
+    checks = []
+    others = combos[["best_threshold", "best_r_out_of_n", "corrective"]].min(axis=1)
+    worst = float((combos["optimal"] / others - 1.0).max())
+    checks.append(("1: the optimum is a lower bound", "optimal cost <= best threshold, best r-out-of-n and corrective, 1e-9",
+                   worst <= 1e-9, f"largest (optimal / best other - 1) = {worst:.2e} over {len(combos)} combinations"))
+    share = float((satellite["excess"] < EXCESS_TOLERANCE).mean())
+    checks.append(("2: symmetric systems are nearly solved by the threshold",
+                   "satellite excess below 1e-9 in at least 95 % of combinations", share >= 0.95,
+                   f"{share * 100:.1f} % of {len(satellite)}; largest excess {satellite['excess'].max() * 100:.3f} %"))
+    median, p90 = float(exp_rows["excess"].median()), float(exp_rows["excess"].quantile(0.9))
+    checks.append(("3: the threshold is a good rule on small random systems",
+                   "under [Exp], median excess < 2 % and 90th percentile < 10 %", median < 0.02 and p90 < 0.10,
+                   f"median {median * 100:.3f} %, 90th percentile {p90 * 100:.3f} % over {len(exp_rows)} combinations"))
+    above = float((random_rows["excess"] > EXCESS_TOLERANCE).mean())
+    below = float((random_rows["excess"] < EXCESS_TOLERANCE).mean())
+    checks.append(("4: the optimum is not always a threshold",
+                   "at least 10 % of random combinations with excess > 1e-9 and at least 10 % below 1e-9",
+                   above >= 0.10 and below >= 0.10, f"{above * 100:.1f} % above, {below * 100:.1f} % below, over {len(random_rows)}"))
+    means = {model: float(random_rows[random_rows["model"] == model]["excess"].mean()) for model in ("exp", "lsh", "bfr")}
+    checks.append(("5: the gap shrinks with beta", "mean excess under [Exp] larger than under [LSh] and under [BFR] (beta = 0.5)",
+                   means["exp"] > means["lsh"] and means["exp"] > means["bfr"],
+                   f"Exp {means['exp'] * 100:.3f} %, LSh {means['lsh'] * 100:.3f} %, BFR {means['bfr'] * 100:.3f} %"))
+    cheap = float(random_rows[random_rows["rho"] <= 0.2]["excess"].mean())
+    dear = float(random_rows[random_rows["rho"] >= 4]["excess"].mean())
+    checks.append(("6: the gap is largest for cheap components", "mean excess for rho <= 0.2 larger than for rho >= 4",
+                   cheap > dear, f"{cheap * 100:.3f} % against {dear * 100:.3f} %"))
+    by_n = {n: float(random_rows[random_rows["n"] == n]["excess"].mean()) for n in sorted(random_rows["n"].unique())}
+    sizes = sorted(by_n)
+    checks.append(("7: the gap grows with the size of the system", f"mean excess at n = {sizes[-1]} larger than at n = {sizes[0]}",
+                   by_n[sizes[-1]] > by_n[sizes[0]], " vs ".join(f"n = {n}: {by_n[n] * 100:.3f} %" for n in sizes)))
+    return checks
+
+
 EXPERIMENTS = {
     "exp1": (tables_exp1, checks_exp1, "Redundancy versus reliability"),
     "exp2": (tables_exp2, checks_exp2, "Independent versus simultaneous failures"),
@@ -505,6 +583,7 @@ EXPERIMENTS = {
     "exp4": (tables_exp4, checks_exp4, "Scaling and performance"),
     "exp5": (tables_exp5, checks_exp5, "Repair policies"),
     "exp6": (tables_exp6, checks_exp6, "Six common-cause models"),
+    "exp7": (tables_exp7, checks_exp7, "Distance of the threshold policy from the optimum"),
 }
 
 

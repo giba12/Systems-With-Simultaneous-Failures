@@ -373,7 +373,49 @@ def figure_6(results, figures_dir, dpi):
     return save(fig, figures_dir, "fig6_six_models", dpi)
 
 
-FIGURES = {"exp1": figure_1, "exp2": figure_2, "exp3": figure_3, "exp4": figure_4, "exp5": figure_5, "exp6": figure_6}
+def figure_7(results, figures_dir, dpi):
+    table = read_table(results, "exp7", "exp7_combinations")
+    random_rows = table[table["group"] == "random"]
+    fig = new_figure(10.4, 4.6, "How much does the MTTF threshold lose against the optimal policy?",
+                     "Excess cost of the best MTTF-threshold policy over the optimal state-based policy; "
+                     "16 random systems of 6 and 10 components, 45 cost pairs each")
+
+    # ---- left: mean excess by component cost, one line per failure model ----
+    ax = fig.add_axes([0.075, 0.16, 0.40, 0.58])
+    style_axes(ax)
+    colors = {"exp": SERIES_1, "lsh": SERIES_2, "bfr": "#1baf7a"}
+    names = {"exp": "independent failures", "lsh": "lethal shock, beta 0.5", "bfr": "binomial failure rate, beta 0.5"}
+    for model, color in colors.items():
+        rows = random_rows[random_rows["model"] == model].groupby("rho")["excess"].mean().sort_index()
+        ax.plot(rows.index, rows.to_numpy() * 100.0, color=color, linewidth=2.0, solid_capstyle="round", label=names[model], zorder=3)
+        ringed_markers(ax, rows.index, rows.to_numpy() * 100.0, color)
+    ax.set_xscale("log")
+    ax.set_xticks([0.1, 0.2, 0.5, 1, 2, 4, 10])
+    ax.set_xticklabels(["0.1", "0.2", "0.5", "1", "2", "4", "10"])
+    ax.minorticks_off()
+    ax.set_ylim(bottom=0)
+    ax.set_xlabel("rho  (component cost \u00f7 system-failure cost)", fontsize=8.6, color=TEXT_SECONDARY)
+    ax.set_ylabel("mean excess cost (%)", fontsize=9, color=TEXT_SECONDARY)
+    ax.set_title("largest for independent failures with cheap components", fontsize=9.5, color=TEXT_PRIMARY, loc="left", pad=8)
+    ax.legend(frameon=False, fontsize=8.4, labelcolor=TEXT_PRIMARY, loc="upper right")
+
+    # ---- right: the worst cost pair of every random system under independent failures ----
+    ax2 = fig.add_axes([0.575, 0.16, 0.40, 0.58])
+    style_axes(ax2, x_grid=False)
+    exp_rows = random_rows[random_rows["model"] == "exp"]
+    worst = exp_rows.groupby(["n", "system"])["excess"].max().reset_index()
+    worst["order"] = worst["system"].str.extract(r"_(\d+)$").astype(int)
+    worst = worst.sort_values(["n", "order"]).reset_index(drop=True)
+    x = np.arange(len(worst)) + (worst["n"] == 10).to_numpy() * 1.0  # a gap between the two sizes
+    ax2.bar(x, worst["excess"].to_numpy() * 100.0, width=0.62, color=SERIES_1, zorder=3)
+    ax2.set_xticks([x[: len(worst) // 2].mean(), x[len(worst) // 2:].mean()])
+    ax2.set_xticklabels(["6 components", "10 components"], fontsize=8.6, color=TEXT_SECONDARY)
+    ax2.set_ylabel("largest excess over the 45 cost pairs (%)", fontsize=9, color=TEXT_SECONDARY)
+    ax2.set_title("worst case of each system (independent failures)", fontsize=9.5, color=TEXT_PRIMARY, loc="left", pad=8)
+    return save(fig, figures_dir, "fig7_distance_to_optimal", dpi)
+
+
+FIGURES = {"exp1": figure_1, "exp2": figure_2, "exp3": figure_3, "exp4": figure_4, "exp5": figure_5, "exp6": figure_6, "exp7": figure_7}
 
 
 def main(argv=None):

@@ -18,7 +18,7 @@ change when one event can fail several components at once?*
 * checks every answer against an **independent brute-force implementation**, a second equation, closed forms and the
   paper's own worked example;
 * compares **repair policies** (when to replace failed parts) using the paper's cost model;
-* runs **six experiments whose hypotheses were committed before they were run**, and reports the predictions that failed.
+* runs **seven experiments whose hypotheses were committed before they were run**, and reports the predictions that failed.
 
 | | |
 |---|---|

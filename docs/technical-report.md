@@ -13,9 +13,9 @@ This project implements the algorithm of Lagos and Ávila (arXiv:2610.22181), wh
 and **mean time to failure (MTTF) at every one of its 2ⁿ states** for the cost of evaluating the system's structure
 function once per state, including when a single event can fail several components at once. It applies the algorithm
 to a six-component fictional satellite architecture, verifies it against an independent implementation and against
-closed-form results, runs five pre-registered experiments, and reports what held and what did not. Of the 48
-checks derived from the predictions written before the experiments, **44 were supported and 4 rejected in the first run
-(45 and 3 in an independent repeat of Experiments 1–4)**; the rejections are reported as found. A final, optional part
+closed-form results, runs seven pre-registered experiments, and reports what held and what did not. Of the 62
+checks derived from the predictions written before the experiments, **57 were supported and 5 rejected in the first run
+(for Experiments 1–4, 45 and 3 in an independent repeat of those experiments)**; the rejections are reported as found. A final, optional part
 implements the paper's repair-policy cost model and compares repair strategies. Along
 the way the work found a typo in the paper's Eq. (21) and corrected it.
 
@@ -159,6 +159,17 @@ models give identical MTTF. For the satellite it is not: at β = 0.5 its MTTF ru
 0.914 (lethal shock), and the redundancy ratio from 1.50 to 3.20. One pre-registered prediction was **rejected**: the
 models rank in exactly opposite orders for a series system and for the satellite (bigger simultaneous-failure bundles
 help the first and hurt the second). Six of seven predictions held. Details in the [experiment report](experiment-report.md) §8.
+
+### How far is the MTTF threshold from the optimal policy?
+
+![Excess cost of the best MTTF-threshold policy over the optimal state-based policy](figures/fig7_distance_to_optimal.png)
+
+With the optimal state-based policy implemented, the simple MTTF-threshold rule can be judged. On the symmetric satellite the
+threshold is optimal in 134 of 135 cost and model combinations. On 16 random systems of 6 and 10 components its median excess
+cost under independent failures is 0.0 % (90th percentile 2.8 %), with one system reaching 34 % at cheap components; the gap
+is smaller under simultaneous failures. All seven predictions held, but they were generous and the paper had already reported
+the same pattern; the result is a small-system, random-sample echo of the paper's, not a replication of its numbers. Details
+in the [experiment report](experiment-report.md) §9.
 
 ## 7. Verification
 

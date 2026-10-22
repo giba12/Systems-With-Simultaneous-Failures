@@ -43,12 +43,12 @@ ctest --test-dir build --output-on-failure           # C++ tests + python_end_to
 | Fresh clone-style configure + build (no cached state) | clean, no CMake warning |
 
 **Test inventory.** 122 C++ tests (`Signature` 23, `Mttf` 21, `FailureModels` 22, `Reference` 16, `StructureFunction` 13,
-`Policy` 14, `State` 8, `Properties` 5) and 46 Python end-to-end tests (`test_cli` 23, `test_experiments` 18,
+`Policy` 14, `State` 8, `Properties` 5) and 47 Python end-to-end tests (`test_cli` 23, `test_experiments` 19,
 `test_traceability_tool` 5). `ctest` runs the C++ tests individually (122) plus the Python suite as one test and the
 traceability check as one test: 124. About 7 400 lines of source, tests and scripts.
 
 **Traceability (VER-003).** `project/tools/check_traceability.py` reads the requirements, the test plan and the tags in
-the test code and fails on any orphan. Current state: **39 requirements, 107 test cases, 104 test cases tagged in
+the test code and fails on any orphan. Current state: **39 requirements, 108 test cases, 105 test cases tagged in
 automated test code, 3 verified another way** (timing in Experiment 4, CI, and documentation review), **0 problems**; the
 optional repair-policy cases are now implemented and tagged. The generated matrix is
 [traceability-matrix.md](traceability-matrix.md); the tool runs under `ctest`.

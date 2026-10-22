@@ -203,6 +203,7 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | TC-H-06 | The verification can fail | With a labelled fault injected (miscounted vector or drifting MTTF) `--verify` exits 3, still writes the JSON, names the first mismatching state, and an impossible vector is a failed verification, not a crash; the injection does nothing without `--verify` | VER-001, INT-004 |
 | TC-G-11 | Experiment 5 | covers 6 × 45 cost-grid analyses (satellite under three models, three asymmetric systems) plus the paper's Fig. 1 setting (97/105, 11/15, 1/10); c_sys = 1, c_comp = ρ/n, c_set = σ in every run; all pre-registered predictions are evaluated deterministically | EXP-002, EXP-004 |
 | TC-G-12 | Experiment 6 | six models × three β × three systems (pair, satellite, series of six) = 54 verified analyses; the one-pair MTTF is model-independent and the series MTTF equals 1/Ψ(6) from an independent Python Ψ; the data reject pre-registered prediction 5 and the test requires that rejection to be reported (rankings exactly reversed at every β), not hidden | EXP-002, EXP-003 |
+| TC-G-13 | Experiment 7 | the optimal cost is at most the best threshold, best r-out-of-n and corrective cost in every combination (theory, checked on a reduced run: 135 satellite + 2 × 2 × 3 × 45 random-system combinations); random systems are drawn reproducibly from the seed (3–6 path sets of 2…⌈n/2⌉ components) and differ for another seed; the full run's seven predictions are evaluated by the analysis and reported either way | EXP-002, EXP-004 |
 | TC-G-10 | The Python layer never re-implements the algorithm | `run_experiments.py` imports only the standard library; the saved raw results are exactly what `analyze` printed for the same inputs | INT-002 |
 | TC-G-08 | Experiment runner and results | Refuses to run without a (non-empty) hypothesis; copies it and records its SHA-256; results carry settings, seed, tool version; `hypothesis_written_before_run`; the deterministic file is byte-identical across runs for all four experiments; an explicit bad `--analyze` path is an error | EXP-001, EXP-002, NFR-006 |
 | TC-G-09 | Analysis and plots | Verdict file with a SUPPORTED/REJECTED line per prediction; results without provenance are refused; the four figures are drawn from the copied tables alone (valid PNGs, no subprocess use) | EXP-003 |
@@ -269,9 +270,9 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | VER-003 | TC-H-07 (the generated matrix in [traceability-matrix.md](traceability-matrix.md)) |
 | VER-004 | TC-I-01, TC-I-02, TC-I-03, TC-I-04 |
 | EXP-001 | TC-F-05, TC-G-01 |
-| EXP-002 | TC-G-02, TC-G-04, TC-G-05, TC-G-06, TC-G-07, TC-G-11, TC-G-12 |
+| EXP-002 | TC-G-02, TC-G-04, TC-G-05, TC-G-06, TC-G-07, TC-G-11, TC-G-12, TC-G-13 |
 | EXP-003 | TC-G-03, TC-G-12 |
-| EXP-004 (P2) | TC-J-01 … TC-J-10, TC-G-11, TC-H-08 |
+| EXP-004 (P2) | TC-J-01 … TC-J-10, TC-G-11, TC-G-13, TC-H-08 |
 | DOC-001 | TC-H-03 |
 | DOC-002 | TC-H-03 |
 | INT-001, INT-003 | TC-H-04, TC-H-08, TC-H-09 |
