@@ -55,7 +55,7 @@ Derivations:
 | (1,1,0) | [1,0,0] | 3/7 ≈ 43 % |
 | (1,0,0), (0,1,0), (0,0,0) | all zero | 0 |
 
-**ORC-7 — paper Fig. 1 repair policies** (c_comp = 1/30, c_sys = 1, c_set = 0, [Exp]): the MTTF-threshold policy π_γ has LTMC = 1/10 for γ ∈ (86 %, 100 %], 11/15 for γ ∈ (43 %, 86 %], and 97/105 for γ ∈ (0, 43 %]. Reproduced exactly with Eqs. (9)–(12).
+**ORC-7 — paper Fig. 1 repair policies** (c_comp = 1/30, c_sys = 1, c_set = 0, [Exp]): the MTTF-threshold policy π_γ has LTMC = 1/10 for γ ∈ (86 %, 100 %], 11/15 for γ ∈ (43 %, 86 %], and 97/105 for γ ∈ (0, 43 %]. Reproduced exactly with Eqs. (9)–(12) in a separate validation script (not part of the delivered code; the repair-policy feature is unimplemented, so no test covers this oracle).
 
 **ORC-8 — reference system under the lethal-shock model [LSh]** (Ψ(x) = (1−θ)x + θ, β = θ, Ψ(1) = 1). Closed form: MTTF(**1**) = 8/(θ+3r) − 12/(θ+4r) + 6/(θ+5r) − 1/(θ+6r) with r = 1−θ (a shock time Exp(θ) racing against the pair structure with independent rate r). Verified equal to Eq. (7) with increments from Eq. (21), and to Eq. (6) solved directly, on all 64 states.
 

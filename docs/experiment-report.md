@@ -106,7 +106,7 @@ With two failures the system is still worth 0.4167 if the failed units are in di
 nothing if they are partners of one pair (3 of the 15 states). So the failure count alone discards structural
 information for exactly two counts, which is the paper's motivating observation, here measured on the satellite.
 
-## 6. Experiment 4 — Scaling and performance &nbsp;·&nbsp; 6 of 8 supported, **2 rejected**
+## 6. Experiment 4 — Scaling and performance &nbsp;·&nbsp; 6 of 8 supported in the first run (7 of 8 in a repeat), **1 or 2 rejected**
 
 ![Scaling](figures/fig4_scaling.png)
 
@@ -131,12 +131,31 @@ O(n²·2ⁿ); memory at n = 20 is 34.7 MB (×3.0 from n = 18); the satellite-siz
 
 **Rejected (reported as found):**
 
-1. *"Verification time grows by a factor between 6 and 12 per two components for n ≥ 10."* The ratios are 4.8, 8.9
-   and 10.8. The 4.8 comes from timings of a few milliseconds at n = 8 and 10 where fixed overhead still matters; the
-   two larger-n ratios are inside the predicted range. As stated, the criterion is rejected.
+1. *"Verification time grows by a factor between 6 and 12 per two components for n ≥ 10."* In the first run the ratios
+   were 4.8, 8.9 and 10.8, so the criterion was rejected. **This verdict is timing noise:** in an independent repeat (see
+   below) the ratios were 8.5, 9.8 and 8.0 and the prediction was supported. The 4.8 came from a few-millisecond
+   timing at n = 10.
 2. *"Verification is at least 100 times slower than the analysis at n = 14."* It is 23 times slower (856 ms against
    37 ms). The gap is widening (×9 against ×4.4 per step), so an extrapolation, not a measurement, puts the crossover
    near n ≈ 18, beyond where the brute-force reference is run.
+
+### 6.1 A repeat run
+
+The experiments were run a second time from a fresh copy of the repository (the fresh-copy check in the
+[verification report](verification-report.md) §9). Every **structural** result was identical (Φ evaluations, peak vectors,
+the Experiments 1–3 numbers, byte-identical deterministic files for the same inputs). The **timing-based** results moved:
+
+| | first run | repeat |
+|---|---|---|
+| analysis time n = 14 / 20 | 37 ms / 3.17 s | 48 ms / 3.35 s |
+| verification time n = 14 | 856 ms | 843 ms |
+| verification growth per +2 (n = 10, 12, 14) | 4.8, 8.9, 10.8 → **rejected** | 8.5, 9.8, 8.0 → supported |
+| verification ÷ analysis at n = 14 | 23× → **rejected** | 18× → **rejected** |
+| Experiment 4 predictions supported | 6 of 8 | 7 of 8 |
+
+So of the 40 checks, **3 rejections are stable across both runs** (the binomial-failure-rate comparison, the β = 0.01
+closeness, and the "100× slower" verification) and one more flips with timing noise. Predictions about run times should
+be read with that in mind; the structural ones do not vary.
 
 ## 7. Reproducing everything
 

@@ -9,6 +9,8 @@ Derived from `space_system_reliability_analyzer_project_guide.docx` and validate
 | [requirements-spec.md](requirements-spec.md) | Scope, assumptions, functional and non-functional requirements with acceptance criteria |
 | [test-plan.md](test-plan.md) | Test strategy, analytical and paper oracles, test cases A–J, traceability matrix |
 | [user-stories.md](user-stories.md) | 26 user stories in 6 epics, with acceptance criteria and links to requirements and tests |
+| [technical-report.md](technical-report.md) | **The whole story in one document**: question, method, architecture, reproduced results, experiments, verification, limitations, deviations |
+| [demo.md](demo.md) | A two-minute guided run (`project/demo.sh`) with captured output |
 | [verification-report.md](verification-report.md) | How the software was verified: environment, results of every build configuration, mutation record, tolerances, defects found, requirement-by-requirement status, what is **not** verified |
 | [traceability-matrix.md](traceability-matrix.md) | Requirements → test cases → test code, generated and machine-checked by `project/tools/check_traceability.py` |
 | [deviation-log.md](deviation-log.md) | Every deviation from the paper and the guide, every correction, decision and limitation |
@@ -19,7 +21,7 @@ Derived from `space_system_reliability_analyzer_project_guide.docx` and validate
 | Component diagram | [PNG](uml/component.png) · [source](uml/component.puml) |
 | Object diagram: satellite-support reference system snapshot | [PNG](uml/object.png) · [source](uml/object.puml) |
 
-The C++ project skeleton lives in [../project/](../project/).
+The code lives in [../project/](../project/); the repository front page is [../README.md](../README.md).
 
 ## Rendering the UML
 

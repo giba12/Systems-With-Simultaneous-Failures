@@ -37,7 +37,7 @@ All values below were recomputed with exact fractions, assuming i.i.d. exponenti
 | P1 and C1 failed (mask 58) | [1,2,0,0,0] | 5/12 | same |
 | Reference system: operational states / minimal path sets | 27 / 8 (each of size 3) | — | enumeration; W⁰=1 and W¹=0 criterion |
 | Paper Fig. 1 system, Φ = max{x₃, min{x₁,x₂}} | W¹ = (1,3,1,0), s = (0, 2/3, 1/3) | m(1) = 7/6 | **reproduces the paper's own figure**; per-state m(x)/m(1) = 100 %, 86 %, 86 %, 43 %, 0 % as printed |
-| Fig. 1 policy costs (c_comp = 1/30, c_sys = 1, c_set = 0) | — | LTMC = 1/10, 11/15, 97/105 | **reproduces the paper** by implementing Eqs. (9)–(12) |
+| Fig. 1 policy costs (c_comp = 1/30, c_sys = 1, c_set = 0) | — | LTMC = 1/10, 11/15, 97/105 | **reproduces the paper**, implementing Eqs. (9)–(12) in a throw-away script (not part of the delivered code) |
 | Reference system under the lethal-shock model [LSh], β = 0.5 | — | 32/35 | closed-form integral; Eq. (6) solved directly; Eq. (7) with increments from the reconstructed Eq. (21) |
 
 ## 2. Errors found (and fixed)

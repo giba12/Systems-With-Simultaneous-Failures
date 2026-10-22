@@ -63,7 +63,7 @@ unimplemented optional repair-policy cases), **0 problems**. The generated matri
 2. **Independent oracles that need neither implementation.** Hand-derived and closed-form values: series and parallel
    (1/n, harmonic numbers), k-out-of-n (Σ 1/(jλ) on every state), the satellite's MTTF on **all 64 states** from an
    integral formula (independent exponential and lethal-shock), the bridge network's signature (0, 1/5, 3/5, 1/5, 0),
-   and the paper's own Fig. 1 numbers (counting vectors, 7/6, 86 %/43 %, policy costs 1/10, 11/15, 97/105).
+   and the paper's own Fig. 1 numbers (counting vectors, 7/6, 86 %/43 %). The figure's policy costs (1/10, 11/15, 97/105) were reproduced once during validation by a separate script; they are not in the test suite because the repair-policy feature is not implemented.
 3. **Closed forms for the transition kernel.** The lethal-shock kernel (one component or all) and the binomial-failure-rate
    kernel (a binomial conditioned on at least one failure) check Eq. (20) against numbers never produced by an
    alternating sum.
@@ -170,3 +170,22 @@ cmake -S project -B build-san -DCMAKE_BUILD_TYPE=Debug \
 # shuffled, repeated C++ tests
 build/reliability_tests --gtest_repeat=10 --gtest_shuffle --gtest_random_seed=77
 ```
+
+## 9. Fresh-copy check (gate G7, 2026-10-22)
+
+A copy of the repository was made the way a clone would see it (tracked and untracked files, minus everything git
+ignores: no `build/`, `.venv/` or `results/`) into an empty folder, and the README's commands were followed literally:
+
+| Step | Result |
+|---|---|
+| `cmake -S project -B project/build -DCMAKE_BUILD_TYPE=Release` | 0 warnings |
+| `cmake --build project/build --parallel` | 0 warnings or errors (about 2 min with the dependency downloads) |
+| `ctest --test-dir project/build` | **101 / 101 passed** |
+| `project/demo.sh` | ran to the end; numbers identical to the documented transcript |
+| `analyze --config … --verify`; `--model lsh --beta 0.5 --per-state --out …` | MTTF 0.7, verification passed; 0.914286 = 32/35, 64 state records |
+| `python3 python/run_experiments.py all` (standard library only) | all four experiments completed |
+| `python3 -m venv .venv && pip install -r python/requirements.txt`, then `analyze_results.py` and `plot_results.py` | tables, verdicts and all four figures produced |
+
+**Observation.** The repeat run reproduced every structural result exactly but not the timing-based verdicts: one
+Experiment 4 criterion that had been rejected passed (see [experiment-report.md](experiment-report.md) §6.1). Predictions
+about run time should be treated as noise-sensitive.

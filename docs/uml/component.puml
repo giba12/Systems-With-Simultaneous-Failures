@@ -1,75 +1,76 @@
 @startuml component
-title Space System Reliability Analyzer - Component Diagram
+title Space System Reliability Analyzer - Component Diagram (final architecture)
 skinparam componentStyle uml2
 skinparam nodesep 40
 skinparam ranksep 60
 
-package "Python Analysis" {
-  component "run_experiments.py" as RUN
-  component "analyze_results.py" as ANA
-  component "plot_results.py" as PLOT
+package "Python layer (never re-implements the maths)" {
+  component "run_experiments.py\nrefuses to run without a hypothesis" as RUN
+  component "analyze_results.py\ntables + SUPPORTED / REJECTED verdicts" as ANA
+  component "plot_results.py\nfigures from saved tables only" as PLOT
 }
 
-package "Executables" {
-  component "CLI: analyze" as CLI
-  component "Test Suite\n(GoogleTest / Catch2)" as TESTS
+package "Executable and tests" {
+  component "CLI: analyze\nJSON in / out, --verify, exit codes 0-3" as CLI
+  component "C++ tests (GoogleTest)\nPython end-to-end tests" as TESTS
+  component "tools/check_traceability.py\nrequirements -> test cases -> test code" as TRACE
 }
 
-package "C++20 Engine (library: reliability)" {
-  component "System Model\n(system_model.hpp/.cpp)\nconfig, structure function Phi" as SM
-  component "State\n(state.hpp)\nbitmask encoding" as ST
-  component "Signature Engine\n(signature.hpp/.cpp)\nlevel sweep: W, signatures,\nminimal path sets" as SIG
-  component "Failure Model\n(failure_model.hpp/.cpp)\nnu_w, P_w,w', delta(w,k)" as FM
-  component "MTTF Engine\n(mttf.hpp/.cpp)\nEq. (7)" as MTTF
-  component "Brute-Force Reference\n(independent; also solves Eq. (6))" as REF
+package "C++20 engine (library: reliability)" {
+  component "System Model\nconfig, structure function Phi,\nvalidation, call counter" as SM
+  component "State\nbitmask encoding" as ST
+  component "Signature Engine\nlevel sweep (Algorithm 1):\ncounting vectors, signatures,\nminimal path sets" as SIG
+  component "Failure Model\nindependent exponential;\nLevy-frailty: lethal shock,\nbinomial failure rate (n <= 16)" as FM
+  component "MTTF Engine\nEq. (7)" as MTTF
+  component "Brute-Force Reference\nindependent; also solves Eq. (6)" as REF
 }
 
-package "Data and Docs" {
-  artifact "configs/satellite_support.json" as CFG
-  artifact "results/\n(raw output, config, seed)" as RES
-  artifact "docs/" as DOCS
+package "Data" {
+  artifact "configs/\nsatellite_support.json" as CFG
+  artifact "experiments/hypotheses/\nwritten before each run" as HYP
+  artifact "results/\nraw output, config, seed,\nhypothesis hash" as RES
+  artifact "docs/\nrequirements, tests, reports" as DOCS
 }
 
-component "CI Workflow" as CI
+component "CI (repository root)\ng++, clang++, ASan/UBSan" as CI
 
 RUN -down-> CLI : invokes
-RUN -down-> CFG : reads
+RUN -down-> HYP : requires
 RUN -down-> RES : writes
-ANA -down-> RES : reads
-PLOT -down-> RES : reads
+ANA -down-> RES : reads, writes tables
+PLOT -down-> RES : reads tables
 
 CI -down-> TESTS : builds, runs
-CI -down-> CLI : builds
+CI -down-> TRACE : runs (ctest)
+TRACE -down-> DOCS : reads
+TRACE -down-> TESTS : reads tags
 
 CLI -down-> SM : <<use>>
 CLI -down-> SIG : <<use>>
 CLI -down-> FM : <<use>>
-CLI -down-> REF : optional verify
+CLI -down-> REF : --verify
 CLI -down-> CFG : reads
-CLI -down-> RES : writes
 TESTS -down-> SIG
-TESTS -down-> MTTF
 TESTS -down-> REF : compares against
+TESTS -down-> CLI : end to end
 
-SIG -down-> SM : phi(x)
+SIG -down-> SM : phi(x), once per state
 SIG -down-> ST
 SIG -down-> MTTF : m(x) per level
 MTTF -down-> FM : delta(w,k)
 REF -down-> SM : phi only
 ST -down-> SM : encodes masks for
 
-DOCS -[hidden]down-> RES
-
 note right of FM
   Models satisfy the paper's
-  Assumptions (A)-(C): [Exp] and the
-  Levy-frailty Marshall-Olkin family
-  ([LSh] minimum). Extended precision
-  for Psi-derived terms when n is large.
+  Assumptions (A)-(C). Kernel and
+  increments in long double; the
+  constructor refuses models whose
+  numbers cannot be trusted.
 end note
 
 note right of REF
   Must not reuse the recurrence
-  in the Signature Engine.
+  of the Signature Engine.
 end note
 @enduml

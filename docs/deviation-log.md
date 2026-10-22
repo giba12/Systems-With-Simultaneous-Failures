@@ -51,7 +51,7 @@ source is wrong and the project fixes it), **Decision** (a choice the sources le
 | D1 | Correction | Peak memory is read from `VmHWM` (`/proc/self/status`) because `ru_maxrss` is inherited across fork and exec and reported the Python parent's memory. The early runs' constant 19 MB was an artefact. |
 | D2 | Limitation | Run times are medians of 1 to 5 repeats on one laptop under WSL2 and are orders of magnitude and growth rates, not benchmarks. |
 | D3 | Limitation | In Experiment 4 verification stops at n = 14 (the brute-force reference does about 3ⁿ work); the analysis stops at n = 20. |
-| D4 | Process | **Four pre-registered predictions were rejected** (two in Experiment 2, two in Experiment 4) and are reported as found; the hypothesis files were not edited afterwards. |
+| D4 | Process | **Pre-registered predictions were rejected** — two in Experiment 2 and one in Experiment 4 in every run, plus one timing-sensitive Experiment 4 criterion that was rejected in the first run and supported on a repeat — and are reported as found; the hypothesis files were not edited afterwards. |
 | D5 | Limitation | CI has not run on a CI service (no remote repository); its commands were executed locally with g++, clang++ and the sanitizers. Only Linux has been tried. |
 | D6 | Process | A fault-injection environment variable (`ANALYZE_FAULT_INJECTION`) exists in the CLI solely to test the verification itself; it acts only together with `--verify`. |
 
