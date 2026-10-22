@@ -12,7 +12,7 @@
 #    GoogleTest is the recommended default in docs/project-plan.md.)
 
 cmake_minimum_required(VERSION 3.20)
-project(space_system_reliability VERSION 0.1.0 LANGUAGES CXX)
+project(space_system_reliability VERSION 0.8.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -50,7 +50,11 @@ else()
 endif()
 
 add_executable(analyze src/main.cpp)
-target_link_libraries(analyze PRIVATE reliability)
+target_link_libraries(analyze PRIVATE reliability nlohmann_json::nlohmann_json)
+target_compile_definitions(analyze PRIVATE RELIABILITY_VERSION="${PROJECT_VERSION}")
+if(NOT MSVC)
+  target_compile_options(analyze PRIVATE -Wall -Wextra -Wpedantic)
+endif()
 
 if(BUILD_TESTING)
   include(CTest)
@@ -75,4 +79,15 @@ if(BUILD_TESTING)
 
   include(GoogleTest)
   gtest_discover_tests(reliability_tests)
+
+  # End-to-end tests of the command line tool and the experiment scripts (standard library only;
+  # tests that need pandas / matplotlib skip themselves when those are missing).
+  find_package(Python3 COMPONENTS Interpreter)
+  if(Python3_Interpreter_FOUND)
+    add_test(NAME python_end_to_end
+      COMMAND ${Python3_EXECUTABLE} -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/python/tests -v
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/python)
+    set_tests_properties(python_end_to_end PROPERTIES
+      ENVIRONMENT "ANALYZE_BIN=$<TARGET_FILE:analyze>;PROJECT_ROOT=${CMAKE_CURRENT_SOURCE_DIR}")
+  endif()
 endif()

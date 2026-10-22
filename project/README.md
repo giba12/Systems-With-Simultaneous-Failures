@@ -5,7 +5,7 @@ A small C++20 tool that implements the per-state signature / MTTF algorithm of L
 Failures*, arXiv:2610.22181) for a **fictional** six-component satellite-support system.
 Educational portfolio project: not a certified or flight-qualified analysis.
 
-**Status: Days 1–7 of the plan are complete** (documents and glossary, state model and structure function, brute-force reference, level sweep, signatures, baseline MTTF, simultaneous failures). Gates G1–G5 are met. The C++ engine is finished; what remains is the command-line tool and the Python experiments (Day 8). Everything
+**Status: Days 1–8 of the plan are complete** (documents and glossary, state model and structure function, brute-force reference, level sweep, signatures, baseline MTTF, simultaneous failures, command-line tool and experiments). Gates G1–G5 are met. What remains is Day 9 (verification report, traceability, cleanup) and Day 10 (delivery). Results: [../docs/experiment-report.md](../docs/experiment-report.md). Everything
 below that line is still a skeleton: those functions throw `NotImplementedError` and their
 tests report *skipped*. Work through [../docs/project-plan.md](../docs/project-plan.md) day by day.
 
@@ -18,9 +18,10 @@ tests report *skipped*. Work through [../docs/project-plan.md](../docs/project-p
 | `signature`: `tail_signature()`, `signature()` | done, tested |
 | `failure_model`: `IndependentExponential`; `mttf` | done, tested |
 | `failure_model`: Lévy-frailty family (lethal shock, binomial failure rate, any Laplace exponent; n ≤ 16) | done, tested |
-| `main.cpp` (`analyze` CLI), `python/` | skeleton, **next (Day 8)** |
+| `main.cpp` (`analyze` CLI) | done, tested |
+| `python/` (experiment runner, analysis, plots) and `experiments/hypotheses/` | done, tested |
 
-Test status: 99 tests, all passing, none skipped.
+Test status: 99 C++ tests and 32 Python end-to-end tests (run by ctest as `python_end_to_end`), all passing; 7 Python tests skip themselves when pandas / matplotlib are missing.
 
 Measured sweep cost (parallel system, Release build): n = 16 → 0.17 s; n = 20 → 2.9 s, 25 MB; n = 24 → 58 s, 402 MB.
 
@@ -56,3 +57,18 @@ ctest --test-dir build --output-on-failure
 2. Replace the `not_implemented(...)` line with real code.
 3. In the matching test, write the check from its pseudo-code and delete the `GTEST_SKIP()` line.
 4. Run `ctest`. The test-plan ID in the test name (for example `TC-C-03`) says which requirement it covers.
+
+## Running the analysis and the experiments
+
+```bash
+build/analyze --config configs/satellite_support.json --verify          # one analysis, JSON on stdout
+build/analyze --config configs/satellite_support.json --model lsh --beta 0.5 --per-state --out result.json
+
+python3 python/run_experiments.py all                                    # needs experiments/hypotheses/ first
+python3 -m venv .venv && .venv/bin/pip install -r python/requirements.txt  # once, for the next two commands
+.venv/bin/python python/analyze_results.py
+.venv/bin/python python/plot_results.py
+```
+
+`analyze` exit codes: 0 success, 1 invalid input or model, 2 usage error, 3 verification failed.
+Generated results go to `results/` (not committed; regenerate with the commands above).
