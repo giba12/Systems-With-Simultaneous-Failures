@@ -92,5 +92,6 @@ is not implemented (policies are enumerated), and the repair-policy results come
 
 ## Licence
 
-No licence has been chosen yet; until one is added, all rights are reserved by default. The paper (`docs/paper3.pdf`) is
-the authors' work and is included for reference only.
+No licence has been chosen yet; until one is added, all rights are reserved by default. The paper (Lagos & Ávila, arXiv:2610.22181) is
+the authors' work and is **not** included in this repository; the documents refer to a local copy named `docs/paper3.pdf`
+(ignored by git) and to the project guide `docs/space_system_reliability_analyzer_project_guide.docx` (also not published).

@@ -1,6 +1,6 @@
 # Documentation index
 
-Derived from `space_system_reliability_analyzer_project_guide.docx` and validated against `paper3.pdf`.
+Derived from `space_system_reliability_analyzer_project_guide.docx` and validated against `paper3.pdf` (arXiv:2610.22181). Neither file is part of the published repository; keep local copies in this folder if you want the links in the validation report to work.
 
 | Document | Contents |
 |---|---|

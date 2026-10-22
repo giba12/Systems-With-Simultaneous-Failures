@@ -6,7 +6,7 @@
 | **Tool** | `analyze` 0.8.0 (Release build, one core) |
 | **Machine** | Intel Core i7-9750H @ 2.6 GHz, WSL2 Linux, Python 3.12.3 |
 | **Seed** | 20261021 (recorded; all six experiments are deterministic, no random numbers are drawn) |
-| **Hypotheses** | [`project/experiments/hypotheses/`](../project/experiments/hypotheses/), committed as `0a3e51c` (Experiments 1–4), `91cc7bf` (Experiment 5) and `c049dc6` (Experiment 6) **before** the corresponding experiment code existed |
+| **Hypotheses** | [`project/experiments/hypotheses/`](../project/experiments/hypotheses/), committed as `257394a` (Experiments 1–4), `ee43a39` (Experiment 5) and `40d272e` (Experiment 6) **before** the corresponding experiment code existed |
 | **Raw results** | `project/results/exp*/` (not committed; regenerate with the commands in §9) |
 
 This report separates what **reproduces the paper** from what is **new**, states every prediction that was
