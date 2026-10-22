@@ -1,5 +1,7 @@
 # Space System Reliability Analyzer
 
+[![ci](https://github.com/giba12/Systems-With-Simultaneous-Failures/actions/workflows/ci.yml/badge.svg)](https://github.com/giba12/Systems-With-Simultaneous-Failures/actions/workflows/ci.yml)
+
 An exact reliability analysis of a **fictional** six-component satellite-support system, implementing the per-state
 signature / mean-time-to-failure algorithm of Lagos & Ávila,
 [*Per-State Signatures and Mean Time-to-Failure: An Algorithm for Systems With Simultaneous Failures*](https://arxiv.org/abs/2610.22181)

@@ -34,10 +34,11 @@ ctest --test-dir build --output-on-failure           # C++ tests + python_end_to
 | Configuration | Result |
 |---|---|
 | g++ 13.3.0, Release | **124 / 124 passed**, 0 compiler warnings |
-| clang++ 18.1.3, Release | **120 / 120 passed**, 0 compiler warnings |
-| g++ 13.3.0, Debug + ASan + UBSan | **120 / 120 passed**, no sanitizer report |
-| Release, `ctest` repeated 5 times | 5 × 124 / 124 |
-| C++ tests, 10 repetitions × 3 shuffle seeds (1, 77, 2026) | 30 × 122 / 122: no flakiness, no order dependence |
+| clang++ 18.1.3, Release | **124 / 124 passed** (GitHub Actions run 39864780885, Ubuntu 24.04), 0 compiler warnings locally |
+| g++ 13.3.0, Debug + ASan + UBSan | **124 / 124 passed** (same run), no sanitizer report |
+| g++ 13.3.0, Release on GitHub Actions | **124 / 124 passed** (same run) |
+| Release, `ctest` repeated 5 times | 5 × 114 / 114 (measured at an earlier commit, before the Table I models and the optimal policy; not repeated since) |
+| C++ tests, 10 repetitions × 3 shuffle seeds (1, 77, 2026) | 30 × 112 / 112 at the same earlier commit: no flakiness, no order dependence; not repeated since |
 | Python tests with only the standard library (no pandas / matplotlib) | 43 run, 8 skip themselves cleanly |
 | Fresh clone-style configure + build (no cached state) | clean, no CMake warning |
 
@@ -153,11 +154,11 @@ in my own expectations rather than in the code, which is itself worth recording.
 | NFR-002, NFR-003 | Met | satellite analysis 0.08 ms; practical limit measured (n = 20 in 3.2 s / 35 MB; n = 24 in 58 s / 402 MB) |
 | NFR-004 | Met | one test file per module plus extras |
 | NFR-005 | **Partly met** | g++ and clang++ on Linux/WSL; other operating systems not tried |
-| NFR-007 | **Partly met** | the workflow is written, syntax-checked, and every job's commands were executed locally; it **has not run on a CI service** because the repository has no remote |
+| NFR-007 | **Met on Linux** | the workflow runs on GitHub Actions (g++ and clang++ in Release, and ASan/UBSan in Debug, 124 / 124 tests each); first green run: 39864780885 on commit `4fa4812`, 2026-10-22 |
 
 ## 7. What has not been verified
 
-* The CI workflow on an actual CI service (no remote), and any operating system other than Linux.
+* Any operating system other than Linux (the CI service runs Ubuntu only).
 * Lévy-frailty models above n = 16, and models other than lethal shock and binomial failure rate (the stable
   subordinator is exercised in tests; the paper's other four are not implemented).
 * The paper's empirical results (22 benchmark networks, up to 30 components, repair-policy cost tables) — not a goal of
@@ -208,7 +209,7 @@ The fresh-copy check was repeated on the final tree, including the optional repa
 | Step | Result |
 |---|---|
 | configure and build (Release) | 0 warnings, 0 errors (about 2 min 50 s with the dependency downloads) |
-| `ctest` | **120 / 120 passed** |
+| `ctest` | **114 / 114 passed** (this check was made at the earlier commit; it has not been repeated since the later additions) |
 | `project/demo.sh` | ran to the end, five steps; step 5 prints the paper's Fig. 1 costs 0.9238 / 0.7333 / 0.1000 = 97/105, 11/15, 1/10 |
 | `analyze … --c-comp 0.1 --c-sys 1 --c-set 0.05` | 4 threshold policies, best r = 1 |
 | `run_experiments.py all`, new virtual environment, `analyze_results.py`, `plot_results.py` | five experiments saved, five figures drawn |
