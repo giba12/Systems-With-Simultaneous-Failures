@@ -176,7 +176,7 @@ in the [experiment report](experiment-report.md) §9.
 The software was verified against two independent implementations, closed forms that need neither, the paper's own
 examples and theorems, deliberate bugs (29 mutations, 28 caught immediately and the survivor closed by new tests),
 sanitizers, a second compiler, and a machine-checked traceability from every requirement to a test. g++ and clang++
-build with no warnings and pass 124/124 tests; the sanitizer build also passes. Twenty defects and near-misses found
+build with no warnings and pass 127/127 tests; the sanitizer build also passes. Twenty defects and near-misses found
 along the way, including several mistakes in my own expectations, are listed in the
 [verification report](verification-report.md), which also states what was **not** verified.
 
@@ -188,8 +188,8 @@ along the way, including several mistakes in my own expectations, are listed in 
   faults beyond what the two common-cause models express. Failures are permanent; nothing is repaired.
 * **Size.** The state space is 2ⁿ. The simultaneous-failure models stop at 16 components (numerical precision); the
   brute-force reference at 16; the independent model was run to 20 here (24 in an earlier benchmark).
-* **Models and policies.** Three failure-model families. Repair policies are evaluated by direct recursion (n ≤ 14); the
-  paper's single-pass method is not implemented (the optimal state-based policy is, with the same enumeration).
+* **Models and policies.** Three failure-model families. Repair policies use the paper's level sums and its single-pass
+  threshold search (n ≤ 20), checked against an enumeration implementation (n ≤ 14) and closed forms.
 * **Timing.** One laptop, one core, WSL2; treat times as orders of magnitude.
 * **Not verified:** a run on a CI service, operating systems other than Linux, and a third independent implementation.
 

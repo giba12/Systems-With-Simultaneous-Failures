@@ -230,6 +230,9 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | TC-J-08 | The optimum is never worse than any family, and not always equal to one | satellite, Fig. 1, bridge and four random 7-component systems under [Exp] and [LSh]: optimum ≤ best threshold, best r-out-of-n and corrective maintenance; it is strictly cheaper than the best threshold in at least one case | EXP-004 |
 | TC-J-09 | The optimum on the paper's Fig. 1 example | with c_comp = 1/30, c_sys = 1, c_set = 0 the optimal cost is 1/10 (the paper's cheapest threshold policy) and the policy repairs in every state but the all-working one | EXP-004 |
 | TC-J-10 | Degenerate cases and preconditions of the optimal policy | costly repairs give corrective maintenance; all costs zero ends in at most 3 passes with cost 0; costs × 2 give cost × 2 and the same policy; negative costs and n > 14 are rejected | EXP-004 |
+| TC-J-11 | Level-sum code against the enumeration code | on 7 systems (the satellite, Fig. 1, the bridge, four random ones of 7 to 10 components) × 5 failure models ([Exp], [LSh], [BFR], [LFMO-C], [LFMO-IG]): random state-based policies (210), every breakpoint of the threshold search (γ intervals, number of states repaired, cycle length and cost: more than 100 policies) and the optimal policy agree to 1e-9–1e-10 | EXP-004 |
+| TC-J-12 | 16 components against closed forms | on eight redundant pairs, level-sum costs of corrective maintenance and of every r-out-of-n policy equal the closed forms from the signature (1e-9); the single-pass threshold costs are exactly those policies; the optimum is a lower bound; works under [LSh] at n = 16 (1e-7 allowed there: kernel accuracy ≈ 1e-10) | EXP-004 |
+| TC-J-13 | Size limits | 15 components are refused by the enumeration functions and accepted by the level-sum functions; 21 components are refused by all of them | EXP-004 |
 | TC-J-06 | The paper's **Proposition 3** as an independent route | for every threshold policy of the satellite, Fig. 1, the bridge and 10 random systems, under [Exp], [LSh] and [BFR] and three cost sets (> 300 policies): cycle length and cost equal T, c_set + c_comp N + c_sys P computed from state-occupation times without any policy recursion (1e-9) | EXP-004 |
 
 ## 4. Test data
@@ -272,7 +275,7 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | EXP-001 | TC-F-05, TC-G-01 |
 | EXP-002 | TC-G-02, TC-G-04, TC-G-05, TC-G-06, TC-G-07, TC-G-11, TC-G-12, TC-G-13 |
 | EXP-003 | TC-G-03, TC-G-12 |
-| EXP-004 (P2) | TC-J-01 … TC-J-10, TC-G-11, TC-G-13, TC-H-08 |
+| EXP-004 (P2) | TC-J-01 … TC-J-13, TC-G-11, TC-G-13, TC-H-08 |
 | DOC-001 | TC-H-03 |
 | DOC-002 | TC-H-03 |
 | INT-001, INT-003 | TC-H-04, TC-H-08, TC-H-09 |

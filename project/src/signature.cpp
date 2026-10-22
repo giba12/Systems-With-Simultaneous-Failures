@@ -6,47 +6,11 @@
 #include <stdexcept>
 #include <string>
 
+#include "level_index.hpp"
 #include "reliability/errors.hpp"
 
 namespace reliability {
 
-namespace {
-
-// Pascal's triangle up to 31 (a state mask holds at most 31 components); every entry fits in 64 bits.
-struct BinomialTable {
-  std::array<std::array<std::uint64_t, 32>, 32> c{};
-  BinomialTable() {
-    for (int a = 0; a < 32; ++a) {
-      c[static_cast<std::size_t>(a)][0] = 1;
-      for (int b = 1; b <= a; ++b) {
-        c[static_cast<std::size_t>(a)][static_cast<std::size_t>(b)] =
-            c[static_cast<std::size_t>(a - 1)][static_cast<std::size_t>(b - 1)] +
-            (b <= a - 1 ? c[static_cast<std::size_t>(a - 1)][static_cast<std::size_t>(b)] : 0U);
-      }
-    }
-  }
-  std::uint64_t operator()(int a, int b) const {
-    return (b < 0 || b > a) ? 0U : c[static_cast<std::size_t>(a)][static_cast<std::size_t>(b)];
-  }
-};
-
-// Position of x among all states with the same number of working components, listed in increasing
-// numeric order. That order is "colexicographic", and the rank of the set {c1 < c2 < ... < cw} of
-// working bit positions is  C(c1,1) + C(c2,2) + ... + C(cw,w)  (combinatorial number system).
-// It lets us find a son's vector in the previous level without a hash map.
-std::uint64_t rank_in_level(StateMask x, const BinomialTable& binom) {
-  std::uint64_t rank = 0;
-  int j = 0;
-  for (int bit = 0; bit < 32; ++bit) {
-    if (is_working(x, bit)) {
-      ++j;
-      rank += binom(bit, j);
-    }
-  }
-  return rank;
-}
-
-}  // namespace
 
 // ALGORITHM   (paper Algorithm 1, Lemma 1, Theorem 2)
 //   levels go from "no component works" (w = 0) up to "all work" (w = n), i.e. failures n .. 0
@@ -69,7 +33,7 @@ SweepResult sweep(const SystemModel& model, const StateObserver& observer,
                      " components, got " + std::to_string(n));
   }
 
-  static const BinomialTable binom;
+  static const detail::BinomialTable binom;
   SweepResult result;
   if (options.keep_all_vectors) {
     result.vectors.resize(std::size_t{1} << n);
@@ -99,7 +63,7 @@ SweepResult sweep(const SystemModel& model, const StateObserver& observer,
       son_rank.clear();
       for (int i = 0; i < n; ++i) {
         if (is_working(x, i)) {
-          son_rank.push_back(rank_in_level(without(x, i), binom));
+          son_rank.push_back(detail::rank_in_level(without(x, i), binom));
         }
       }
 

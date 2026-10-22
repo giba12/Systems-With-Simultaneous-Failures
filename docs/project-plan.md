@@ -99,6 +99,15 @@ policy** (336 cases), never worse than any other family and strictly better than
 paper's Fig. 1 optimum 1/10, degenerate cases; four deliberate bugs all caught. Not done: the paper's O(n²2ⁿ) level-sum
 version and single-pass threshold evaluation.
 
+### Level-sum policies and the single-pass threshold search, 2026-10-23
+
+The paper's O(n²2ⁿ) level sums now evaluate every policy, its Proposition 3 gives **all** MTTF-threshold policies from one sweep
+(grouping the states into classes of equal counting vectors), and the optimal-policy passes use the level sums too, so the policy
+limit rises from n = 14 to n = 20. The enumeration code stays as `*_by_enumeration` and is the independent check: TC-J-11
+(random policies, every breakpoint and the optimum, five failure models), TC-J-12 (16 components against closed forms from the
+signature), TC-J-13 (the size limits); six more deliberate bugs caught. Experiments 5 and 7 re-run with the new code give the same
+verdicts. Not done: the paper's O(n²2ⁿ) level-sum evaluation of the r-out-of-n policies as one pass (they are evaluated one by one).
+
 ## 3. Day-by-day work plan
 
 Requirement and test IDs refer to the requirements spec and test plan.

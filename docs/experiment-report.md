@@ -217,9 +217,10 @@ Savings of the best threshold policy over the best r-out-of-n rule on the asymme
 tolerates one more failure than under independent failures (at ρ = 0.1, σ = 0.5: r = 3 instead of 2). No explanation was
 tested.
 
-**Limits.** Policies are evaluated by enumerating sub-states (about 3ⁿ work per policy), so the tool accepts n ≤ 14; the
-paper's single-pass evaluation of all thresholds (Proposition 3 with classes of equal counting vectors) is not implemented.
-At these sizes (n ≤ 8) the policy comparison took at most about 8 ms per cost pair.
+**Limits.** This experiment was run with the first implementation, which evaluated policies by enumerating sub-states
+(about 3ⁿ work, n ≤ 14). The tool now uses the paper's level sums and its single-pass evaluation of all thresholds
+(n ≤ 20); Experiments 5 and 7 were re-run with it and their verdicts did not change (see §9). At these sizes (n ≤ 8)
+the policy comparison took at most about 8 ms per cost pair.
 
 ## 8. Experiment 6 — Six common-cause models, one pairwise β &nbsp;·&nbsp; 6 of 7 supported, **1 rejected**
 
@@ -298,6 +299,14 @@ had been read before, which the hypothesis file says.
   failures and at ρ = 2 under [LSh]) and it is largest at small positive set-up costs (σ = 0.05 and 0.1: 0.76 % and 0.87 %)
   and smaller at σ = 0 and σ = 0.5 (0.35 % and 0.13 %); the paper also reports the largest gap for small positive set-up
   costs. No explanation was tested.
+
+### 9.1 Re-run with the level-sum policy code
+
+Experiments 5 and 7 were first run with the enumeration implementation of the policy code (n ≤ 14). After the level-sum
+implementation replaced it as the default, both were re-run from the same seed. All 271 results of Experiment 5 and all
+2 295 results of Experiment 7 have the same number of threshold policies, the same best threshold, the same best r and the same
+number of states repaired in every threshold policy; the policy costs differ by at most 4e-15 (Experiment 5) and 3e-14
+(Experiment 7) relative, and every verdict is unchanged (8 of 8 and 7 of 7 supported).
 
 ## 10. Reproducing everything
 

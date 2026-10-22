@@ -42,13 +42,13 @@ ctest --test-dir build --output-on-failure           # C++ tests + python_end_to
 | Python tests with only the standard library (no pandas / matplotlib) | 43 run, 8 skip themselves cleanly |
 | Fresh clone-style configure + build (no cached state) | clean, no CMake warning |
 
-**Test inventory.** 122 C++ tests (`Signature` 23, `Mttf` 21, `FailureModels` 22, `Reference` 16, `StructureFunction` 13,
-`Policy` 14, `State` 8, `Properties` 5) and 47 Python end-to-end tests (`test_cli` 23, `test_experiments` 19,
+**Test inventory.** 125 C++ tests (`Signature` 23, `Mttf` 21, `FailureModels` 22, `Reference` 16, `StructureFunction` 13,
+`Policy` 17, `State` 8, `Properties` 5) and 48 Python end-to-end tests (`test_cli` 24, `test_experiments` 19,
 `test_traceability_tool` 5). `ctest` runs the C++ tests individually (122) plus the Python suite as one test and the
-traceability check as one test: 124. About 7 400 lines of source, tests and scripts.
+traceability check as one test: 127. About 7 400 lines of source, tests and scripts.
 
 **Traceability (VER-003).** `project/tools/check_traceability.py` reads the requirements, the test plan and the tags in
-the test code and fails on any orphan. Current state: **39 requirements, 108 test cases, 105 test cases tagged in
+the test code and fails on any orphan. Current state: **39 requirements, 111 test cases, 108 test cases tagged in
 automated test code, 3 verified another way** (timing in Experiment 4, CI, and documentation review), **0 problems**; the
 optional repair-policy cases are now implemented and tagged. The generated matrix is
 [traceability-matrix.md](traceability-matrix.md); the tool runs under `ctest`.
@@ -147,7 +147,7 @@ in my own expectations rather than in the code, which is itself worth recording.
 | REL-002, REL-004 | Met, with a limit | lethal-shock and binomial-failure-rate models, calibration by β; **n ≤ 16** |
 | VER-001 … VER-004 | Met | see §3 |
 | EXP-001 … EXP-003 | Met | byte-identical deterministic results; four experiments; tables and figures from saved results |
-| EXP-004 (P2) | Met, **with limits** | policies evaluated by direct recursion (n ≤ 14), every threshold breakpoint searched; Fig. 1 costs reproduced; closed forms and the paper's Proposition 3 as independent checks (TC-J-01…06); Experiment 5; the optimal state-based policy (Dinkelbach) checked against an exhaustive search of all policies on 7 small systems × 4 failure models × 12 cost pairs (TC-J-07…10), and four deliberate bugs in it all caught. **Not implemented:** the paper's single-pass evaluation (Proposition 3 over classes of equal counting vectors) |
+| EXP-004 (P2) | Met, **with limits** | policies evaluated with level sums (n ≤ 20) and by enumeration (n ≤ 14, the independent check), every threshold breakpoint searched in one pass; Fig. 1 costs reproduced; closed forms and the paper's Proposition 3 as independent checks (TC-J-01…06); Experiment 5; the optimal state-based policy (Dinkelbach) checked against an exhaustive search of all policies on 7 small systems × 4 failure models × 12 cost pairs (TC-J-07…10); the level-sum evaluator, the single-pass threshold search and the fast Dinkelbach agree with the enumeration code on random policies, all breakpoints and the optimum, and with closed forms from the signature at n = 16 (TC-J-11…13); ten deliberate bugs in the two policy implementations all caught |
 | DOC-001, DOC-002 | Met | [deviation-log.md](deviation-log.md), [experiment-report.md](experiment-report.md) |
 | INT-001 … INT-004 | Met | CLI tests (output, errors, exit codes, determinism); the Python layer only calls the CLI (TC-G-10) |
 | NFR-001, NFR-006, NFR-008, NFR-009 | Met | tolerances in §4; provenance in every result file; deviation log; precision strategy |
@@ -163,8 +163,7 @@ in my own expectations rather than in the code, which is itself worth recording.
   subordinator is exercised in tests; the paper's other four are not implemented).
 * The paper's empirical results (22 benchmark networks, up to 30 components, repair-policy cost tables) — not a goal of
   this project.
-* The paper's single-pass evaluation of all thresholds (the optimal state-based policy exists but uses the same 3ⁿ enumeration); policy evaluation
-  above n = 14; any repair-policy claim about realistic, larger systems (Experiment 5 uses systems of 3 to 8 components,
+* Policy evaluation above n = 20 (and the single-pass threshold search for a failure model whose MTTF is not monotone); any repair-policy claim about realistic, larger systems (Experiment 5 uses systems of 3 to 8 components,
   one of them chosen because its cost curve is non-unimodal).
 * Agreement with a third implementation (the authors' repository was not consulted).
 * Behaviour with non-identical components, which the paper's assumptions exclude.

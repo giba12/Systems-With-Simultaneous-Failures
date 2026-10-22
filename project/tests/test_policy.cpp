@@ -567,3 +567,133 @@ TEST(Policy, OptimalStatePolicyDegenerateCasesAndPreconditions) {
   EXPECT_THROW(optimal_state_policy(model, fm, RepairCosts{-1.0, 1.0, 0.0}), ModelError);
   EXPECT_THROW(optimal_state_policy(SystemModel::parallel(kMaxPolicyComponents + 1), fm, base), ModelError);
 }
+
+// Traceability: TC-J-11
+// The level-sum code against the enumeration code it replaces, on random policies, every breakpoint of the threshold search
+// and the optimal policy, under independent failures and four simultaneous-failure models.
+TEST(Policy, LevelSumCodeAgreesWithTheEnumerationCode) {
+  std::mt19937 rng(424242);
+  std::vector<SystemModel> systems = {load_reference(), paper_figure_one(), bridge_network()};
+  for (int i = 0; i < 4; ++i) {
+    systems.push_back(random_monotone_system(7 + i, rng));
+  }
+  int policies_compared = 0, thresholds_compared = 0;
+  for (const SystemModel& model : systems) {
+    const int n = model.n();
+    const std::vector<std::shared_ptr<FailureModel>> models = {
+        std::make_shared<IndependentExponential>(1.0), make_lethal_shock(0.3, n), make_binomial_failure_rate(0.4, n),
+        make_compound_poisson(0.2, n), make_inverse_gaussian(0.3, n)};
+    for (const auto& fm : models) {
+      const RepairCosts costs{0.15 / n, 1.0, 0.07};
+      // random state-based policies: repair at the failed states and at a random subset of the others
+      for (int trial = 0; trial < 6; ++trial) {
+        RepairSet policy = corrective_policy(model);
+        for (std::size_t x = 0; x + 1 < policy.size(); ++x) {
+          policy[x] = policy[x] | static_cast<std::uint8_t>(rng() % 3U == 0U);
+        }
+        const PolicyEvaluation fast = evaluate_policy(model, *fm, policy, costs);
+        const PolicyEvaluation slow = evaluate_policy_by_enumeration(model, *fm, policy, costs);
+        ExpectRel(fast.mean_cycle_length, slow.mean_cycle_length, 1e-10, "length " + fm->name());
+        ExpectRel(fast.mean_cycle_cost, slow.mean_cycle_cost, 1e-10, "cost " + fm->name());
+        ExpectRel(fast.long_term_mean_cost, slow.long_term_mean_cost, 1e-10, "ltmc " + fm->name());
+        ++policies_compared;
+      }
+      // every breakpoint of the threshold search
+      const ThresholdSearch fast = search_threshold_policies(model, *fm, costs);
+      const ThresholdSearch slow = search_threshold_policies_by_enumeration(model, *fm, costs);
+      ASSERT_EQ(fast.policies.size(), slow.policies.size()) << fm->name();
+      EXPECT_EQ(fast.best, slow.best);
+      for (std::size_t j = 0; j < fast.policies.size(); ++j) {
+        ExpectRel(fast.policies[j].gamma_from, slow.policies[j].gamma_from, 1e-9, "gamma_from");
+        ExpectRel(fast.policies[j].gamma_to, slow.policies[j].gamma_to, 1e-9, "gamma_to");
+        EXPECT_EQ(fast.policies[j].states_repaired, slow.policies[j].states_repaired) << fm->name() << " policy " << j;
+        ExpectRel(fast.policies[j].evaluation.mean_cycle_length, slow.policies[j].evaluation.mean_cycle_length, 1e-9, "T");
+        ExpectRel(fast.policies[j].evaluation.mean_cycle_cost, slow.policies[j].evaluation.mean_cycle_cost, 1e-9, "cost");
+        ExpectRel(fast.policies[j].evaluation.long_term_mean_cost, slow.policies[j].evaluation.long_term_mean_cost, 1e-9, "ltmc");
+        ++thresholds_compared;
+      }
+      // the optimal policy (the policies themselves may differ on exact ties; the costs may not)
+      const OptimalPolicyResult optimal_fast = optimal_state_policy(model, *fm, costs);
+      const OptimalPolicyResult optimal_slow = optimal_state_policy_by_enumeration(model, *fm, costs);
+      ExpectRel(optimal_fast.evaluation.long_term_mean_cost, optimal_slow.evaluation.long_term_mean_cost, 1e-10, "optimal " + fm->name());
+      ExpectRel(evaluate_policy_by_enumeration(model, *fm, optimal_fast.repair_at, costs).long_term_mean_cost,
+                optimal_fast.evaluation.long_term_mean_cost, 1e-10, "the fast optimum, evaluated the slow way");
+    }
+  }
+  EXPECT_EQ(policies_compared, 7 * 5 * 6);
+  EXPECT_GT(thresholds_compared, 100);
+}
+
+// Traceability: TC-J-12
+// Beyond the reach of the enumeration code: 16 components. The costs are checked against closed forms that use only the
+// system signature (corrective maintenance and every r-out-of-n policy), and the single-pass threshold search against the
+// r-out-of-n family it must coincide with on a system of redundant pairs.
+TEST(Policy, SixteenComponentSystemsAgreeWithTheSignatureClosedForms) {
+  const int n = 16;
+  // eight redundant pairs, every pair needed: operational states with k failures (k <= 8) are all equivalent
+  const SystemModel model = SystemModel::from_function(n, [](StateMask x) {
+    for (int pair = 0; pair < 8; ++pair) {
+      if (((x >> (2 * pair)) & 3U) == 0U) {
+        return false;
+      }
+    }
+    return true;
+  });
+  const double lambda = 1.0;
+  const IndependentExponential fm(lambda);
+  const RepairCosts costs{0.2 / n, 1.0, 0.05};
+
+  std::vector<double> r_costs;
+  for (int r = 1; r <= 8; ++r) {
+    const SignatureForm form = signature_closed_form(model, r, costs, lambda);
+    const double expected = form.cost / form.length;
+    const PolicyEvaluation got = evaluate_policy(model, fm, r_out_of_n_policy(model, r), costs);
+    ExpectRel(got.long_term_mean_cost, expected, 1e-9, "r = " + std::to_string(r));
+    r_costs.push_back(expected);
+  }
+  const SignatureForm corrective = signature_closed_form(model, n, costs, lambda);
+  ExpectRel(evaluate_policy(model, fm, corrective_policy(model), costs).long_term_mean_cost, corrective.cost / corrective.length,
+            1e-9, "corrective");
+  r_costs.push_back(corrective.cost / corrective.length);
+
+  // on this system the threshold policies ARE the r-out-of-n policies r = 1..8 and corrective maintenance
+  const ThresholdSearch search = search_threshold_policies(model, fm, costs);
+  ASSERT_EQ(search.policies.size(), 9U);
+  std::vector<double> threshold_costs;
+  for (const ThresholdPolicyResult& p : search.policies) {
+    threshold_costs.push_back(p.evaluation.long_term_mean_cost);
+  }
+  std::sort(r_costs.begin(), r_costs.end());
+  std::sort(threshold_costs.begin(), threshold_costs.end());
+  for (std::size_t i = 0; i < r_costs.size(); ++i) {
+    ExpectRel(threshold_costs[i], r_costs[i], 1e-9, "sorted cost " + std::to_string(i));
+  }
+
+  // the optimum is a lower bound of everything, and a simultaneous-failure model works at this size too
+  const OptimalPolicyResult optimal = optimal_state_policy(model, fm, costs);
+  EXPECT_LE(optimal.evaluation.long_term_mean_cost, *std::min_element(r_costs.begin(), r_costs.end()) * (1 + 1e-10));
+  const auto lsh = make_lethal_shock(0.2, n);
+  const ThresholdSearch under_lsh = search_threshold_policies(model, *lsh, costs);
+  const OptimalPolicyResult optimal_lsh = optimal_state_policy(model, *lsh, costs);
+  // (at n = 16 the lethal-shock kernel is accurate to about 1e-10 and the two routes accumulate that differently,
+  // so this comparison allows 1e-7 rather than the 1e-10 used for independent failures)
+  EXPECT_LE(optimal_lsh.evaluation.long_term_mean_cost,
+            under_lsh.policies[under_lsh.best].evaluation.long_term_mean_cost * (1 + 1e-7));
+}
+
+// Traceability: TC-J-13
+TEST(Policy, SizeLimitsOfTheLevelSumAndEnumerationCodes) {
+  const IndependentExponential fm(1.0);
+  const RepairCosts costs{0.1, 1.0, 0.0};
+  // 15 components: too many for the enumeration code, fine for the level-sum code
+  const SystemModel fifteen = SystemModel::parallel(kMaxEnumeratedPolicyComponents + 1);
+  EXPECT_THROW(evaluate_policy_by_enumeration(fifteen, fm, corrective_policy(fifteen), costs), ModelError);
+  EXPECT_THROW(search_threshold_policies_by_enumeration(fifteen, fm, costs), ModelError);
+  EXPECT_THROW(optimal_state_policy_by_enumeration(fifteen, fm, costs), ModelError);
+  EXPECT_NO_THROW(evaluate_policy(fifteen, fm, corrective_policy(fifteen), costs));
+  // one more than the level-sum limit
+  const SystemModel too_big = SystemModel::parallel(kMaxPolicyComponents + 1);
+  EXPECT_THROW(search_threshold_policies(too_big, fm, costs), ModelError);
+  EXPECT_THROW(optimal_state_policy(too_big, fm, costs), ModelError);
+  EXPECT_THROW(r_out_of_n_policy(too_big, 1), ModelError);
+}

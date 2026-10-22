@@ -172,8 +172,17 @@ class AnalyzeCli(unittest.TestCase):
         self.assert_fails(["--config", SATELLITE, "--c-comp", "0.1", "--c-sys", "1"], 2, "must be given together")
         self.assert_fails(["--config", SATELLITE, "--c-comp", "-1", "--c-sys", "1", "--c-set", "0"], 1,
                           "repair costs must be finite and non-negative")
-        big = self.config("fifteen", [f"C{i}" for i in range(15)], {"type": "parallel"})
-        self.assert_fails(["--config", big, "--c-comp", "0.1", "--c-sys", "1", "--c-set", "0"], 1, "between 2 and 14")
+        big = self.config("twentyone", [f"C{i}" for i in range(21)], {"type": "parallel"})
+        self.assert_fails(["--config", big, "--c-comp", "0.1", "--c-sys", "1", "--c-set", "0"], 1, "between 2 and 20")
+
+    # Traceability: TC-H-08
+    def test_policies_work_beyond_the_old_limit_of_fourteen_components(self):
+        fifteen = self.config("fifteen", [f"C{i}" for i in range(15)], {"type": "parallel"})
+        output = run_json("--config", fifteen, "--c-comp", "0.05", "--c-sys", "1", "--c-set", "0.1")
+        p = output["policies"]
+        self.assertEqual(len(p["r_out_of_n"]["policies"]), 15)
+        self.assertLessEqual(p["optimal_state_based"]["long_term_mean_cost"], p["threshold"]["best_long_term_mean_cost"] * (1 + 1e-10))
+        self.assertLessEqual(p["optimal_state_based"]["long_term_mean_cost"], p["corrective"]["long_term_mean_cost"] * (1 + 1e-10))
 
     # ---- the verification must really fail when something is wrong ---------------------------------------
     # Traceability: TC-H-06
