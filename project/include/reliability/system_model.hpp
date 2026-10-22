@@ -8,7 +8,7 @@
 //   The class also counts how many times Phi is asked (the paper promises exactly 2^n
 //   calls for the whole sweep - Theorem 2 - and we test that).
 //
-// PSEUDO-CODE for the factory functions
+// ALGORITHM of the factory functions
 //   from_json_file(path):
 //       read the JSON text; parse it           (library choice pending: nlohmann/json)
 //       components := list of {id, name, role, bit}
@@ -25,7 +25,7 @@
 //   from_function(n, fn)   : wrap any user function (used by tests, e.g. the paper's Fig. 1
 //                            system  max{x3, min{x1, x2}}  and random monotone systems)
 //
-// PSEUDO-CODE for validate()   (the paper's preconditions, Section I-A)
+// ALGORITHM of validate()   (the paper's preconditions, Section I-A)
 //   n must satisfy 2 <= n <= kMaxComponents               (the paper needs n > 1)
 //   Phi(0) must be 0 and Phi(all working) must be 1       (non-trivial system)
 //   monotone: for every state x and every working bit i, Phi(without(x,i)) <= Phi(x)
@@ -33,7 +33,7 @@
 //   do NOT reject irrelevant components (the paper allows semi-coherent systems)
 //   reset the call counter to 0 afterwards, so validation never pollutes the sweep's count
 //
-// PSEUDO-CODE for phi(x)
+// ALGORITHM of phi(x)
 //   if x >= 2^n: throw ModelError("mask out of range")
 //   phi_calls_ += 1
 //   return structure_(x)

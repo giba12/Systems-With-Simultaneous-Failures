@@ -15,7 +15,7 @@
 //                        component failure when w components start out working.
 //   The MTTF engine only needs increment(). The other two are used to cross-check it.
 //
-// PSEUDO-CODE
+// ALGORITHM of each model
 //   IndependentExponential(lambda)               paper model [Exp], Section VII-A.1
 //       reject lambda <= 0 or NaN
 //       nu(w)             = w * lambda

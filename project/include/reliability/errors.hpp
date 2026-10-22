@@ -1,14 +1,9 @@
-// errors.hpp - the two kinds of error the library can raise.
+// errors.hpp - the error type the library raises.
 //
-// PSEUDO-CODE
-//   ModelError          : the user gave us something invalid (bad config, bad mask,
-//                         bad parameter). The message must name the field/value and
-//                         the rule that was broken (requirement INT-004).
-//   NotImplementedError : this function is still a skeleton stub. Every stub calls
-//                         not_implemented("name") so nothing can silently return a
-//                         wrong number while the project is being built.
-//
-// Delete NotImplementedError once every stub has been replaced (Day 9 cleanup).
+// ModelError : the caller gave us something invalid (bad configuration, bad mask, bad parameter), or a
+//              model that cannot be trusted (for example a failure model whose numbers lose too much
+//              precision). The message names the field or value and the rule that was broken
+//              (requirement INT-004); the command line tool turns it into exit status 1.
 #pragma once
 
 #include <stdexcept>
@@ -20,14 +15,5 @@ class ModelError : public std::runtime_error {
  public:
   using std::runtime_error::runtime_error;
 };
-
-class NotImplementedError : public std::logic_error {
- public:
-  using std::logic_error::logic_error;
-};
-
-[[noreturn]] inline void not_implemented(const std::string& what) {
-  throw NotImplementedError("not implemented yet: " + what);
-}
 
 }  // namespace reliability

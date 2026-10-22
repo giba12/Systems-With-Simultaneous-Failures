@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from support import ANALYZE, HYPOTHESES, PYTHON_DIR, analyze_available
+from support import ANALYZE, HYPOTHESES, PYTHON_DIR, SATELLITE, analyze_available, run_json, without_timing
 
 import run_experiments as runner
 
@@ -33,6 +33,27 @@ class ExperimentRunner(unittest.TestCase):
         for name in names:
             runner.run_experiment(name, ANALYZE, self.root / folder, HYPOTHESES, runner.DEFAULT_SEED, **kwargs)
 
+    # Traceability: TC-G-10
+    def test_python_layer_only_calls_the_cli(self):
+        import ast
+        import sys
+        tree = ast.parse((PYTHON_DIR / "run_experiments.py").read_text())
+        imported = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                imported |= {alias.name.split(".")[0] for alias in node.names}
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                imported.add(node.module.split(".")[0])
+        self.assertLessEqual(imported, set(sys.stdlib_module_names),
+                             f"run_experiments.py imports non-standard modules: {imported - set(sys.stdlib_module_names)}")
+        # every number in the saved results is exactly what the tool printed
+        self.run_into("out", ["exp3"])
+        saved = json.loads((self.root / "out" / "exp3" / "exp3.json").read_text())["raw_results"][0]["output"]
+        direct = without_timing(run_json("--config", SATELLITE, "--model", "exp", "--lambda", "1.0",
+                                         "--per-state", "--verify"))
+        direct["config_file"] = SATELLITE.name
+        self.assertEqual(saved, direct)
+
     # TC-G-07: no hypothesis, no experiment
     def test_refuses_to_run_without_a_hypothesis(self):
         empty = self.root / "none"
@@ -46,6 +67,7 @@ class ExperimentRunner(unittest.TestCase):
         self.assertFalse((self.root / "out" / "exp1").exists())
 
     # TC-G-01: the deterministic result file is byte-identical across runs
+    # Traceability: TC-G-08
     def test_results_are_reproducible_byte_for_byte(self):
         names = ["exp1", "exp2", "exp3", "exp4"]
         self.run_into("first", names, max_n=8)
@@ -107,6 +129,7 @@ class ExperimentRunner(unittest.TestCase):
         self.assertTrue(all(run["analysis_ms"] > 0 and run["peak_rss_kb"] > 0 for run in timing["runs"]))
         self.assertTrue(all(run["verification_ms"] is not None for run in timing["runs"]))  # n <= 14: verified
 
+    # Traceability: TC-G-08
     def test_command_line_runs_and_reports_errors(self):
         self.assertEqual(runner.main(["exp3", "--analyze", ANALYZE, "--out", str(self.root / "cli")]), 0)
         self.assertTrue((self.root / "cli" / "exp3" / "exp3.json").is_file())
@@ -131,15 +154,21 @@ class AnalysisAndPlots(unittest.TestCase):
     def tearDownClass(cls):
         cls.tmp.cleanup()
 
+    # Traceability: TC-G-09
     def test_tables_and_verdict_files_are_written(self):
         for name in ("exp1", "exp2", "exp3", "exp4"):
             self.assertTrue((self.root / name / "hypothesis_check.md").is_file())
             self.assertTrue(list((self.root / name / "tables").glob("*.csv")))
 
-    def test_experiments_1_and_3_support_every_prediction(self):
+    # Predictions about run time depend on the machine and the build type (a Debug build with sanitizers is
+    # legitimately slower than 1 ms), so a unit test must not require them; every structural prediction is required.
+    TIMING_PREDICTIONS = {"run time"}
+
+    def test_experiments_1_and_3_support_every_structural_prediction(self):
         for name in ("exp1", "exp3"):
             _, checks, rejected = self.outcomes[name]
-            self.assertEqual(rejected, [], f"{name} rejected: {rejected}")
+            structural_rejections = [r for r in rejected if r not in self.TIMING_PREDICTIONS]
+            self.assertEqual(structural_rejections, [], f"{name} rejected: {structural_rejections}")
             self.assertGreater(len(checks), 8)
 
     def test_experiment_2_numbers_match_the_closed_form_and_the_corrected_expectation(self):
@@ -159,6 +188,7 @@ class AnalysisAndPlots(unittest.TestCase):
         self.assertTrue(verdicts["Phi evaluated exactly 2^n times"])
         self.assertTrue(verdicts["peak vectors"])
 
+    # Traceability: TC-G-09
     def test_results_without_provenance_are_refused(self):
         broken = self.root / "broken"
         (broken / "exp1").mkdir(parents=True)
@@ -168,6 +198,7 @@ class AnalysisAndPlots(unittest.TestCase):
             self.analysis.load(broken, "exp1")
 
     @unittest.skipUnless(HAVE_MATPLOTLIB, "needs matplotlib")
+    # Traceability: TC-G-03, TC-G-09
     def test_plots_are_drawn_from_the_saved_tables_alone(self):
         import plot_results
         # copy ONLY the tables: no raw results, no analyze executable involved

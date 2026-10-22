@@ -8,7 +8,7 @@
 //   after k failures (the tail signature), and multiply by the average time that the
 //   (k+1)-th failure takes to arrive."  A state where the system is already down has m = 0.
 //
-// PSEUDO-CODE
+// ALGORITHM
 //   mttf_from_counting_vector(W, failure_model):
 //       w = len(W) - 1
 //       if W[0] == 0: return 0                         // system already failed

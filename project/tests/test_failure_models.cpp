@@ -142,6 +142,7 @@ TEST(FailureModels, InvalidParametersAreRejected) {
   EXPECT_NO_THROW(make_lethal_shock(0.2, kMaxLevyFrailtyComponents));
 }
 
+// Traceability: TC-D-12
 TEST(FailureModels, InvalidLaplaceExponentsAreRejected) {
   EXPECT_THROW(LevyFrailty("empty", nullptr, 4), ModelError);
   EXPECT_THROW(LevyFrailty("not calibrated", [](int x) { return 2.0 * x; }, 4), ModelError);       // Psi(1) = 2
@@ -171,6 +172,7 @@ TEST(FailureModels, ArgumentChecksOnQueries) {
 
 // TC-D-07: each row of P is a probability distribution, and the mean number of components failing per
 // event is w Psi(1) / Psi(w) (paper Remark 1).
+// Traceability: TC-D-03
 TEST(FailureModels, TransitionRowsAreProbabilities) {
   for (double beta : {0.05, 0.2, 0.5}) {
     for (int family = 0; family < 2; ++family) {
@@ -197,6 +199,7 @@ TEST(FailureModels, TransitionRowsAreProbabilities) {
 // Independent closed form for [LSh]: a component fails alone (probability (1-beta)w / Psi(w)) or a lethal
 // shock fails all of them (probability beta / Psi(w)); nothing in between. This checks Eq. (20) against
 // numbers that were never produced by an alternating sum.
+// Traceability: TC-D-09
 TEST(FailureModels, LethalShockKernelMatchesClosedForm) {
   for (double beta : {0.05, 0.2, 0.5, 0.9}) {
     const std::unique_ptr<FailureModel> fm = make_lethal_shock(beta, 16);
@@ -229,6 +232,7 @@ TEST(FailureModels, LethalShockAllowsSimultaneousFailures) {
 // Independent closed form for [BFR]: an event fails each of the w working components independently with
 // probability p = beta, and events that fail nobody do not change the state, so the number of components
 // that fail is Binomial(w, p) conditioned on being at least 1. This tests the whole kernel of Eq. (20).
+// Traceability: TC-D-10
 TEST(FailureModels, BinomialFailureRateKernelMatchesClosedForm) {
   for (double beta : {0.05, 0.2, 0.5, 0.9}) {
     const std::unique_ptr<FailureModel> fm = make_binomial_failure_rate(beta, 16);
@@ -271,6 +275,7 @@ TEST(FailureModels, TwoWaysToGetIncrementsAgree) {
 
 // Documents the typo in the paper's printed Eq. (21): with lower limit w-k+1 the sum is empty for k = 0
 // (so it returns 0, although E T_{1:w} = 1/Psi(w) > 0) and it is wrong for larger k as well.
+// Traceability: TC-D-11
 TEST(FailureModels, PrintedEquation21LowerLimitIsATypo) {
   const LevyFrailty model("lethal", [](int x) { return x == 0 ? 0.0 : 0.8 * x + 0.2; }, 8);
   for (int w = 2; w <= 8; ++w) {
@@ -285,6 +290,7 @@ TEST(FailureModels, PrintedEquation21LowerLimitIsATypo) {
 
 // A third family, beyond [LSh] and [BFR]: the stable subordinator Psi(x) = x^alpha, alpha in (0,1)
 // (model [LFMO-S] of the paper). It is a valid Laplace exponent, so the kernel must be a distribution.
+// Traceability: TC-D-12
 TEST(FailureModels, StableSubordinatorGivesAValidKernel) {
   for (double alpha : {0.3, 0.5, 0.7, 0.95}) {
     const LevyFrailty model("stable", [alpha](int x) { return std::pow(static_cast<double>(x), alpha); }, 12);
@@ -301,6 +307,7 @@ TEST(FailureModels, StableSubordinatorGivesAValidKernel) {
 }
 
 // beta = 1: every event is a lethal shock, so all components fail at the same instant.
+// Traceability: TC-D-12
 TEST(FailureModels, FullyCommonCauseFailsEverythingAtOnce) {
   const std::unique_ptr<FailureModel> fm = make_lethal_shock(1.0, 8);
   for (int w = 1; w <= 8; ++w) {

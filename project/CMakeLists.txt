@@ -1,6 +1,6 @@
 # Space System Reliability Analyzer
 #
-# PSEUDO-CODE (what this build file does)
+# WHAT THIS BUILD FILE DOES
 #   1. Require C++20 and turn on strict warnings.
 #   2. Build the engine as a static library "reliability" from src/*.cpp
 #      (everything except main.cpp).
@@ -12,6 +12,9 @@
 #    GoogleTest is the recommended default in docs/project-plan.md.)
 
 cmake_minimum_required(VERSION 3.20)
+if(POLICY CMP0135)
+  cmake_policy(SET CMP0135 NEW)  # downloaded archives get the time of extraction (silences a FetchContent warning)
+endif()
 project(space_system_reliability VERSION 0.8.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -87,6 +90,9 @@ if(BUILD_TESTING)
     add_test(NAME python_end_to_end
       COMMAND ${Python3_EXECUTABLE} -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/python/tests -v
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/python)
+    add_test(NAME traceability
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/check_traceability.py
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     set_tests_properties(python_end_to_end PROPERTIES
       ENVIRONMENT "ANALYZE_BIN=$<TARGET_FILE:analyze>;PROJECT_ROOT=${CMAKE_CURRENT_SOURCE_DIR}")
   endif()

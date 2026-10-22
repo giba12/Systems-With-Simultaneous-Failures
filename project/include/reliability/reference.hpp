@@ -5,7 +5,7 @@
 //   bug. So this module computes the same answers the slow, obvious way and must never
 //   call the recurrence from signature.cpp. Tests compare the two on every state.
 //
-// PSEUDO-CODE
+// ALGORITHM
 //   brute_force_counting_vectors(model):
 //       for every state x (0 .. 2^n - 1):
 //           working = list of bit positions that are 1 in x

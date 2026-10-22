@@ -9,6 +9,9 @@ Derived from `space_system_reliability_analyzer_project_guide.docx` and validate
 | [requirements-spec.md](requirements-spec.md) | Scope, assumptions, functional and non-functional requirements with acceptance criteria |
 | [test-plan.md](test-plan.md) | Test strategy, analytical and paper oracles, test cases A–J, traceability matrix |
 | [user-stories.md](user-stories.md) | 26 user stories in 6 epics, with acceptance criteria and links to requirements and tests |
+| [verification-report.md](verification-report.md) | How the software was verified: environment, results of every build configuration, mutation record, tolerances, defects found, requirement-by-requirement status, what is **not** verified |
+| [traceability-matrix.md](traceability-matrix.md) | Requirements → test cases → test code, generated and machine-checked by `project/tools/check_traceability.py` |
+| [deviation-log.md](deviation-log.md) | Every deviation from the paper and the guide, every correction, decision and limitation |
 | [experiment-report.md](experiment-report.md) | Results of Experiments 1–4 with figures: what reproduces the paper, what is new, every prediction supported or **rejected**, limitations and deviations |
 | [project-plan.md](project-plan.md) | Ten-day plan with daily tasks, quality gates, risks, definition of done and decisions needed |
 | Use case diagram | [PNG](uml/use-case.png) · [source](uml/use-case.puml) |

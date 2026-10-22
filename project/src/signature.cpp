@@ -90,7 +90,7 @@ SweepResult sweep(const SystemModel& model, const StateObserver& observer,
     current.assign(states.size() * stride, 0U);
     row.assign(stride, 0U);
     result.peak_vectors_held =
-        std::max(result.peak_vectors_held, previous.size() / std::max<std::size_t>(w, 1) + states.size());
+        std::max(result.peak_vectors_held, previous.size() / static_cast<std::size_t>(std::max(w, 1)) + states.size());
 
     for (std::size_t r = 0; r < states.size(); ++r) {
       const StateMask x = states[r];

@@ -189,7 +189,9 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | TC-H-03 | Documentation review | Limitations, complexity, deviations, fictional-system label and the reproduced-vs-new separation are present | DOC-001, DOC-002, NFR-008 |
 | TC-H-04 | CLI end-to-end | `analyze --config configs/satellite_support.json` writes results with exit code 0; JSON fields, per-state records, `--out`, determinism apart from `timing`, all three failure models, failure model from the config file with the command line winning | INT-001, INT-003 |
 | TC-H-05 | CLI errors | Invalid input → exit 1 with a message naming the problem (missing file, malformed JSON, n = 1, duplicate id, missing/invalid β or λ, unwritable output, n > 16 for the simultaneous-failure models); usage errors → exit 2 | INT-004 |
+| TC-H-07 | Traceability is machine-checked | `project/tools/check_traceability.py` finds no problem: every requirement has a test case, every matrix entry exists, every test case carries a tag in test code or is classified as verified another way; it runs under ctest | VER-003 |
 | TC-H-06 | The verification can fail | With a labelled fault injected (miscounted vector or drifting MTTF) `--verify` exits 3, still writes the JSON, names the first mismatching state, and an impossible vector is a failed verification, not a crash; the injection does nothing without `--verify` | VER-001, INT-004 |
+| TC-G-10 | The Python layer never re-implements the algorithm | `run_experiments.py` imports only the standard library; the saved raw results are exactly what `analyze` printed for the same inputs | INT-002 |
 | TC-G-08 | Experiment runner and results | Refuses to run without a (non-empty) hypothesis; copies it and records its SHA-256; results carry settings, seed, tool version; `hypothesis_written_before_run`; the deterministic file is byte-identical across runs for all four experiments; an explicit bad `--analyze` path is an error | EXP-001, EXP-002, NFR-006 |
 | TC-G-09 | Analysis and plots | Verdict file with a SUPPORTED/REJECTED line per prediction; results without provenance are refused; the four figures are drawn from the copied tables alone (valid PNGs, no subprocess use) | EXP-003 |
 
@@ -245,7 +247,7 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | REL-005 | TC-C-13, TC-D-06 |
 | VER-001 | TC-C-03, TC-F-05 |
 | VER-002 | TC-F-01, TC-F-03 |
-| VER-003 | This table (review) |
+| VER-003 | TC-H-07 (the generated matrix in [traceability-matrix.md](traceability-matrix.md)) |
 | VER-004 | TC-I-01, TC-I-02, TC-I-03, TC-I-04 |
 | EXP-001 | TC-F-05, TC-G-01 |
 | EXP-002 | TC-G-02, TC-G-04, TC-G-05, TC-G-06, TC-G-07 |
@@ -254,7 +256,9 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | DOC-001 | TC-H-03 |
 | DOC-002 | TC-H-03 |
 | INT-001, INT-003 | TC-H-04 |
+| INT-002 | TC-G-10 |
 | INT-004 | TC-E-09 |
+| NFR-001 | TC-H-03 (tolerances documented in [verification-report.md](verification-report.md)) |
 | NFR-002 | TC-H-01 |
 | NFR-003 | TC-E-06, TC-G-06 |
 | NFR-004, NFR-005, NFR-007 | TC-H-02 |

@@ -25,6 +25,7 @@ class AnalyzeCli(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("usage: analyze", out)
 
+    # Traceability: TC-H-04
     def test_satellite_defaults(self):
         output = run_json("--config", SATELLITE)
         results = output["results"]
@@ -43,6 +44,7 @@ class AnalyzeCli(unittest.TestCase):
         self.assertEqual({"analysis_ms", "verification_ms", "total_ms", "peak_rss_kb"}, set(output["timing"]))
         self.assertGreater(output["timing"]["peak_rss_kb"], 0)
 
+    # Traceability: TC-H-04
     def test_per_state_records(self):
         states = run_json("--config", SATELLITE, "--per-state")["results"]["states"]
         self.assertEqual(len(states), 64)
@@ -75,6 +77,7 @@ class AnalyzeCli(unittest.TestCase):
         self.assertFalse(output["verification"]["performed"])
         self.assertIn("limited to 16", output["verification"]["skipped_reason"])
 
+    # Traceability: TC-H-04
     def test_output_is_deterministic_apart_from_timing(self):
         first = run_json("--config", SATELLITE, "--per-state", "--verify")
         second = run_json("--config", SATELLITE, "--per-state", "--verify")
@@ -88,6 +91,7 @@ class AnalyzeCli(unittest.TestCase):
         self.assertEqual(without_timing(json.loads(target.read_text())), without_timing(run_json("--config", SATELLITE)))
 
     # ---- the verification must really fail when something is wrong ---------------------------------------
+    # Traceability: TC-H-06
     def test_verification_detects_a_miscounted_vector(self):
         code, out, err = run("--config", SATELLITE, "--verify", env={"ANALYZE_FAULT_INJECTION": "counting_vector"})
         self.assertEqual(code, 3, err)
@@ -98,11 +102,13 @@ class AnalyzeCli(unittest.TestCase):
         self.assertEqual(report["first_mismatch"]["state"], 63)
         self.assertNotEqual(report["first_mismatch"]["sweep"], report["first_mismatch"]["reference"])
 
+    # Traceability: TC-H-06
     def test_verification_failure_exit_code_is_3_not_an_internal_error(self):
         code, out, err = run("--config", SATELLITE, "--verify", env={"ANALYZE_FAULT_INJECTION": "counting_vector"})
         self.assertEqual(code, 3, err)
         self.assertNotIn("internal error", err)
 
+    # Traceability: TC-H-06
     def test_verification_detects_a_drifting_mttf(self):
         code, out, err = run("--config", SATELLITE, "--verify", env={"ANALYZE_FAULT_INJECTION": "mttf"})
         self.assertEqual(code, 3, err)
@@ -112,6 +118,7 @@ class AnalyzeCli(unittest.TestCase):
         self.assertGreater(report["max_relative_mttf_difference_vs_eq6"], 1e-4)
         self.assertTrue(report["counting_vectors_match_reference"])  # only the MTTF was damaged
 
+    # Traceability: TC-H-06
     def test_fault_injection_is_inert_without_verify_and_rejects_unknown_values(self):
         code, out, _ = run("--config", SATELLITE, env={"ANALYZE_FAULT_INJECTION": "mttf"})
         self.assertEqual(code, 0)
@@ -156,6 +163,7 @@ class AnalyzeCli(unittest.TestCase):
         self.assertEqual(got_code, code, err)
         self.assertIn(message, err)
 
+    # Traceability: TC-H-05
     def test_invalid_input_exits_1_with_a_helpful_message(self):
         self.assert_fails(["--config", self.dir / "nope.json"], 1, "cannot open")
         malformed = self.dir / "bad.json"
@@ -171,10 +179,12 @@ class AnalyzeCli(unittest.TestCase):
         self.assert_fails(["--config", SATELLITE, "--lambda", "-1"], 1, "lambda must be a positive finite number")
         self.assert_fails(["--config", SATELLITE, "--out", self.dir / "no_such_dir" / "x.json"], 1, "cannot write")
 
+    # Traceability: TC-H-05
     def test_the_simultaneous_failure_models_refuse_large_systems(self):
         config = self.config("seventeen", [f"C{i}" for i in range(17)], {"type": "parallel"})
         self.assert_fails(["--config", config, "--model", "lsh", "--beta", "0.2"], 1, "max_n must be between 1 and 16")
 
+    # Traceability: TC-H-05
     def test_usage_errors_exit_2(self):
         self.assert_fails([], 2, "--config is required")
         self.assert_fails(["--config", SATELLITE, "--bogus"], 2, "unknown option '--bogus'")

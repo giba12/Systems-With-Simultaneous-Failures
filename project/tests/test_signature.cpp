@@ -107,6 +107,7 @@ TEST(Signature, SweepEvaluatesPhiExactlyOncePerState) {
   }
 }
 
+// Traceability: TC-C-16
 TEST(Signature, SweepResetsTheCallCounterItself) {
   const SystemModel model = load_reference();
   model.phi(1);
@@ -133,6 +134,7 @@ TEST(Signature, KnownCountingVectors) {
 }
 
 // The observer sees every state exactly once, level by level, with the final vector.
+// Traceability: TC-C-16
 TEST(Signature, ObserverSeesEveryStateOnceInSweepOrder) {
   const SystemModel model = load_reference();
   std::vector<StateMask> order;
@@ -162,6 +164,7 @@ TEST(Signature, ObserverSeesEveryStateOnceInSweepOrder) {
   }
 }
 
+// Traceability: TC-C-16
 TEST(Signature, VectorsAreOnlyKeptWhenAskedFor) {
   const SweepResult lean = sweep(load_reference(), nullptr, {});
   EXPECT_TRUE(lean.vectors.empty());
@@ -200,6 +203,7 @@ TEST(Signature, RandomMonotoneSystemsAgreeWithBruteForce) {
 
 // The paper: "no assumption whatsoever is made on Phi". Lemma 1 is pure counting, so the sweep must
 // also be right for arbitrary (even non-monotone, even trivial) Boolean functions.
+// Traceability: TC-C-15
 TEST(Signature, ArbitraryBooleanFunctionsAlsoAgreeWithBruteForce) {
   std::mt19937 rng(424242);
   for (int trial = 0; trial < 60; ++trial) {
@@ -367,6 +371,7 @@ TEST(Signature, EntriesAreNonNegativeAndSumToOne) {
 // {4,5}, so 2 of the C(5,2) = 10 failure pairs kill it (s2 = 1/5); after three failures only the two
 // size-2 paths {1,4} and {2,5} survive, 2 of 10 (S3 = 1/5, so s3 = 4/5 - 1/5 = 3/5); no single
 // component is a path, so s4 = 1/5 and s5 = 0.
+// Traceability: TC-C-17
 TEST(Signature, BridgeNetworkHasTheClassicSignature) {
   const SystemModel bridge = bridge_network();
   ASSERT_NO_THROW(bridge.validate());
@@ -384,6 +389,7 @@ TEST(Signature, BridgeNetworkHasTheClassicSignature) {
 
 // k-out-of-n:G (works while at least k components work) fails exactly at the (n-k+1)-th failure,
 // so its signature is a single 1 at that position, and W[j] = C(n, j) for j <= n-k, else 0.
+// Traceability: TC-C-18
 TEST(Signature, KOutOfNSystemsHaveAPointMassSignature) {
   for (int n = 2; n <= 9; ++n) {
     for (int k = 1; k <= n; ++k) {
@@ -408,6 +414,7 @@ TEST(Signature, KOutOfNSystemsHaveAPointMassSignature) {
 // With U3 at failure position p (uniform on 1..4): p = 1 or 2 -> fails at p; p = 3 -> the block's last
 // member is 4th, so it fails at 3; p = 4 -> the block's last member is 3rd, so it fails at 3.
 // Hence the signature is (1/4, 1/4, 1/2, 0). Counting agrees: W = [1, 3, 3, 0, 0].
+// Traceability: TC-C-19
 TEST(Signature, SeriesOfParallelBlocksMatchesHandCount) {
   std::vector<Component> components;
   for (int i = 0; i < 4; ++i) {
@@ -421,6 +428,7 @@ TEST(Signature, SeriesOfParallelBlocksMatchesHandCount) {
 
 // The signature is a distribution over the ORDER of failures, so it cannot depend on how the
 // components are labelled: permuting the bits of any system leaves its signature unchanged.
+// Traceability: TC-C-19
 TEST(Signature, SignatureIsInvariantUnderRelabellingComponents) {
   const SystemModel original = bridge_network();
   const std::vector<int> permutation = {2, 0, 4, 1, 3};  // component i is renamed permutation[i]

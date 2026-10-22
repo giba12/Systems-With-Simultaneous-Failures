@@ -7,7 +7,7 @@
 //   With 6 components there are 2^6 = 64 states, numbered 0..63.
 //   Mask 63 (0b111111) = everything works.  Mask 0 = everything has failed.
 //
-// PSEUDO-CODE for the helpers in this file
+// WHAT THE HELPERS DO
 //   working_count(x)      = number of 1-bits in x                       (the paper's |x|)
 //   all_working(n)        = a number with the lowest n bits set to 1     (the paper's vector 1)
 //   is_working(x, i)      = is bit i of x equal to 1?
@@ -44,7 +44,7 @@ constexpr StateMask all_working(int n) { return (StateMask{1} << n) - 1U; }
 constexpr bool is_working(StateMask x, int i) { return ((x >> i) & 1U) != 0U; }
 constexpr StateMask without(StateMask x, int i) { return x & ~(StateMask{1} << i); }
 
-// --- stubs (see state.cpp) ----------------------------------------------------
+// --- declared here, implemented in state.cpp ----------------------------------
 std::vector<StateMask> sons(StateMask x);
 std::vector<StateMask> masks_with_working(int n, int w);
 std::uint64_t binomial(int n, int k);

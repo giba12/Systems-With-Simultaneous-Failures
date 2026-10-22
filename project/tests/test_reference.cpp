@@ -41,6 +41,7 @@ TEST(Reference, SeriesOfThreeCountingVector) {
 }
 
 // ORC-2
+// Traceability: TC-B-02
 TEST(Reference, OneOutOfTwoCountingVector) {
   const auto w = brute_force_counting_vectors(SystemModel::parallel(2));
   EXPECT_EQ(w[0b11], (Vec{1, 2, 0}));
@@ -61,6 +62,7 @@ TEST(Reference, SatelliteSystemCountingVectors) {
 }
 
 // A vector has |x| + 1 entries, W[0] is Phi(x), and a failed system has an all-zero vector.
+// Traceability: TC-F-01, TC-F-06
 TEST(Reference, CountingVectorShapeAndBasicProperties) {
   const SystemModel model = load_reference();
   const auto w = brute_force_counting_vectors(model);
@@ -80,6 +82,7 @@ TEST(Reference, CountingVectorShapeAndBasicProperties) {
 
 // Closed forms that need no brute force at all, so a bug in the reference cannot hide behind
 // the same bug in the expectation: series -> [1,0,...,0]; parallel -> [C(n,0), ..., C(n,n-1), 0].
+// Traceability: TC-A-02
 TEST(Reference, SeriesAndParallelMatchClosedForms) {
   for (int n = 2; n <= 8; ++n) {
     const StateMask all = all_working(n);

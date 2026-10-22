@@ -171,6 +171,7 @@ TEST(Mttf, SatelliteSystemMttfValues) {
 }
 
 // All 64 satellite states against the independent integral formula, for several rates.
+// Traceability: TC-C-20
 TEST(Mttf, SatelliteMatchesIndependentClosedFormOnEveryState) {
   const SystemModel model = load_reference();
   for (double lambda : {0.25, 1.0, 7.0}) {
@@ -200,6 +201,7 @@ TEST(Mttf, PaperFigureOneMttf) {
 
 // k-out-of-n:G has the closed form  MTTF = sum_{j=k}^{w} 1/(j*lambda)  in every state with w >= k
 // working components (and 0 otherwise). This checks ALL states of many systems, independently.
+// Traceability: TC-C-21
 TEST(Mttf, KOutOfNMatchesClosedFormOnEveryState) {
   const double lambda = 1.7;
   for (int n = 2; n <= 9; ++n) {
@@ -302,6 +304,7 @@ TEST(Mttf, LethalShockMatchesClosedFormAndDirectSolve) {
 }
 
 // All 64 states against the independent integral formula, several beta values.
+// Traceability: TC-D-13
 TEST(Mttf, SatelliteLethalShockMatchesIndependentClosedFormOnEveryState) {
   const SystemModel model = load_reference();
   for (double beta : {0.01, 0.05, 0.2, 0.5, 0.9}) {
@@ -327,6 +330,7 @@ TEST(Mttf, ZeroBetaReproducesTheIndependentModel) {
 
 // Series and parallel systems have closed forms under [LSh] too: series fails at the first event,
 // 1/Psi(n); parallel by inclusion-exclusion.
+// Traceability: TC-D-13
 TEST(Mttf, SeriesAndParallelLethalShockClosedForms) {
   for (double beta : {0.05, 0.2, 0.5, 0.9}) {
     for (int n = 2; n <= 12; ++n) {
@@ -374,6 +378,7 @@ TEST(Mttf, FullyCommonCauseGivesMttfOneForEveryWorkingState) {
 }
 
 // Eq. (7) = Eq. (6) under every simultaneous-failure family, on many systems.
+// Traceability: TC-D-14
 TEST(Mttf, SweepMatchesDirectSolveUnderSimultaneousFailures) {
   std::vector<SystemModel> systems;
   systems.push_back(load_reference());

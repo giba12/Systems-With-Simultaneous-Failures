@@ -16,7 +16,7 @@
 //   Tail signature     Sbar^x[k] = W^x[k] / C(|x|, k)     = fraction of k-failure cases that survive
 //   Signature          s^x[k]    = Sbar^x[k-1] - Sbar^x[k]  = chance the system dies at failure number k
 //
-// PSEUDO-CODE for sweep(model, observer, options)   (paper Algorithm 1)
+// ALGORITHM of sweep(model, observer, options)   (paper Algorithm 1)
 //   n = model.n();   model.reset_phi_calls();
 //   previous_level = empty map  (state -> counting vector)
 //   for failures f = n down to 0:                       // start at "all failed", end at "all working"
@@ -42,9 +42,9 @@
 //
 //   NOTE: the paper's Algorithm 1 sets W^0 = [0] for the all-failed state without calling
 //   Phi, while Theorem 2.1 says "exactly 2^n evaluations". We call Phi(0) too (and check it
-//   is 0), so the count is exactly 2^n. Confirm this reading on Day 4.
+//   is 0), so the count is exactly 2^n. (A reading choice, recorded in docs/deviation-log.md.)
 //
-// PSEUDO-CODE for tail_signature(W) and signature(W)
+// ALGORITHM of tail_signature(W) and signature(W)
 //   w = len(W) - 1
 //   Sbar[k] = W[k] / binomial(w, k)   for k = 0..w
 //   s[k]    = Sbar[k-1] - Sbar[k]     for k = 1..w

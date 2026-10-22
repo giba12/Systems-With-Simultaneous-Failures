@@ -1,0 +1,57 @@
+# WHAT THIS WORKFLOW DOES                                        (requirement NFR-007)
+#   On every push and pull request:
+#     build-and-test : configure, build and run every test (C++ unit tests, Python end-to-end tests, the
+#                      traceability check) with g++ and with clang++, in Release
+#     sanitizers     : the same tests with AddressSanitizer + UndefinedBehaviorSanitizer (Debug), including the
+#                      command line tool driven by the Python tests
+#   The compiler version and build type are printed in each log (they are recorded in docs/verification-report.md).
+#   pandas and matplotlib are installed so no Python test is skipped.
+name: ci
+
+on: [push, pull_request]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [g++, clang++]
+    env:
+      CXX: ${{ matrix.compiler }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Python dependencies
+        run: python -m pip install -r project/python/requirements.txt
+      - name: Show tool versions
+        run: |
+          $CXX --version
+          cmake --version
+          python --version
+      - name: Configure (Release)
+        run: cmake -S project -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  sanitizers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Python dependencies
+        run: python -m pip install -r project/python/requirements.txt
+      - name: Configure (Debug, ASan + UBSan)
+        run: >
+          cmake -S project -B build -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer"
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Test
+        run: ctest --test-dir build --output-on-failure

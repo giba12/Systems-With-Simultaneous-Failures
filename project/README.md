@@ -5,7 +5,7 @@ A small C++20 tool that implements the per-state signature / MTTF algorithm of L
 Failures*, arXiv:2610.22181) for a **fictional** six-component satellite-support system.
 Educational portfolio project: not a certified or flight-qualified analysis.
 
-**Status: Days 1–8 of the plan are complete** (documents and glossary, state model and structure function, brute-force reference, level sweep, signatures, baseline MTTF, simultaneous failures, command-line tool and experiments). Gates G1–G5 are met. What remains is Day 9 (verification report, traceability, cleanup) and Day 10 (delivery). Results: [../docs/experiment-report.md](../docs/experiment-report.md). Everything
+**Status: Days 1–9 of the plan are complete** (documents and glossary, state model and structure function, brute-force reference, level sweep, signatures, baseline MTTF, simultaneous failures, command-line tool and experiments). Gates G1–G5 are met. What remains is Day 10 (delivery). Results: [../docs/experiment-report.md](../docs/experiment-report.md); verification: [../docs/verification-report.md](../docs/verification-report.md); deviations and limits: [../docs/deviation-log.md](../docs/deviation-log.md). Everything
 below that line is still a skeleton: those functions throw `NotImplementedError` and their
 tests report *skipped*. Work through [../docs/project-plan.md](../docs/project-plan.md) day by day.
 
@@ -21,7 +21,7 @@ tests report *skipped*. Work through [../docs/project-plan.md](../docs/project-p
 | `main.cpp` (`analyze` CLI) | done, tested |
 | `python/` (experiment runner, analysis, plots) and `experiments/hypotheses/` | done, tested |
 
-Test status: 99 C++ tests and 32 Python end-to-end tests (run by ctest as `python_end_to_end`), all passing; 7 Python tests skip themselves when pandas / matplotlib are missing.
+Test status: 99 C++ tests, 38 Python end-to-end tests (`python_end_to_end` under ctest) and the traceability check (`traceability`), 101 ctest tests in all, all passing; 7 Python tests skip themselves when pandas / matplotlib are missing. Builds warning-free with g++ 13 and clang++ 18, and passes under AddressSanitizer + UndefinedBehaviorSanitizer.
 
 Measured sweep cost (parallel system, Release build): n = 16 → 0.17 s; n = 20 → 2.9 s, 25 MB; n = 24 → 58 s, 402 MB.
 
@@ -43,20 +43,28 @@ ctest --test-dir build --output-on-failure
 | `include/reliability/system_model.hpp`, `src/system_model.cpp` | Components, structure function Φ, validation, JSON loading | 2 |
 | `include/reliability/reference.hpp`, `src/reference.cpp` | Independent brute-force checker | 3 |
 | `include/reliability/signature.hpp`, `src/signature.cpp` | Algorithm 1: level sweep, counting vectors, signatures, minimal path sets | 4–5 |
-| `include/reliability/failure_model.hpp`, `src/failure_model.cpp` | Exponential and lethal-shock failure models | 6–7 |
+| `include/reliability/failure_model.hpp`, `src/failure_model.cpp` | Independent exponential and Lévy-frailty (lethal shock, binomial failure rate) failure models | 6–7 |
 | `include/reliability/mttf.hpp`, `src/mttf.cpp` | Per-state MTTF | 6 |
 | `src/main.cpp` | Command-line tool `analyze` | 6–8 |
-| `tests/` | One test file per module; each test is named after its test-plan ID | 2–9 |
-| `python/` | Experiment runner, result summaries, plots | 8 |
+| `tests/` | One test file per module; tests are tagged with their test-plan ID | 2–9 |
+| `python/` | Experiment runner, result summaries, plots, and the end-to-end tests (`python/tests/`) | 8 |
+| `tools/check_traceability.py` | Machine check of requirements → test cases → test code | 9 |
+| `experiments/hypotheses/` | The pre-registered hypotheses of the four experiments | 8 |
 | `configs/satellite_support.json` | The reference system | 2 |
-| `../docs/` | Requirements, test plan, user stories, UML, plan, paper validation | — |
+| `../docs/` | Requirements, test plan, user stories, UML, plan, validation, verification and experiment reports | — |
 
-## How to "turn on" a piece
+## Working on the code
 
-1. Read the pseudo-code comment above the function.
-2. Replace the `not_implemented(...)` line with real code.
-3. In the matching test, write the check from its pseudo-code and delete the `GTEST_SKIP()` line.
-4. Run `ctest`. The test-plan ID in the test name (for example `TC-C-03`) says which requirement it covers.
+* **Tests are tagged.** A comment `// Traceability: TC-C-03` (or `# Traceability: ...` in Python) ties a test to its
+  test case in `../docs/test-plan.md`; `tools/check_traceability.py` (run by `ctest`) fails if a requirement, a test
+  case or a tag is orphaned. After adding tests, regenerate the matrix:
+  `python3 tools/check_traceability.py --write ../docs/traceability-matrix.md`.
+* **Check more than "it passes".** The history of this project shows the useful habit: after a change, break the code on
+  purpose (a mutation) and confirm a test fails; run the sanitizer build
+  (`-DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all"`); compare against an independent route
+  (`--verify`, the brute-force reference, a closed form).
+* **Continuous integration** lives at the repository root, `../.github/workflows/ci.yml` (GitHub reads workflows only
+  from the root): g++ and clang++ in Release plus an ASan/UBSan job.
 
 ## Running the analysis and the experiments
 
