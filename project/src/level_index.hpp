@@ -14,6 +14,7 @@
 
 #include <array>
 #include <cstdint>
+#include <vector>
 
 #include "reliability/state.hpp"
 
@@ -47,6 +48,33 @@ inline std::uint64_t rank_in_level(StateMask x, const BinomialTable& binom) {
     }
   }
   return rank;
+}
+
+// ALGORITHM of son_ranks   (all sons of x at once, O(w) instead of O(32 w))
+//   x has working positions c_1 < ... < c_w, rank(x) = sum_m C(c_m, m).
+//   Failing c_i leaves c_1..c_(i-1) where they were and moves c_(i+1)..c_w down one place, so
+//       rank(son_i) = sum_{m<i} C(c_m, m)  +  sum_{m>i} C(c_m, m-1).
+//   Prefix sums of the first kind and suffix sums of the second give every son's rank in one sweep over the bits.
+//   `out` receives the ranks in the order of the failed bit (lowest first), the order in which sons(x) lists them.
+inline void son_ranks(StateMask x, const BinomialTable& binom, std::vector<std::uint64_t>& out) {
+  int positions[32];
+  int w = 0;
+  for (int bit = 0; bit < 32; ++bit) {
+    if (is_working(x, bit)) {
+      positions[w++] = bit;
+    }
+  }
+  out.assign(static_cast<std::size_t>(w), 0U);
+  std::uint64_t suffix = 0;  // sum_{m>i} C(c_m, m-1), built from the top
+  for (int i = w - 1; i >= 0; --i) {
+    out[static_cast<std::size_t>(i)] = suffix;
+    suffix += binom(positions[i], i);  // (1-based index i+1) C(c_(i+1), (i+1)-1)
+  }
+  std::uint64_t prefix = 0;  // sum_{m<i} C(c_m, m)
+  for (int i = 0; i < w; ++i) {
+    out[static_cast<std::size_t>(i)] += prefix;
+    prefix += binom(positions[i], i + 1);
+  }
 }
 
 }  // namespace reliability::detail

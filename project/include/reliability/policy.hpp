@@ -47,6 +47,8 @@
 //       T = sum tau_w * count,  N = sum tau_w phi_w * count,  P = sum tau_w nu_w sum_{w'<w} P(w,w') (1 - W[w-w']/C(w,w-w')) * count
 //   over the classes in which the policy continues; cycle length T, cycle cost c_set + c_comp N + c_sys P.
 //   Sorting the classes by MTTF and taking partial sums gives every breakpoint at once; the costs are applied at the end.
+//   The same sums give the r-out-of-n policies and corrective maintenance, whose continue sets (the operational states with
+//   more than n - r working components) are closed under "more components working", the only property the proof needs.
 //   (The older version below evaluates each threshold policy separately and does not need monotonicity.)
 //
 // ALGORITHM of search_threshold_policies_by_enumeration
@@ -125,9 +127,30 @@ struct ThresholdSearch {
   std::size_t best = 0;                         // index of the cheapest (the one that repairs least on ties)
 };
 
+// What Proposition 3 needs, once per system and failure model: the operational states grouped into CLASSES of equal
+// counting vectors. Everything a state contributes to a repair cycle that continues on a set of states depends only on
+// its class, so the costs of any number of policies follow from partial sums over the classes.
+struct PolicyClass {
+  int working = 0;           // |x| of the states in the class
+  std::uint64_t count = 0;   // number of states in the class
+  double mttf_ratio = 0.0;   // MTTF(x) / MTTF(all working)
+  double length = 0.0;       // sum over the states of tau_w        (time spent there per cycle)
+  double failures = 0.0;     // sum over the states of tau_w phi_w  (failures that happen there)
+  double corrective = 0.0;   // sum over the states of tau_w nu_w * (chance the next epoch fails the system)
+};
+
+struct PolicyClassTable {
+  int n = 0;
+  std::vector<PolicyClass> classes;
+};
+
+// One level sweep (the classes are collected by its observer). n <= kMaxPolicyComponents.
+PolicyClassTable build_policy_classes(const SystemModel& model, const FailureModel& failure_model);
+
 // One pass over the states for all thresholds (needs a monotone MTTF).
 ThresholdSearch search_threshold_policies(const SystemModel& model, const FailureModel& failure_model,
                                           const RepairCosts& costs);
+ThresholdSearch search_threshold_policies(const PolicyClassTable& table, const RepairCosts& costs);
 
 // Evaluates every threshold policy separately by enumeration (n <= kMaxEnumeratedPolicyComponents); no monotonicity needed.
 ThresholdSearch search_threshold_policies_by_enumeration(const SystemModel& model, const FailureModel& failure_model,
@@ -152,8 +175,10 @@ struct RPolicyResult {
   PolicyEvaluation evaluation;
 };
 
-// r = 1 .. n
+// r = 1 .. n, from the classes: the r-out-of-n policy continues on the operational states with more than n - r working
+// components, a set closed under "more components working", so Proposition 3 gives its cycle with no extra pass.
 std::vector<RPolicyResult> evaluate_r_out_of_n_policies(const SystemModel& model, const FailureModel& failure_model,
                                                         const RepairCosts& costs);
+std::vector<RPolicyResult> evaluate_r_out_of_n_policies(const PolicyClassTable& table, const RepairCosts& costs);
 
 }  // namespace reliability

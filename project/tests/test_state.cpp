@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <vector>
 
+#include "level_index.hpp"
 #include "reliability/state.hpp"
 
 using namespace reliability;
@@ -104,4 +105,33 @@ TEST(State, LevelSizesAddUpToTwoToTheN) {
     }
     EXPECT_EQ(total, std::uint64_t{1} << n) << "n = " << n;
   }
+}
+
+// Traceability: TC-C-23
+// The ranks that locate a state's sons in the previous level: for every state of every system of up to 12 components,
+// son_ranks agrees with ranking each son separately, and the rank is the position of the son in its level.
+TEST(State, SonRanksAreThePositionsOfTheSonsInTheirLevel) {
+  const detail::BinomialTable binom;
+  std::vector<std::uint64_t> fast;
+  for (int n = 1; n <= 12; ++n) {
+    for (int w = 0; w <= n; ++w) {
+      const std::vector<StateMask> level = masks_with_working(n, w);
+      for (std::size_t position = 0; position < level.size(); ++position) {
+        EXPECT_EQ(detail::rank_in_level(level[position], binom), position) << "n=" << n << " mask " << level[position];
+      }
+    }
+    for (StateMask x = 0; x < (StateMask{1} << n); ++x) {
+      detail::son_ranks(x, binom, fast);
+      const std::vector<StateMask> expected_sons = sons(x);
+      ASSERT_EQ(fast.size(), expected_sons.size());
+      const std::vector<StateMask> level_below = masks_with_working(n, working_count(x) - 1);
+      for (std::size_t i = 0; i < fast.size(); ++i) {
+        EXPECT_EQ(detail::rank_in_level(expected_sons[i], binom), fast[i]);
+        ASSERT_LT(fast[i], level_below.size());
+        EXPECT_EQ(level_below[static_cast<std::size_t>(fast[i])], expected_sons[i]);
+      }
+    }
+  }
+  detail::son_ranks(0U, binom, fast);
+  EXPECT_TRUE(fast.empty());  // the all-failed state has no sons
 }

@@ -116,6 +116,7 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | TC-C-20 | Satellite MTTF on **all 64 states** vs. an independent closed form | Integral formula Σⱼ C(p2,j) 2^(p2−j) (−1)^j / (λ(p1+p2+j)) for p2 healthy and p1 degraded pairs (0 if a pair is gone) agrees for several λ — no sweep and no Eq. (6) involved | REL-001 |
 | TC-C-21 | k-out-of-n:G MTTF on every state, n ≤ 9, all k | MTTF = Σ_{j=k}^{w} 1/(jλ) for a state with w ≥ k working components, else 0 | REL-001, REL-003 |
 | TC-C-22 | Operation counts (Theorem 2.3) | the sweep's **measured** integer additions equal n(n+1)2ⁿ⁻² and divisions n·2ⁿ⁻¹ exactly for n = 2…14, independent of the structure function | ALG-006 |
+| TC-C-23 | Son ranks (private helper of the sweep and the policy code) | for all states of every system with 1 to 12 components, the ranks computed in one O(w) pass equal the ranks of the sons computed one by one and are the sons' positions in their level | ALG-002, ALG-004 |
 | TC-C-16 | Sweep bookkeeping | The sweep resets the Φ-call counter itself; the observer sees each state once, level by level in increasing mask order; vectors are kept only on request; the peak number of live vectors equals the largest sum of two adjacent binomials | ALG-004 |
 
 ### Test D — Simultaneous failures
@@ -232,6 +233,7 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | TC-J-10 | Degenerate cases and preconditions of the optimal policy | costly repairs give corrective maintenance; all costs zero ends in at most 3 passes with cost 0; costs × 2 give cost × 2 and the same policy; negative costs and n > 14 are rejected | EXP-004 |
 | TC-J-11 | Level-sum code against the enumeration code | on 7 systems (the satellite, Fig. 1, the bridge, four random ones of 7 to 10 components) × 5 failure models ([Exp], [LSh], [BFR], [LFMO-C], [LFMO-IG]): random state-based policies (210), every breakpoint of the threshold search (γ intervals, number of states repaired, cycle length and cost: more than 100 policies) and the optimal policy agree to 1e-9–1e-10 | EXP-004 |
 | TC-J-12 | 16 components against closed forms | on eight redundant pairs, level-sum costs of corrective maintenance and of every r-out-of-n policy equal the closed forms from the signature (1e-9); the single-pass threshold costs are exactly those policies; the optimum is a lower bound; works under [LSh] at n = 16 (1e-7 allowed there: kernel accuracy ≈ 1e-10) | EXP-004 |
+| TC-J-14 | r-out-of-n policies from the class table | for 8 systems × 5 failure models, the r-out-of-n policies obtained from the classes by partial sums (Proposition 3: their continue sets are closed under "more components working") equal the level-sum evaluation of the same policy as an explicit set of states for every r (200+ policies); r = n equals corrective maintenance; the class table can be reused for the threshold search | EXP-004 |
 | TC-J-13 | Size limits | 15 components are refused by the enumeration functions and accepted by the level-sum functions; 21 components are refused by all of them | EXP-004 |
 | TC-J-06 | The paper's **Proposition 3** as an independent route | for every threshold policy of the satellite, Fig. 1, the bridge and 10 random systems, under [Exp], [LSh] and [BFR] and three cost sets (> 300 policies): cycle length and cost equal T, c_set + c_comp N + c_sys P computed from state-occupation times without any policy recursion (1e-9) | EXP-004 |
 
@@ -258,9 +260,9 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | SYS-004 | TC-A-01, TC-B-01, TC-C-02 |
 | SYS-005 | TC-E-05, TC-E-06 |
 | ALG-001 | TC-A-01, TC-C-01 |
-| ALG-002 | TC-A-02, TC-B-02, TC-C-03, TC-C-04, TC-C-05, TC-C-14, TC-C-15, TC-F-01, TC-F-06 |
+| ALG-002 | TC-A-02, TC-B-02, TC-C-03, TC-C-04, TC-C-05, TC-C-14, TC-C-15, TC-C-23, TC-F-01, TC-F-06 |
 | ALG-003 | TC-A-03, TC-B-03, TC-C-06, TC-C-14, TC-C-17, TC-C-18, TC-C-19, TC-F-02 |
-| ALG-004 | TC-C-09, TC-C-16 |
+| ALG-004 | TC-C-09, TC-C-16, TC-C-23 |
 | ALG-005 | TC-C-03 (plus code inspection) |
 | ALG-006 | TC-G-06, TC-C-22 |
 | REL-001 | TC-A-04, TC-B-04, TC-B-05, TC-C-07, TC-C-08, TC-C-14, TC-C-20, TC-C-21, TC-F-03, TC-F-08 |
@@ -275,7 +277,7 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | EXP-001 | TC-F-05, TC-G-01 |
 | EXP-002 | TC-G-02, TC-G-04, TC-G-05, TC-G-06, TC-G-07, TC-G-11, TC-G-12, TC-G-13 |
 | EXP-003 | TC-G-03, TC-G-12 |
-| EXP-004 (P2) | TC-J-01 … TC-J-13, TC-G-11, TC-G-13, TC-H-08 |
+| EXP-004 (P2) | TC-J-01 … TC-J-14, TC-G-11, TC-G-13, TC-H-08 |
 | DOC-001 | TC-H-03 |
 | DOC-002 | TC-H-03 |
 | INT-001, INT-003 | TC-H-04, TC-H-08, TC-H-09 |

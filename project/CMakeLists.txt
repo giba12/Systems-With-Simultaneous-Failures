@@ -78,6 +78,8 @@ if(BUILD_TESTING)
     tests/test_properties.cpp
   )
   target_link_libraries(reliability_tests PRIVATE reliability GTest::gtest_main)
+  # one test checks a private helper of the library (src/level_index.hpp)
+  target_include_directories(reliability_tests PRIVATE src)
   # Tests load the reference system from here, whatever the working directory is.
   target_compile_definitions(reliability_tests PRIVATE
     RELIABILITY_CONFIG_DIR="${CMAKE_CURRENT_SOURCE_DIR}/configs")

@@ -390,7 +390,8 @@ json policies_report(const SystemModel& model, const FailureModel& fm, const Rep
   report["costs"] = {{"component", costs.component}, {"system", costs.system}, {"setup", costs.setup}};
   report["corrective"] = evaluation_json(evaluate_policy(model, fm, corrective_policy(model), costs));
 
-  const ThresholdSearch threshold = search_threshold_policies(model, fm, costs);
+  const PolicyClassTable classes = build_policy_classes(model, fm);  // one sweep serves both families
+  const ThresholdSearch threshold = search_threshold_policies(classes, costs);
   json threshold_list = json::array();
   for (const ThresholdPolicyResult& p : threshold.policies) {
     json entry = evaluation_json(p.evaluation);
@@ -407,7 +408,7 @@ json policies_report(const SystemModel& model, const FailureModel& fm, const Rep
                          {"best_long_term_mean_cost", best_threshold.evaluation.long_term_mean_cost},
                          {"policies", threshold_list}};
 
-  const std::vector<RPolicyResult> r_policies = evaluate_r_out_of_n_policies(model, fm, costs);
+  const std::vector<RPolicyResult> r_policies = evaluate_r_out_of_n_policies(classes, costs);
   json r_list = json::array();
   std::size_t best_r = 0;
   for (std::size_t i = 0; i < r_policies.size(); ++i) {

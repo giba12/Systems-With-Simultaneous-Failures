@@ -43,13 +43,13 @@ ctest --test-dir build --output-on-failure           # C++ tests + python_end_to
 | Python tests with only the standard library (no pandas / matplotlib) | 43 run, 8 skip themselves cleanly |
 | Fresh clone-style configure + build (no cached state) | clean, no CMake warning |
 
-**Test inventory.** 125 C++ tests (`Signature` 23, `Mttf` 21, `FailureModels` 22, `Reference` 16, `StructureFunction` 13,
-`Policy` 17, `State` 8, `Properties` 5) and 48 Python end-to-end tests (`test_cli` 24, `test_experiments` 19,
+**Test inventory.** 127 C++ tests (`Signature` 23, `Mttf` 21, `FailureModels` 22, `Reference` 16, `StructureFunction` 13,
+`Policy` 18, `State` 9, `Properties` 5) and 48 Python end-to-end tests (`test_cli` 24, `test_experiments` 19,
 `test_traceability_tool` 5). `ctest` runs the C++ tests individually (122) plus the Python suite as one test and the
-traceability check as one test: 127. About 7 400 lines of source, tests and scripts.
+traceability check as one test: 129. About 7 400 lines of source, tests and scripts.
 
 **Traceability (VER-003).** `project/tools/check_traceability.py` reads the requirements, the test plan and the tags in
-the test code and fails on any orphan. Current state: **39 requirements, 111 test cases, 108 test cases tagged in
+the test code and fails on any orphan. Current state: **39 requirements, 113 test cases, 110 test cases tagged in
 automated test code, 3 verified another way** (timing in Experiment 4, CI, and documentation review), **0 problems**; the
 optional repair-policy cases are now implemented and tagged. The generated matrix is
 [traceability-matrix.md](traceability-matrix.md); the tool runs under `ctest`.
@@ -152,7 +152,7 @@ in my own expectations rather than in the code, which is itself worth recording.
 | DOC-001, DOC-002 | Met | [deviation-log.md](deviation-log.md), [experiment-report.md](experiment-report.md) |
 | INT-001 … INT-004 | Met | CLI tests (output, errors, exit codes, determinism); the Python layer only calls the CLI (TC-G-10) |
 | NFR-001, NFR-006, NFR-008, NFR-009 | Met | tolerances in §4; provenance in every result file; deviation log; precision strategy |
-| NFR-002, NFR-003 | Met | satellite analysis 0.08 ms; practical limit measured (n = 20 in 3.2 s / 35 MB; n = 24 in 58 s / 402 MB) |
+| NFR-002, NFR-003 | Met | satellite analysis 0.08 ms; practical limit measured on 2026-10-26 (n = 20 in 2.2 s / 35 MB; n = 24 in about 48 s / 534 MB; the same n = 24 run took about 87 s on the build before the son-rank optimisation, with the same 534 MB; an earlier measurement of 402 MB was not reproduced) |
 | NFR-004 | Met | one test file per module plus extras |
 | NFR-005 | **Partly met** | g++ and clang++ on Linux/WSL; other operating systems not tried |
 | NFR-007 | **Met on Linux** | the workflow runs on GitHub Actions (g++ and clang++ in Release, and ASan/UBSan in Debug, 127 / 127 tests each); first green run: 39864780885 on commit `4fa4812`, 2026-10-22 |

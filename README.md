@@ -39,7 +39,7 @@ configure downloads GoogleTest and nlohmann/json.
 ```bash
 cmake -S project -B project/build -DCMAKE_BUILD_TYPE=Release
 cmake --build project/build --parallel
-ctest --test-dir project/build --output-on-failure     # 127 tests
+ctest --test-dir project/build --output-on-failure     # 129 tests
 project/demo.sh                                         # a two-minute tour (see docs/demo.md)
 ```
 
@@ -87,9 +87,9 @@ result files are byte-identical when the experiments are repeated.
 
 ## Honest status
 
-Built and tested on Linux (WSL2) with g++ 13.3 and clang++ 18.1: no compiler warnings, 127/127 tests, sanitizer-clean.
+Built and tested on Linux (WSL2) with g++ 13.3 and clang++ 18.1: no compiler warnings, 129/129 tests, sanitizer-clean.
 The CI workflow has been validated and executed locally but has **not yet run on a CI service**. The simultaneous-failure
-models are limited to 16 components (numerical precision) and repair policies to 20 (about 4 s at 16 components, 20 s at 18 and 95 s at 20 for the full policy comparison). The repair-policy
+models are limited to 16 components (numerical precision) and repair policies to 20 (the full policy comparison takes about 0.6 s at 16 components, 2.4 s at 18 and 8 s at 20). The repair-policy
 results in the experiments come from small systems (3 to 10 components). Components are assumed identical, as in the paper. See the [deviation log](docs/deviation-log.md) for the complete list.
 
 ## Licence

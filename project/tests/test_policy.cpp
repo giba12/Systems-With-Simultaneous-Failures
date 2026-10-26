@@ -697,3 +697,40 @@ TEST(Policy, SizeLimitsOfTheLevelSumAndEnumerationCodes) {
   EXPECT_THROW(optimal_state_policy(too_big, fm, costs), ModelError);
   EXPECT_THROW(r_out_of_n_policy(too_big, 1), ModelError);
 }
+
+// Traceability: TC-J-14
+// The r-out-of-n policies from the class table (Proposition 3, no policy recursion) against the level-sum evaluation of the
+// same policy as an explicit set of states, on random systems under five failure models; r = n is corrective maintenance.
+TEST(Policy, ROutOfNPoliciesFromTheClassTableMatchTheLevelSumEvaluation) {
+  std::mt19937 rng(8675309);
+  std::vector<SystemModel> systems = {load_reference(), paper_figure_one(), bridge_network()};
+  for (int i = 0; i < 5; ++i) {
+    systems.push_back(random_monotone_system(6 + i, rng));
+  }
+  int compared = 0;
+  for (const SystemModel& model : systems) {
+    const int n = model.n();
+    const std::vector<std::shared_ptr<FailureModel>> models = {
+        std::make_shared<IndependentExponential>(1.0), make_lethal_shock(0.3, n), make_binomial_failure_rate(0.4, n),
+        make_gamma_process(0.2, n), make_stable_subordinator(0.5, n)};
+    for (const auto& fm : models) {
+      const RepairCosts costs{0.12 / n, 1.0, 0.04};
+      const PolicyClassTable table = build_policy_classes(model, *fm);
+      const std::vector<RPolicyResult> from_classes = evaluate_r_out_of_n_policies(table, costs);
+      ASSERT_EQ(from_classes.size(), static_cast<std::size_t>(n));
+      for (const RPolicyResult& r : from_classes) {
+        const PolicyEvaluation direct = evaluate_policy(model, *fm, r_out_of_n_policy(model, r.r), costs);
+        ExpectRel(r.evaluation.mean_cycle_length, direct.mean_cycle_length, 1e-9, "length " + fm->name());
+        ExpectRel(r.evaluation.mean_cycle_cost, direct.mean_cycle_cost, 1e-9, "cost " + fm->name());
+        ExpectRel(r.evaluation.long_term_mean_cost, direct.long_term_mean_cost, 1e-9, "ltmc " + fm->name());
+        ++compared;
+      }
+      const PolicyEvaluation corrective = evaluate_policy(model, *fm, corrective_policy(model), costs);
+      ExpectRel(from_classes.back().evaluation.long_term_mean_cost, corrective.long_term_mean_cost, 1e-9, "r = n is corrective");
+      // the table is a plain value: both families can be taken from it, in any order, with different costs
+      const ThresholdSearch search = search_threshold_policies(table, RepairCosts{0.5 / n, 1.0, 0.0});
+      EXPECT_EQ(search.policies.size(), search_threshold_policies(model, *fm, RepairCosts{0.5 / n, 1.0, 0.0}).policies.size());
+    }
+  }
+  EXPECT_GT(compared, 200);
+}

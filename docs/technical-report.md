@@ -176,7 +176,7 @@ in the [experiment report](experiment-report.md) §9.
 The software was verified against two independent implementations, closed forms that need neither, the paper's own
 examples and theorems, deliberate bugs (29 mutations, 28 caught immediately and the survivor closed by new tests),
 sanitizers, a second compiler, and a machine-checked traceability from every requirement to a test. g++ and clang++
-build with no warnings and pass 127/127 tests; the sanitizer build also passes. Twenty defects and near-misses found
+build with no warnings and pass 129/129 tests; the sanitizer build also passes. Twenty defects and near-misses found
 along the way, including several mistakes in my own expectations, are listed in the
 [verification report](verification-report.md), which also states what was **not** verified.
 

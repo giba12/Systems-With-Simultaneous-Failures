@@ -106,7 +106,12 @@ The paper's O(n²2ⁿ) level sums now evaluate every policy, its Proposition 3 g
 limit rises from n = 14 to n = 20. The enumeration code stays as `*_by_enumeration` and is the independent check: TC-J-11
 (random policies, every breakpoint and the optimum, five failure models), TC-J-12 (16 components against closed forms from the
 signature), TC-J-13 (the size limits); six more deliberate bugs caught. Experiments 5 and 7 re-run with the new code give the same
-verdicts. Not done: the paper's O(n²2ⁿ) level-sum evaluation of the r-out-of-n policies as one pass (they are evaluated one by one).
+verdicts. 
+
+**Speed-up the same day.** The r-out-of-n policies and corrective maintenance are now read off the class table too (TC-J-14),
+all sons of a state get their ranks in one O(w) step instead of O(32 w) (TC-C-23, a private helper shared by the sweep and the
+policy code), and the inner loops run over contiguous memory. A full policy comparison takes 0.57 / 2.4 / 7.9 s at n = 16 / 18 / 20
+(was 4.2 / 20 / 92 s) and the level sweep at n = 24 about 48 s (was about 87 s on the same machine, same 534 MB).
 
 ## 3. Day-by-day work plan
 

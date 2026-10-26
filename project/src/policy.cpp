@@ -325,20 +325,18 @@ void level_pass(int n, int channels, Visit&& visit) {
     current.assign(states.size() * ch * width, 0.0);
     for (std::size_t r = 0; r < states.size(); ++r) {
       const StateMask x = states[r];
-      son_rank.clear();
-      for (int i = 0; i < n; ++i) {
-        if (is_working(x, i)) {
-          son_rank.push_back(detail::rank_in_level(without(x, i), binom));
-        }
-      }
+      detail::son_ranks(x, binom, son_rank);
       for (std::size_t c = 0; c < ch; ++c) {
-        for (int j = 1; j <= w; ++j) {
-          double total = 0.0;
-          for (std::uint64_t sr : son_rank) {
-            total += previous[(static_cast<std::size_t>(sr) * ch + c) * static_cast<std::size_t>(w) +
-                              static_cast<std::size_t>(j - 1)];
+        double* total = &sums[c * stride_sums];
+        std::fill(total + 1, total + w + 1, 0.0);
+        for (std::uint64_t sr : son_rank) {  // contiguous in j: S_s[c][0 .. w-1] adds to total[1 .. w]
+          const double* son = &previous[(static_cast<std::size_t>(sr) * ch + c) * static_cast<std::size_t>(w)];
+          for (int j = 1; j <= w; ++j) {
+            total[j] += son[j - 1];
           }
-          sums[c * stride_sums + static_cast<std::size_t>(j)] = total / static_cast<double>(j);
+        }
+        for (int j = 1; j <= w; ++j) {
+          total[j] /= static_cast<double>(j);
         }
       }
       visit(x, w, sums.data(), stride_sums, out.data());
@@ -425,13 +423,10 @@ PolicyEvaluation evaluate_policy(const SystemModel& model, const FailureModel& f
   return result;
 }
 
-// ALGORITHM   see policy.hpp (Proposition 3)
-ThresholdSearch search_threshold_policies(const SystemModel& model, const FailureModel& failure_model,
-                                          const RepairCosts& costs) {
-  require_policy_size(model, "search_threshold_policies");
-  require_valid_costs(costs);
+// ALGORITHM   see policy.hpp (Proposition 3): one sweep, the classes and what each of their states contributes
+PolicyClassTable build_policy_classes(const SystemModel& model, const FailureModel& failure_model) {
+  require_policy_size(model, "build_policy_classes");
   const int n = model.n();
-  const std::size_t states = std::size_t{1} << n;
 
   // classes of operational states with equal counting vectors, with their multiplicity
   std::unordered_map<CountingVector, std::uint64_t, VectorHash> class_count;
@@ -455,15 +450,9 @@ ThresholdSearch search_threshold_policies(const SystemModel& model, const Failur
     }
   }
 
-  struct ClassSummary {
-    double ratio = 0.0;        // MTTF / MTTF(all working)
-    std::uint64_t count = 0;   // states in the class
-    double length = 0.0;       // tau_w * count
-    double failures = 0.0;     // tau_w * phi_w * count
-    double corrective = 0.0;   // tau_w * nu_w * (chance the next epoch fails the system) * count
-  };
-  std::vector<ClassSummary> classes;
-  classes.reserve(class_count.size());
+  PolicyClassTable table;
+  table.n = n;
+  table.classes.reserve(class_count.size());
   double reference = 0.0;
   for (const auto& [vector, count] : class_count) {
     const int w = static_cast<int>(vector.size()) - 1;
@@ -478,32 +467,55 @@ ThresholdSearch search_threshold_policies(const SystemModel& model, const Failur
       phi += nu * (w - w2) * p;
       failing += nu * p * (1.0 - working_fraction);
     }
-    ClassSummary summary;
-    summary.ratio = mttf_from_counting_vector(vector, failure_model);
-    summary.count = count;
-    summary.length = tau * static_cast<double>(count);
-    summary.failures = tau * phi * static_cast<double>(count);
-    summary.corrective = tau * failing * static_cast<double>(count);
-    classes.push_back(summary);
+    PolicyClass entry;
+    entry.working = w;
+    entry.mttf_ratio = mttf_from_counting_vector(vector, failure_model);
+    entry.count = count;
+    entry.length = tau * static_cast<double>(count);
+    entry.failures = tau * phi * static_cast<double>(count);
+    entry.corrective = tau * failing * static_cast<double>(count);
+    table.classes.push_back(entry);
     if (w == n) {
-      reference = summary.ratio;  // the all-working state is a class of its own
+      reference = entry.mttf_ratio;  // the all-working state is a class of its own
     }
   }
-  for (ClassSummary& c : classes) {
-    c.ratio /= reference;
+  for (PolicyClass& c : table.classes) {
+    c.mttf_ratio /= reference;
   }
-  std::sort(classes.begin(), classes.end(), [](const ClassSummary& a, const ClassSummary& b) { return a.ratio < b.ratio; });
+  return table;
+}
 
-  // group classes whose ratios agree to rounding: one group per breakpoint
+namespace {
+
+// The policy that continues exactly on `continue_here` (an up-closed set of operational states): cycle length T,
+// and cycle cost c_set + c_comp N + c_sys P, from the partial sums of the classes inside it
+PolicyEvaluation cycle_of_continue_set(double length, double failures, double corrective, const RepairCosts& costs) {
+  PolicyEvaluation e;
+  e.mean_cycle_length = length;
+  e.mean_cycle_cost = costs.setup + costs.component * failures + costs.system * corrective;
+  e.long_term_mean_cost = e.mean_cycle_cost / length;
+  return e;
+}
+
+}  // namespace
+
+// ALGORITHM   see policy.hpp: sort the classes by MTTF, group equal ratios (one group per breakpoint), suffix sums
+ThresholdSearch search_threshold_policies(const PolicyClassTable& table, const RepairCosts& costs) {
+  require_valid_costs(costs);
+  const std::uint64_t states = std::uint64_t{1} << table.n;
+  std::vector<PolicyClass> classes = table.classes;
+  std::sort(classes.begin(), classes.end(),
+            [](const PolicyClass& a, const PolicyClass& b) { return a.mttf_ratio < b.mttf_ratio; });
+
   struct Group {
     double ratio = 0.0;
     std::uint64_t count = 0;
     double length = 0.0, failures = 0.0, corrective = 0.0;
   };
   std::vector<Group> groups;
-  for (const ClassSummary& c : classes) {
-    if (groups.empty() || c.ratio > groups.back().ratio * (1.0 + kRatioTolerance)) {
-      groups.push_back(Group{c.ratio, 0, 0.0, 0.0, 0.0});
+  for (const PolicyClass& c : classes) {
+    if (groups.empty() || c.mttf_ratio > groups.back().ratio * (1.0 + kRatioTolerance)) {
+      groups.push_back(Group{c.mttf_ratio, 0, 0.0, 0.0, 0.0});
     }
     groups.back().count += c.count;
     groups.back().length += c.length;
@@ -524,10 +536,8 @@ ThresholdSearch search_threshold_policies(const SystemModel& model, const Failur
     ThresholdPolicyResult& entry = search.policies[j];
     entry.gamma_from = j == 0 ? 0.0 : groups[j - 1].ratio;
     entry.gamma_to = groups[j].ratio;
-    entry.states_repaired = states - continuing;
-    entry.evaluation.mean_cycle_length = length;
-    entry.evaluation.mean_cycle_cost = costs.setup + costs.component * failures + costs.system * corrective;
-    entry.evaluation.long_term_mean_cost = entry.evaluation.mean_cycle_cost / length;
+    entry.states_repaired = static_cast<std::size_t>(states - continuing);
+    entry.evaluation = cycle_of_continue_set(length, failures, corrective, costs);
   }
   for (std::size_t j = 1; j < search.policies.size(); ++j) {
     if (search.policies[j].evaluation.long_term_mean_cost <
@@ -536,6 +546,37 @@ ThresholdSearch search_threshold_policies(const SystemModel& model, const Failur
     }
   }
   return search;
+}
+
+ThresholdSearch search_threshold_policies(const SystemModel& model, const FailureModel& failure_model,
+                                          const RepairCosts& costs) {
+  require_policy_size(model, "search_threshold_policies");
+  return search_threshold_policies(build_policy_classes(model, failure_model), costs);
+}
+
+// ALGORITHM   see policy.hpp: the r-out-of-n policy continues on the operational states with more than n - r
+//   working components, an up-closed set, so Proposition 3 applies; r = n is corrective maintenance
+std::vector<RPolicyResult> evaluate_r_out_of_n_policies(const PolicyClassTable& table, const RepairCosts& costs) {
+  require_valid_costs(costs);
+  std::vector<RPolicyResult> results;
+  for (int r = 1; r <= table.n; ++r) {
+    double length = 0.0, failures = 0.0, corrective = 0.0;
+    for (const PolicyClass& c : table.classes) {
+      if (c.working > table.n - r) {
+        length += c.length;
+        failures += c.failures;
+        corrective += c.corrective;
+      }
+    }
+    results.push_back({r, cycle_of_continue_set(length, failures, corrective, costs)});
+  }
+  return results;
+}
+
+std::vector<RPolicyResult> evaluate_r_out_of_n_policies(const SystemModel& model, const FailureModel& failure_model,
+                                                        const RepairCosts& costs) {
+  require_policy_size(model, "evaluate_r_out_of_n_policies");
+  return evaluate_r_out_of_n_policies(build_policy_classes(model, failure_model), costs);
 }
 
 // ALGORITHM   see policy.hpp (Dinkelbach, level sums)
@@ -605,17 +646,6 @@ OptimalPolicyResult optimal_state_policy(const SystemModel& model, const Failure
     best.states_repaired += flag;
   }
   return best;
-}
-
-// ALGORITHM   r = 1 .. n
-std::vector<RPolicyResult> evaluate_r_out_of_n_policies(const SystemModel& model, const FailureModel& failure_model,
-                                                        const RepairCosts& costs) {
-  require_policy_size(model, "evaluate_r_out_of_n_policies");
-  std::vector<RPolicyResult> results;
-  for (int r = 1; r <= model.n(); ++r) {
-    results.push_back({r, evaluate_policy(model, failure_model, r_out_of_n_policy(model, r), costs)});
-  }
-  return results;
 }
 
 }  // namespace reliability

@@ -47,6 +47,7 @@ SweepResult sweep(const SystemModel& model, const StateObserver& observer,
   std::vector<std::uint32_t> current;   // level w:   row r has w+1 entries
   CountingVector row;                   // reused, handed to the observer
   std::vector<std::uint64_t> son_rank;  // reused, ranks of the sons of the current state
+  std::vector<std::uint64_t> totals;    // reused, sum over the sons of their entries k-1, for k = 1 .. w
 
   for (int w = 0; w <= n; ++w) {
     const std::vector<StateMask> states = masks_with_working(n, w);
@@ -60,19 +61,18 @@ SweepResult sweep(const SystemModel& model, const StateObserver& observer,
       const StateMask x = states[r];
 
       // sons of x in the previous level
-      son_rank.clear();
-      for (int i = 0; i < n; ++i) {
-        if (is_working(x, i)) {
-          son_rank.push_back(detail::rank_in_level(without(x, i), binom));
-        }
-      }
+      detail::son_ranks(x, binom, son_rank);
 
       row[0] = model.phi(x) ? 1U : 0U;
-      for (int k = 1; k <= w; ++k) {
-        std::uint64_t total = 0;
-        for (std::uint64_t sr : son_rank) {
-          total += previous[sr * static_cast<std::uint64_t>(w) + static_cast<std::uint64_t>(k - 1)];
+      totals.assign(static_cast<std::size_t>(w) + 1, 0U);
+      for (std::uint64_t sr : son_rank) {  // contiguous in k: previous[son][0 .. w-1] adds to totals[1 .. w]
+        const std::uint32_t* son_row = &previous[sr * static_cast<std::uint64_t>(w)];
+        for (int k = 1; k <= w; ++k) {
+          totals[static_cast<std::size_t>(k)] += son_row[k - 1];
         }
+      }
+      for (int k = 1; k <= w; ++k) {
+        const std::uint64_t total = totals[static_cast<std::size_t>(k)];
         result.integer_additions += son_rank.size();
         result.integer_divisions += 1;
         if (total % static_cast<std::uint64_t>(k) != 0U) {
