@@ -69,8 +69,8 @@ optional repair-policy cases are now implemented and tagged. The generated matri
 3. **Closed forms for the transition kernel.** The lethal-shock kernel (one component or all) and the binomial-failure-rate
    kernel (a binomial conditioned on at least one failure) check Eq. (20) against numbers never produced by an
    alternating sum.
-4. **The paper's theorems tested on the code.** Lemma 4 (MTTF never rises when more components fail) on more than 40 000
-   state pairs under four models; Theorem 5 (signature dominance ⇒ MTTF order, strictly) on thousands of pairs; a concrete
+4. **The paper's theorems tested on the code.** Lemma 4 (MTTF never rises when more components fail) on state pairs of random
+   monotone systems under all seven model types (first measured at more than 40 000 pairs under four models); Theorem 5 (signature dominance ⇒ MTTF order, strictly) on thousands of pairs; a concrete
    counterexample to its converse.
 5. **Verification built into the tool.** `analyze --verify` re-checks any result against the reference, Eq. (6) and
    numerical sanity; a labelled fault-injection hook proves it can fail (exit code 3).
@@ -145,9 +145,9 @@ in my own expectations rather than in the code, which is itself worth recording.
 | ALG-001 … ALG-005 | Met | sweep = reference on every state; Φ evaluated exactly 2ⁿ times |
 | ALG-006 | Met | time and memory growth measured (Experiment 4), and the sweep **measures** its integer additions and divisions: exactly n(n+1)2ⁿ⁻² and n·2ⁿ⁻¹ for n = 2…14 (TC-C-22) |
 | REL-001, REL-003, REL-005 | Met | oracles, closed forms, Eq. (7) = Eq. (6) |
-| REL-002, REL-004 | Met, with a limit | lethal-shock and binomial-failure-rate models, calibration by β; **n ≤ 16** |
+| REL-002, REL-004 | Met, with a limit | [Exp] and the six common-cause models of Table I, calibration by β; **n ≤ 16** |
 | VER-001 … VER-004 | Met | see §3 |
-| EXP-001 … EXP-003 | Met | byte-identical deterministic results; four experiments; tables and figures from saved results |
+| EXP-001 … EXP-003 | Met | byte-identical deterministic results; seven experiments; tables and figures from saved results |
 | EXP-004 (P2) | Met, **with limits** | policies evaluated with level sums (n ≤ 20) and by enumeration (n ≤ 14, the independent check), every threshold breakpoint searched in one pass; Fig. 1 costs reproduced; closed forms and the paper's Proposition 3 as independent checks (TC-J-01…06); Experiment 5; the optimal state-based policy (Dinkelbach) checked against an exhaustive search of all policies on 7 small systems × 4 failure models × 12 cost pairs (TC-J-07…10); the level-sum evaluator, the single-pass threshold search and the fast Dinkelbach agree with the enumeration code on random policies, all breakpoints and the optimum, and with closed forms from the signature at n = 16 (TC-J-11…13); ten deliberate bugs in the two policy implementations all caught |
 | DOC-001, DOC-002 | Met | [deviation-log.md](deviation-log.md), [experiment-report.md](experiment-report.md) |
 | INT-001 … INT-004 | Met | CLI tests (output, errors, exit codes, determinism); the Python layer only calls the CLI (TC-G-10) |

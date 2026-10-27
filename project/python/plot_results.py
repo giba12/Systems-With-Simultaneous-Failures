@@ -2,8 +2,8 @@
 """plot_results.py - draw the figures from saved tables only.   (Plan: Day 8; EXP-003)
 
 IDEA
-    Reads the CSV tables that analyze_results.py wrote (results/<exp>/tables/*.csv) and draws four figures
-    into results/figures/. It never runs the C++ tool and never needs the raw JSON, so the figures can be
+    Reads the CSV tables that analyze_results.py wrote (results/<exp>/tables/*.csv) and draws one figure per experiment
+    (seven in all) into results/figures/. It never runs the C++ tool and never needs the raw JSON, so the figures can be
     regenerated from the saved results alone.
 
 DESIGN RULES APPLIED (the project's data-visualisation guidance)

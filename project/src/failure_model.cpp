@@ -1,5 +1,5 @@
-// failure_model.cpp - [Exp] and the Levy-frailty (lethal-shock) failure models.
-//                                                    (Plan: Day 6 for [Exp], Day 7 for the rest)
+// failure_model.cpp - [Exp] and the Levy-frailty failure models: [LSh], [BFR] and the other four models of the
+// paper's Table I.                                 (Plan: Day 6 for [Exp], Day 7 for [LSh] and [BFR])
 #include "reliability/failure_model.hpp"
 
 #include <cmath>

@@ -10,7 +10,7 @@
 //
 // ALGORITHM of the factory functions
 //   from_json_file(path):
-//       read the JSON text; parse it           (library choice pending: nlohmann/json)
+//       read the JSON text; parse it           (nlohmann/json)
 //       components := list of {id, name, role, bit}
 //       reject: duplicate ids, duplicate bits, bits not 0..n-1, unknown ids in "structure"
 //       switch structure.type:

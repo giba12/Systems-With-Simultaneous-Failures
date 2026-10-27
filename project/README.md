@@ -51,7 +51,7 @@ ctest --test-dir build --output-on-failure
 | `tests/` | One test file per module; tests are tagged with their test-plan ID | 2–9 |
 | `python/` | Experiment runner, result summaries, plots, and the end-to-end tests (`python/tests/`) | 8 |
 | `tools/check_traceability.py` | Machine check of requirements → test cases → test code | 9 |
-| `experiments/hypotheses/` | The pre-registered hypotheses of the four experiments | 8 |
+| `experiments/hypotheses/` | The pre-registered hypotheses of the seven experiments | 8 |
 | `configs/satellite_support.json` | The reference system | 2 |
 | `../docs/` | Requirements, test plan, user stories, UML, plan, validation, verification and experiment reports | — |
 

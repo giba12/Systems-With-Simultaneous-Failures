@@ -1,8 +1,9 @@
 // main.cpp - the command-line tool "analyze".                (Plan: Day 8; INT-001, INT-003, INT-004)
 //
 // USAGE
-//   analyze --config configs/satellite_support.json [--model exp|lsh|bfr] [--lambda L] [--beta B]
-//           [--per-state] [--verify] [--out results/run1.json]
+//   analyze --config configs/satellite_support.json
+//           [--model exp|lsh|bfr|lfmo-c|lfmo-g|lfmo-ig|lfmo-s] [--lambda L] [--beta B]
+//           [--c-comp C --c-sys C --c-set C] [--per-state] [--verify] [--out results/run1.json]
 //
 // WHAT IT DOES
 //   1. load and validate the system from the JSON configuration
@@ -10,7 +11,9 @@
 //   3. run ONE level sweep (paper Algorithm 1); at every state compute the MTTF (Eq. (7))
 //   4. optionally (--verify) check the result against the independent brute-force reference, the
 //      direct solution of Eq. (6), and some numerical sanity checks
-//   5. write everything as JSON; the volatile numbers (run times, memory) live under "timing" so the
+//   5. with all three repair costs, also compare repair policies (corrective, r-out-of-n, every MTTF threshold,
+//      and the optimal state-based policy)
+//   6. write everything as JSON; the volatile numbers (run times, memory) live under "timing" so the
 //      rest of the file is byte-for-byte reproducible
 //
 // EXIT CODES   0 success · 1 invalid input or model (message on stderr) · 2 usage error ·

@@ -15,7 +15,7 @@ The test strategy rests on **two independent implementations** (guide §7):
 
 The reference must not reuse the recurrence under test. It is itself validated against **hand-derived analytical values**, so a shared bug cannot go unnoticed.
 
-Levels: unit tests (GoogleTest or Catch2, one file per module), integration tests (CLI → results files), and experiment-reproducibility checks (Python).
+Levels: unit tests (GoogleTest, one file per module), integration tests (CLI → results files), and experiment-reproducibility checks (Python).
 
 Record in the verification report: compiler version, build type, test command, results, and numerical tolerances.
 
@@ -207,7 +207,7 @@ Naming: **TC-x-nn**. "Req" lists the requirements covered.
 | TC-G-13 | Experiment 7 | the optimal cost is at most the best threshold, best r-out-of-n and corrective cost in every combination (theory, checked on a reduced run: 135 satellite + 2 × 2 × 3 × 45 random-system combinations); random systems are drawn reproducibly from the seed (3–6 path sets of 2…⌈n/2⌉ components) and differ for another seed; the full run's seven predictions are evaluated by the analysis and reported either way | EXP-002, EXP-004 |
 | TC-G-10 | The Python layer never re-implements the algorithm | `run_experiments.py` imports only the standard library; the saved raw results are exactly what `analyze` printed for the same inputs | INT-002 |
 | TC-G-08 | Experiment runner and results | Refuses to run without a (non-empty) hypothesis; copies it and records its SHA-256; results carry settings, seed, tool version; `hypothesis_written_before_run`; the deterministic file is byte-identical across runs for all four experiments; an explicit bad `--analyze` path is an error | EXP-001, EXP-002, NFR-006 |
-| TC-G-09 | Analysis and plots | Verdict file with a SUPPORTED/REJECTED line per prediction; results without provenance are refused; the four figures are drawn from the copied tables alone (valid PNGs, no subprocess use) | EXP-003 |
+| TC-G-09 | Analysis and plots | Verdict file with a SUPPORTED/REJECTED line per prediction; results without provenance are refused; the seven figures are drawn from the copied tables alone (valid PNGs, no subprocess use) | EXP-003 |
 
 ### Test I — Properties proved in the paper
 

@@ -6,10 +6,9 @@
 #      (everything except main.cpp).
 #   3. Build the command-line tool "analyze" from src/main.cpp, linked to the library.
 #   4. Download nlohmann/json (config parsing).
-#   5. If BUILD_TESTING is on: download GoogleTest, build one test program
-#      "reliability_tests" from tests/*.cpp, and register each test with CTest.
-#   (Decision pending, see docs/requirements-spec.md open item 4: GoogleTest vs Catch2.
-#    GoogleTest is the recommended default in docs/project-plan.md.)
+#   5. If BUILD_TESTING is on: download GoogleTest 1.14, build one test program
+#      "reliability_tests" from the test files below, and register each test with CTest.
+#   6. Register the Python end-to-end tests and the traceability check with CTest (if Python is found).
 
 cmake_minimum_required(VERSION 3.20)
 if(POLICY CMP0135)

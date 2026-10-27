@@ -16,7 +16,7 @@ ALGORITHM
     main()                      write the CSVs and the verdicts, print a summary
 
 USAGE
-    python analyze_results.py [--results ../results] [exp1 exp2 exp3 exp4]
+    python analyze_results.py [--results ../results] [exp1 ... exp7]
 """
 
 import argparse
@@ -621,7 +621,7 @@ def analyze(results_dir, name):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Make tables and hypothesis verdicts from saved results.")
-    parser.add_argument("experiments", nargs="*", help="exp1 .. exp4 (default: every experiment that has results)")
+    parser.add_argument("experiments", nargs="*", help="exp1 .. exp7 (default: every experiment that has results)")
     parser.add_argument("--results", default=str(PROJECT_ROOT / "results"))
     args = parser.parse_args(argv)
     names = args.experiments or [n for n in EXPERIMENTS if (Path(args.results) / n / f"{n}.json").is_file()]

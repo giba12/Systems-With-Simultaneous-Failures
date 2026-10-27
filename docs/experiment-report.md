@@ -25,7 +25,7 @@ is flight-qualified or a claim about any real spacecraft.
 | That the cost curve over the threshold γ is not unimodal | **Reproduced** with a concrete 8-component example (found by random search) |
 | Experiments 1–7 on the fictional satellite and the small asymmetric systems | **New**, designed for this project (the premise of Experiment 3 is the paper's motivating observation) |
 | Comparison of the lethal-shock and binomial-failure-rate models on a multi-pair system (Experiment 2), and of all six Table I models calibrated to one pairwise β (Experiment 6) | **New** |
-| Table I parameters (p, η, η, α for β = 5 %, 20 %, 50 %) and the n/Ψ(30) ranges of the five common-cause models | **Reproduced** (unit tests TC-D-15, TC-D-16) |
+| Table I parameters (p, η, η, α of [LFMO-C], [LFMO-G], [LFMO-IG], [LFMO-S] for β = 5 %, 20 %, 50 %) and the n/Ψ(30) ranges of [LSh] and [BFR] | **Reproduced** (unit tests TC-D-15, TC-D-16) |
 
 ## 2. How the experiments were run
 

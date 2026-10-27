@@ -233,7 +233,7 @@ Single developer (Dana), using AI as a pair programmer: ask for one equation or 
 
 ## 7. Dependencies and assumptions
 
-- Toolchain: C++20 compiler, CMake, GoogleTest or Catch2, Python 3 with NumPy, pandas, Matplotlib, Git, a CI runner. Linux/WSL.
+- Toolchain: C++20 compiler, CMake, GoogleTest (chosen on Day 2), Python 3 with NumPy, pandas, Matplotlib, Git, a CI runner. Linux/WSL.
 - The authors' repository (`github.com/guidolagos/Subsystems`) is optional as a third independent check; verify its availability before relying on it.
 - Paper content may change between versions; re-check formulas when implementing.
 - The project is for learning and portfolio use; no external stakeholders or sign-off.

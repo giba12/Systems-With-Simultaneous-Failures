@@ -185,7 +185,7 @@ along the way, including several mistakes in my own expectations, are listed in 
 * **Identical components.** The model requires exchangeable components, so the three differently-purposed pairs share a
   lifetime law; real units would differ.
 * **Perfect redundancy** within a pair; no switch-over failure, shared resources, thermal coupling or software common-mode
-  faults beyond what the two common-cause models express. Failures are permanent; nothing is repaired.
+  faults beyond what the common-cause models express. Failures are permanent; nothing is repaired.
 * **Size.** The state space is 2ⁿ. The simultaneous-failure models stop at 16 components (numerical precision); the
   brute-force reference at 16; the independent model was run to 20 here (24 in an earlier benchmark).
 * **Models and policies.** Three failure-model families. Repair policies use the paper's level sums and its single-pass

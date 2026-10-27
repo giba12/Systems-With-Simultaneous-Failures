@@ -39,7 +39,7 @@ double mttf_from_counting_vector(const CountingVector& w, const FailureModel& fm
 //   return m
 // MTTF is computed inside the sweep, one state at a time, as in the paper's Algorithm 1.
 // CHECKS (tests, not production code): m[x] >= 0, finite; m[x] == 0 where Phi(x) == 0;
-//   m monotone: y <= x implies m[y] <= m[x]   (paper Lemma 4, holds for [Exp] and [LSh]).
+//   m monotone: y <= x implies m[y] <= m[x]   (paper Lemma 4, holds for [Exp] and the six common-cause models of Table I).
 std::vector<double> compute_all_mttf(const SystemModel& model, const FailureModel& fm) {
   std::vector<double> m(std::size_t{1} << model.n(), 0.0);
   sweep(model,

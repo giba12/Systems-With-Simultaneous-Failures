@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""run_experiments.py - run the four experiments and save raw results.   (Plan: Day 8; EXP-001, EXP-002)
+"""run_experiments.py - run the seven experiments and save raw results.   (Plan: Day 8; EXP-001, EXP-002)
 
 IDEA
     The Python layer never re-implements the maths. It calls the C++ tool ``analyze`` and saves exactly what
@@ -13,12 +13,13 @@ THE RULES THIS SCRIPT ENFORCES
     * Results are split in two files so reproducibility can be checked byte for byte:
         <name>.json         deterministic: settings, seed, tool version, hypothesis hash, raw tool output
         <name>.timing.json  volatile: run times, memory, timestamps, platform
-    * All four experiments are deterministic, so the seed is recorded but no random numbers are drawn.
+    * Every experiment is deterministic. Experiment 7 draws its random systems from random.Random(seed), so
+      the same seed always gives the same systems; the other experiments draw nothing.
 
 USAGE
-    python run_experiments.py exp1 exp2 exp3 exp4        (or: all)
+    python run_experiments.py exp1 exp2 ... exp7        (or: all)
         [--analyze ../build/analyze] [--out ../results] [--hypotheses ../experiments/hypotheses]
-        [--seed 20261021] [--max-n 20]
+        [--seed 20261021] [--max-n 20] [--systems-per-size 8]
 """
 
 import argparse
@@ -381,13 +382,13 @@ def require_hypothesis(hypotheses_dir, name):
 def run_experiment(name, analyze, out_dir, hypotheses_dir, seed, max_n=20, systems_per_size=RANDOM_SYSTEMS_PER_SIZE):
     """ALGORITHM
         1. require the hypothesis file; remember when this run started
-        2. random.Random(seed) is created for the record (all experiments here are deterministic)
+        2. random.Random(seed) is created for the record (experiment 7 makes its own generator from the same seed)
         3. run the experiment function; check the tool version is the same in every output
         4. write <name>.json (deterministic) and <name>.timing.json (volatile) and copy the hypothesis
     """
     hypothesis = require_hypothesis(hypotheses_dir, name)
     started = datetime.datetime.now(datetime.timezone.utc)
-    random.Random(seed)  # no random numbers are drawn; the seed is recorded so a stochastic experiment could be added
+    random.Random(seed)  # nothing is drawn here; the seed is recorded, and experiment 7 seeds its own generator with it
 
     out = Path(out_dir) / name
     out.mkdir(parents=True, exist_ok=True)

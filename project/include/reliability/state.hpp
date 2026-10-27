@@ -32,9 +32,10 @@ namespace reliability {
 using StateMask = std::uint32_t;  // bit i = 1  <=>  component i works
 
 // Largest n a system may have (checked by SystemModel::validate). Decision made on Day 2:
-// keep 24 for now. Validation and the brute-force reference cost about 2^n to 3^n work, and
-// the simultaneous-failure model loses precision in plain double above about n = 12 (see
-// docs/paper-validation-report.md section 4), so that model will apply its own tighter limit.
+// keep 24. Validation and the brute-force reference cost about 2^n to 3^n work, and the
+// Levy-frailty (simultaneous-failure) models lose precision in the alternating sum of Eq. (20)
+// (see docs/paper-validation-report.md section 4), so they apply their own tighter limit,
+// kMaxLevyFrailtyComponents = 16, and the brute-force reference stops at kMaxBruteForceComponents = 16.
 // A state mask is 32 bits wide, so no system can ever have more than 31 components.
 inline constexpr int kMaxComponents = 24;
 

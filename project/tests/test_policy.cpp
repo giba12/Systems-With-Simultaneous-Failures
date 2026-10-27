@@ -1,4 +1,4 @@
-// test_policy.cpp - repair policies and long-term cost.   (Plan: Day 9 optional P2; EXP-004; TC-J-01 .. TC-J-05)
+// test_policy.cpp - repair policies and long-term cost.   (Plan: Day 9 optional P2; EXP-004; TC-J-01 .. TC-J-14)
 #include <gtest/gtest.h>
 
 #include <algorithm>
