@@ -5,3 +5,6 @@
 # Source documents that belong to someone else (kept locally, never published)
 docs/paper3.pdf
 docs/space_system_reliability_analyzer_project_guide.docx
+
+# Generated PDF copies of the documents (regenerated from docs/*.md)
+docs/pdf/
