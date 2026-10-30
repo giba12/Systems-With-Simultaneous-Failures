@@ -26,6 +26,7 @@ Derived from `space_system_reliability_analyzer_project_guide.docx` and validate
 | Sequence diagram: analyse, verify and run an experiment | [PNG](uml/sequence.png) · [source](uml/sequence.puml) |
 | Component diagram | [PNG](uml/component.png) · [source](uml/component.puml) |
 | Object diagram: satellite-support reference system snapshot | [PNG](uml/object.png) · [source](uml/object.puml) |
+| SysML block definition diagram: structure of the analyzer (blocks, parts, values, constraints) | [PNG](uml/sysml-bdd.png) · [SVG](uml/sysml-bdd.svg) · [source](uml/sysml_bdd.py) |
 
 The code lives in [../project/](../project/); the repository front page is [../README.md](../README.md).
 
