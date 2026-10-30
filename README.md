@@ -27,7 +27,7 @@ change when one event can fail several components at once?*
 | Common cause (β = 0.5), benefit of redundancy | 4.20 → **3.20** (lethal shock), **1.50** (binomial failure rate) |
 | 20 components, 1 048 576 states | analysed exactly in about 3 s and 35 MB |
 | Repair policies (small asymmetric systems) | the MTTF-threshold policy saves up to 8.8 – 23.5 % over "repair after r failures"; on the symmetric satellite the two coincide |
-| Pre-registered predictions | 44 of 48 supported in the first run; **3 rejections are stable** (a 4th is timing noise) and reported as found |
+| Pre-registered predictions | 57 of 62 supported in the first run (seven experiments); **4 rejections are stable** (two in Experiment 2, one each in Experiments 4 and 6) and a 5th is timing noise; all reported as found |
 
 ![Common-cause failures erode the benefit of redundancy](docs/figures/fig2_common_cause.png)
 

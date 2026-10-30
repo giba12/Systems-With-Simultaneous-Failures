@@ -198,8 +198,9 @@ along the way, including several mistakes in my own expectations, are listed in 
 (Full list: [deviation-log.md](deviation-log.md).) The paper's Eq. (21) is corrected; Φ(**0**) is evaluated so the count
 is exactly 2ⁿ; the guide's claim that the algorithm *reduces* the number of structure-function evaluations is not repeated
 (it does not: it provides every state's results for the same count); precision handling differs from the paper's 512-bit
-arithmetic and sets a size cap; precision handling differs from the paper's 512-bit arithmetic and sets a size cap; repair policies use a simpler evaluation
-than the paper's single pass, and the optimal policy is not implemented.
+arithmetic and sets a size cap; repair policies use the paper's level sums and its single-pass threshold search (n ≤ 20),
+with the optimal state-based policy (Dinkelbach) implemented and the earlier enumeration code kept as the independent
+check (deviation A7).
 
 ## 10. How the work was done
 

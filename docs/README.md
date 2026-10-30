@@ -16,6 +16,12 @@ Derived from `space_system_reliability_analyzer_project_guide.docx` and validate
 | [deviation-log.md](deviation-log.md) | Every deviation from the paper and the guide, every correction, decision and limitation |
 | [experiment-report.md](experiment-report.md) | Results of Experiments 1–4 with figures: what reproduces the paper, what is new, every prediction supported or **rejected**, limitations and deviations |
 | [project-plan.md](project-plan.md) | Ten-day plan with daily tasks, quality gates, risks, definition of done and decisions needed |
+| [conops.md](conops.md) | Concept of operations (NASA SEH App. S outline): needs, modes, nominal and off-nominal scenarios, risks |
+| [software-design-description.md](software-design-description.md) | Design decisions, architecture and per-module design (DI-IPSC-81435A, tailored), with requirement traceability |
+| [interface-design-description.md](interface-design-description.md) | Every interface: config file, command line and exit codes, result JSON, library API, Python→CLI contract, experiment files (DI-IPSC-81436A, tailored) |
+| [decision-log.md](decision-log.md) | Nine architecture decision records (MADR 4.0.0), written retrospectively from the history |
+| [configuration-management-plan.md](configuration-management-plan.md) | Configuration items, baselines, change control, audits and CM gaps (NASA SEH App. M topics) |
+| [version-description.md](version-description.md) | What version 0.8.0 contains, what changed, how to install, known errors (DI-IPSC-81442A, tailored) |
 | Use case diagram | [PNG](uml/use-case.png) · [source](uml/use-case.puml) |
 | Sequence diagram: analyse, verify and run an experiment | [PNG](uml/sequence.png) · [source](uml/sequence.puml) |
 | Component diagram | [PNG](uml/component.png) · [source](uml/component.puml) |

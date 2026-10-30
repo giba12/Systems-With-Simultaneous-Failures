@@ -414,7 +414,8 @@ def run_experiment(name, analyze, out_dir, hypotheses_dir, seed, max_n=20, syste
         "experiment": name,
         "settings": settings,
         "seed": seed,
-        "randomness": "none: every experiment is deterministic",
+        "randomness": ("seeded: the random systems are drawn from random.Random(seed)" if name == "exp7"
+                       else "none: this experiment draws no random numbers"),
         "tool_version": versions.pop(),
         "hypothesis": {"file": hypothesis.name, "sha256": sha256_of(hypothesis)},
         "raw_results": raw,
