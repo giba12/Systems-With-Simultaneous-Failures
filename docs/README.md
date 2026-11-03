@@ -11,10 +11,11 @@ Derived from `space_system_reliability_analyzer_project_guide.docx` and validate
 | [user-stories.md](user-stories.md) | 26 user stories in 6 epics, with acceptance criteria and links to requirements and tests |
 | [technical-report.md](technical-report.md) | **The whole story in one document**: question, method, architecture, reproduced results, experiments, verification, limitations, deviations |
 | [demo.md](demo.md) | A two-minute guided run (`project/demo.sh`) with captured output |
+| [sample-output/](sample-output/) | Real captured output of `demo.sh`, the test run, the experiment verdicts and one analysis (JSON) |
 | [verification-report.md](verification-report.md) | How the software was verified: environment, results of every build configuration, mutation record, tolerances, defects found, requirement-by-requirement status, what is **not** verified |
 | [traceability-matrix.md](traceability-matrix.md) | Requirements → test cases → test code, generated and machine-checked by `project/tools/check_traceability.py` |
 | [deviation-log.md](deviation-log.md) | Every deviation from the paper and the guide, every correction, decision and limitation |
-| [experiment-report.md](experiment-report.md) | Results of Experiments 1–4 with figures: what reproduces the paper, what is new, every prediction supported or **rejected**, limitations and deviations |
+| [experiment-report.md](experiment-report.md) | Results of Experiments 1–7 with figures: what reproduces the paper, what is new, every prediction supported or **rejected**, limitations and deviations |
 | [project-plan.md](project-plan.md) | Ten-day plan with daily tasks, quality gates, risks, definition of done and decisions needed |
 | [conops.md](conops.md) | Concept of operations (NASA SEH App. S outline): needs, modes, nominal and off-nominal scenarios, risks |
 | [software-design-description.md](software-design-description.md) | Design decisions, architecture and per-module design (DI-IPSC-81435A, tailored), with requirement traceability |

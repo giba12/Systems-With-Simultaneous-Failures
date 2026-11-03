@@ -1,0 +1,20 @@
+# Output of: .venv/bin/python python/analyze_results.py   (verdict lines only; the full tables are in project/results/exp*/tables/ after a run)
+
+exp1: 15/15 predictions supported
+exp2: 6/8 predictions supported; REJECTED: BFR hurts redundancy less than lethal shock, beta = 0.01 is near the independent baseline
+exp3: 9/9 predictions supported
+exp4: 7/8 predictions supported; REJECTED: verification vs analysis at n = 14
+exp5: 8/8 predictions supported
+exp6: 6/7 predictions supported; REJECTED: 5: series and satellite rank the models identically
+exp7: 7/7 predictions supported
+
+# Experiment 4: cost of exactness
+  n =  4: analysis       0.04 ms, peak memory      4.1 MB
+  n =  6: analysis       0.10 ms, peak memory      4.1 MB
+  n =  8: analysis       0.20 ms, peak memory      4.2 MB
+  n = 10: analysis       0.76 ms, peak memory      4.2 MB
+  n = 12: analysis       4.12 ms, peak memory      4.3 MB
+  n = 14: analysis      15.69 ms, peak memory      4.6 MB
+  n = 16: analysis      77.71 ms, peak memory      5.9 MB
+  n = 18: analysis     328.72 ms, peak memory     11.6 MB
+  n = 20: analysis    1323.33 ms, peak memory     34.7 MB

@@ -1,0 +1,180 @@
+{
+  "config_file": "configs/satellite_support.json",
+  "failure_model": {
+    "name": "independent_exponential(lambda=1)",
+    "parameters": {
+      "lambda": 1.0
+    },
+    "type": "independent_exponential"
+  },
+  "policies": null,
+  "results": {
+    "counting_vector_all_working": [
+      1,
+      6,
+      12,
+      8,
+      0,
+      0,
+      0
+    ],
+    "integer_additions": 672,
+    "integer_divisions": 192,
+    "minimal_path_sets": [
+      {
+        "components": [
+          "P1",
+          "C1",
+          "K1"
+        ],
+        "mask": 21
+      },
+      {
+        "components": [
+          "P2",
+          "C1",
+          "K1"
+        ],
+        "mask": 22
+      },
+      {
+        "components": [
+          "P1",
+          "C2",
+          "K1"
+        ],
+        "mask": 25
+      },
+      {
+        "components": [
+          "P2",
+          "C2",
+          "K1"
+        ],
+        "mask": 26
+      },
+      {
+        "components": [
+          "P1",
+          "C1",
+          "K2"
+        ],
+        "mask": 37
+      },
+      {
+        "components": [
+          "P2",
+          "C1",
+          "K2"
+        ],
+        "mask": 38
+      },
+      {
+        "components": [
+          "P1",
+          "C2",
+          "K2"
+        ],
+        "mask": 41
+      },
+      {
+        "components": [
+          "P2",
+          "C2",
+          "K2"
+        ],
+        "mask": 42
+      }
+    ],
+    "mttf_all_working": 0.7,
+    "operational_states": 27,
+    "peak_vectors_held": 35,
+    "phi_calls": 64,
+    "system_signature": [
+      0.0,
+      0.2,
+      0.4,
+      0.4,
+      0.0,
+      0.0
+    ],
+    "tail_signature_all_working": [
+      1.0,
+      1.0,
+      0.8,
+      0.4,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "system": {
+    "components": [
+      {
+        "bit": 0,
+        "id": "P1",
+        "name": "Power unit A",
+        "role": "Primary power source"
+      },
+      {
+        "bit": 1,
+        "id": "P2",
+        "name": "Power unit B",
+        "role": "Redundant power source"
+      },
+      {
+        "bit": 2,
+        "id": "C1",
+        "name": "Communications unit A",
+        "role": "Primary communications"
+      },
+      {
+        "bit": 3,
+        "id": "C2",
+        "name": "Communications unit B",
+        "role": "Backup communications"
+      },
+      {
+        "bit": 4,
+        "id": "K1",
+        "name": "Computer A",
+        "role": "Primary processing"
+      },
+      {
+        "bit": 5,
+        "id": "K2",
+        "name": "Computer B",
+        "role": "Backup processing"
+      }
+    ],
+    "n": 6,
+    "name": "satellite_support",
+    "total_states": 64
+  },
+  "timing": {
+    "analysis_ms": 0.084786,
+    "peak_rss_kb": 4244,
+    "policies_ms": 0.0,
+    "total_ms": 0.95794,
+    "verification_ms": 0.166072
+  },
+  "tool": {
+    "name": "analyze",
+    "version": "0.8.0"
+  },
+  "verification": {
+    "counting_vectors_match_reference": true,
+    "first_mismatch": null,
+    "max_relative_mttf_difference_vs_eq6": 1.1102230246251565e-16,
+    "mttf_matches_eq6": true,
+    "numerical_checks": {
+      "max_signature_sum_error": 0.0,
+      "minimal_path_sets_match_reference": true,
+      "mttf_finite_and_nonnegative": true,
+      "phi_called_exactly_2_pow_n_times": true,
+      "signatures_nonnegative_and_sum_to_one": true
+    },
+    "passed": true,
+    "performed": true
+  }
+}

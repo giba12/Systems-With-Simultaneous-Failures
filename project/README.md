@@ -5,9 +5,7 @@ A small C++20 tool that implements the per-state signature / MTTF algorithm of L
 Failures*, arXiv:2610.22181) for a **fictional** six-component satellite-support system.
 Educational portfolio project: not a certified or flight-qualified analysis.
 
-**Status: Days 1–10 and the optional repair-policy extension are complete** (documents and glossary, state model and structure function, brute-force reference, level sweep, signatures, baseline MTTF, simultaneous failures, command-line tool and experiments). Gates G1–G5 are met. Results: [../docs/experiment-report.md](../docs/experiment-report.md); verification: [../docs/verification-report.md](../docs/verification-report.md); deviations and limits: [../docs/deviation-log.md](../docs/deviation-log.md). Everything
-below that line is still a skeleton: those functions throw `NotImplementedError` and their
-tests report *skipped*. Work through [../docs/project-plan.md](../docs/project-plan.md) day by day.
+**Status: complete (version 0.8.0).** All ten planned days and the optional repair-policy extension are done and gates G1–G5 are met. Results: [../docs/experiment-report.md](../docs/experiment-report.md); verification: [../docs/verification-report.md](../docs/verification-report.md); deviations and limits: [../docs/deviation-log.md](../docs/deviation-log.md). Plan: [../docs/project-plan.md](../docs/project-plan.md).
 
 | Module | State |
 |---|---|

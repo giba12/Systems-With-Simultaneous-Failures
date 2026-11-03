@@ -1,0 +1,13 @@
+# Output of: ./run_all.sh   (project/, Release build, g++ 13, WSL2; whole run took about 2.5 minutes)
+# Section 3: tests
+
+100% tests passed, 0 tests failed out of 129
+
+Total Test time (real) =  74.53 sec
+
+# Section 4: analysis of the satellite-support system
+  satellite_exp                      MTTF of the new system 0.7000   verification PASSED
+  satellite_lethal_shock             MTTF of the new system 0.9143   verification PASSED
+  satellite_binomial_failure_rate    MTTF of the new system 0.7603   verification PASSED
+  repair policies: best r-out-of-n rule repairs after 1 failures, cost per time 0.9000 (corrective: 1.9571)
+
