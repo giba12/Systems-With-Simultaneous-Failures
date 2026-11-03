@@ -149,7 +149,7 @@ None. There are no subcontractors. Third-party code is used as downloaded under 
 | CM-6 | No licence chosen (all rights reserved by default) | pick one before inviting reuse (README "Licence") | medium |
 | CM-7 | The fresh-copy check is manual | add a CI job that runs `demo.sh` and one experiment from a clean checkout | low |
 | CM-8 | Four local `claude/*` branches with worktrees under `.claude/worktrees/` | they hold no commit that `main` lacks (0 ahead); remove them with `git worktree remove` and `git branch -d` when no longer needed | low |
-| CM-9 | `docs/file-guide.md` is not yet committed | decide whether it is a controlled document, then commit it and add it to the documentation index | low |
+| CM-9 | ~~`docs/file-guide.md` is not yet committed~~ **Resolved 2026-11-03**: committed as an explanatory (non-normative) document and added to the documentation index | – | done |
 | CM-10 | ~~The README quoted "44 of 48" predictions and "3 rejections"~~ **Fixed** with the commit that added this plan: 57 of 62, 4 stable rejections plus one timing case, matching deviation log D4 and the experiment report | re-derive the counts from the `hypothesis_check.md` outputs when an experiment is re-run | low |
 
 This plan should be re-read after any change in team size, hosting, or release practice.

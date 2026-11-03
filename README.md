@@ -252,6 +252,7 @@ Exit codes: `0` success, `1` invalid input, `2` usage error, `3` verification fa
 | every deviation from the paper | [docs/deviation-log.md](docs/deviation-log.md) |
 | the paper's symbols in plain language | [docs/notation-glossary.md](docs/notation-glossary.md) |
 | the code, module by module | [project/README.md](project/README.md) |
+| every file explained for a non-specialist, with a technology primer | [docs/file-guide.md](docs/file-guide.md) |
 | the full index (requirements, test plan, design, diagrams) | [docs/README.md](docs/README.md) |
 
 <details>

@@ -10,6 +10,7 @@ Derived from `space_system_reliability_analyzer_project_guide.docx` and validate
 | [test-plan.md](test-plan.md) | Test strategy, analytical and paper oracles, test cases A–J, traceability matrix |
 | [user-stories.md](user-stories.md) | 26 user stories in 6 epics, with acceptance criteria and links to requirements and tests |
 | [technical-report.md](technical-report.md) | **The whole story in one document**: question, method, architecture, reproduced results, experiments, verification, limitations, deviations |
+| [file-guide.md](file-guide.md) | **A guided tour of every technical file**: what each one is, what technologies it uses and why, written for a reader who follows the project at a high level (parts 1–2 are a technology primer) |
 | [demo.md](demo.md) | A two-minute guided run (`project/demo.sh`) with captured output |
 | [sample-output/](sample-output/) | Real captured output of `demo.sh`, the test run, the experiment verdicts and one analysis (JSON) |
 | [verification-report.md](verification-report.md) | How the software was verified: environment, results of every build configuration, mutation record, tolerances, defects found, requirement-by-requirement status, what is **not** verified |
