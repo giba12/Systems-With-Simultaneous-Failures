@@ -126,7 +126,7 @@ Resources: a Linux (WSL2) machine, a GitHub account and repository, GitHub Actio
 |---|---|
 | Repository with history, CI and badge | in place |
 | Generated traceability matrix, regenerated when requirements or test cases change | in place |
-| Verification report with CI run ids per configuration | in place; the latest recorded run is at `88d62f2`, and `b662153` (comments and documents) has no run recorded |
+| Verification report with CI run ids per configuration | in place; recorded runs: `88d62f2` (run 40394591079) and, since 2026-11-03, `b744d25`, `4ef2db2` and `5d61501` (verification report §10) |
 | Baseline register | this plan, §2.2 |
 | Release tag and version description | not done (see §8) |
 
@@ -142,7 +142,7 @@ None. There are no subcontractors. Third-party code is used as downloaded under 
 | # | Gap | Recommended action | Priority |
 |---|---|---|---|
 | CM-1 | No tags or releases | `git tag -a v0.8.0 b662153` (or the commit chosen after the actions below) and a release note from [version-description.md](version-description.md) | high |
-| CM-2 | The CI run for `b662153` is not recorded | open the Actions run for that commit; add it to the verification report in a follow-up commit | high |
+| CM-2 | ~~The CI run for `b662153` is not recorded~~ **Resolved 2026-11-03**: the `ci` workflow succeeded on `b744d25` (run 41566824764), `4ef2db2` (41573522942) and `5d61501` (41691371967); recorded in the verification report §10 | – | done |
 | CM-3 | Downloads are not checksum-pinned | add `URL_HASH SHA256=…` to both `FetchContent_Declare` calls | medium |
 | CM-4 | Python packages are unpinned | commit a lock or a `constraints.txt` with the versions in the verification report | medium |
 | CM-5 | `main` is unprotected and has no review step | enable branch protection requiring the `ci` jobs, even for a single maintainer | medium |

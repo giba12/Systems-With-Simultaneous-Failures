@@ -22,7 +22,7 @@ Educational portfolio project: not a certified or flight-qualified analysis.
 
 Test status: 127 C++ tests, 48 Python end-to-end tests (`python_end_to_end` under ctest) and the traceability check (`traceability`), 129 ctest tests in all, all passing; 8 Python tests skip themselves when pandas / matplotlib are missing. Builds warning-free with g++ 13 and clang++ 18, and passes under AddressSanitizer + UndefinedBehaviorSanitizer.
 
-Measured sweep cost (parallel system, Release build, 2026-10-26): n = 16 → 0.12 s, 6 MB; n = 20 → 2.2 s, 35 MB; n = 24 → about 48 s, 534 MB. (Earlier figures in these documents, 0.17 s / 2.9 s / 58 s, were measured before the son ranks were computed in one pass; their memory figures, 25 MB and 402 MB, are not reproduced by the old or the new build.)
+Measured sweep cost (parallel system, Release build, 2026-10-26): n = 16 → 0.12 s, 6 MB; n = 20 → 2.2 s, 35 MB; n = 24 → about 48 s, 534 MB. (Earlier figures in these documents, 0.17 s / 2.9 s / 58 s, were measured before the son ranks were computed in one pass; their memory figures, 25 MB and 402 MB, are not reproduced by the old or the new build.) Re-measured 2026-11-03: n = 20 → 1.3 s, 35 MB (timings vary with machine and load).
 
 ## Build and test
 

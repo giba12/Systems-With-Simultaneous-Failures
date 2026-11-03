@@ -43,6 +43,8 @@ You can also paste a `.puml` file into <https://www.plantuml.com/plantuml> or us
 
 ## Status
 
-Version 1.1 (2026-10-20). The documents were validated against `paper3.pdf`: the core equations (Eqs. (1), (2), (5)–(8), (19)–(20), (22)) and the worked numbers were re-computed independently and match; the paper's Fig. 1 example was reproduced exactly. One incorrect test expectation and one outdated diagram were corrected. See [paper-validation-report.md](paper-validation-report.md). Eq. (21) was checked against the typeset PDF on 2026-10-21 and the paper has a typo in its lower limit (§6 of the report).
+Last reviewed 2026-11-03. The folder holds the requirements, design, test and verification documents, the reports, the decision log, the configuration-management plan, the version description (0.8.0) and the diagrams listed above. `project/run_all.sh` was re-run on 2026-11-03: 129 / 129 tests passed and the experiment verdicts match [experiment-report.md](experiment-report.md) (see [verification-report.md](verification-report.md) §10).
 
-These documents were rebuilt on 2026-10-20 after the original `docs/` folder disappeared from disk. The UML sources and PNGs were restored from the render copies (file sizes match the originals); the five documents were reconstructed from my earlier work and may differ in small wording details.
+The documents were validated against `paper3.pdf`: the core equations (Eqs. (1), (2), (5)–(8), (19)–(20), (22)) and the worked numbers were re-computed independently and match; the paper's Fig. 1 example was reproduced exactly. One incorrect test expectation and one outdated diagram were corrected. See [paper-validation-report.md](paper-validation-report.md). Eq. (21) was checked against the typeset PDF on 2026-10-21 and the paper has a typo in its lower limit (§6 of the report).
+
+History: the first five documents were rebuilt on 2026-10-20 after the original `docs/` folder disappeared from disk; the UML sources and PNGs were restored from the render copies. The set has grown considerably since.

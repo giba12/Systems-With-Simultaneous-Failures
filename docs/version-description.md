@@ -5,7 +5,7 @@
 | **Version** | 0.8.0 (the value of `project(… VERSION 0.8.0)`; printed by the tool as `tool.version`) |
 | **Revision described** | `main` at commit `b662153`, 2026-10-27 (this document: 2026-10-29) |
 | **Template** | DI-IPSC-81442A, *Software Version Description* (sections 1 – 4 of the DID: scope, referenced documents, version description with its seven subsections, notes). Written from the DID's content structure, not from a fresh copy; confirm the current revision in the DLA ASSIST database before any contractual use |
-| **Release status** | **Not released.** No git tag exists, and no CI run is recorded for this exact commit. See [configuration-management-plan.md](configuration-management-plan.md) §8 (CM-1, CM-2) |
+| **Release status** | **Not released.** No git tag exists (CM-1). CI has since succeeded on later commits, see [verification-report.md](verification-report.md) §10. See [configuration-management-plan.md](configuration-management-plan.md) §8 |
 | **Related** | [verification-report.md](verification-report.md) · [deviation-log.md](deviation-log.md) · [README](../README.md) |
 
 ## 1. Scope
@@ -129,15 +129,15 @@ There is no install target and nothing is written outside the checkout. To remov
 `--verify`, n ≤ 20 for repair policies; failure models are [Exp] and the six common-cause models of Table I; Linux only
 (other operating systems not tried); run times are orders of magnitude from one laptop. See the [deviation log](deviation-log.md).
 
-**Known defects and inconsistencies** found while writing this document set (none changes a computed result). KE-1 to KE-3 were fixed in the commit that added this document set; KE-4 to KE-8 remain open:
+**Known defects and inconsistencies** found while writing this document set (none changes a computed result). KE-1 to KE-3 were fixed in the commit that added this document set; KE-4 and KE-5 were fixed on 2026-11-03; KE-6 to KE-8 remain open:
 
 | # | Where | Problem |
 |---|---|---|
 | KE-1 (fixed) | [technical-report.md](technical-report.md) §9 | said repair policies use "a simpler evaluation than the paper's single pass, and the optimal policy is not implemented" (and repeated the precision sentence); both statements were out of date — the optimal policy and the single-pass search are implemented (deviation log A7) |
 | KE-2 (fixed) | [README](../README.md), "Pre-registered predictions" | quoted "44 of 48 supported … 3 stable rejections", which covered only Experiments 1 – 5; now 57 of 62 supported in the first run, 4 stable rejections plus one timing-sensitive case (deviation log D4) |
 | KE-3 (fixed) | `run_experiments.py`, result field `randomness` | was `"none: every experiment is deterministic"` for all experiments; now `"seeded: …"` for Experiment 7 and `"none: …"` for the others |
-| KE-4 | [docs/README.md](README.md), "Status" | still says version 1.1 of 2026-10-20 and "the five documents were reconstructed"; the folder now holds many more |
-| KE-5 | CI | no run is recorded for `b662153`; the last recorded run is at `88d62f2` |
+| KE-4 (fixed) | [docs/README.md](README.md), "Status" | said version 1.1 of 2026-10-20 and "the five documents were reconstructed"; rewritten 2026-11-03 |
+| KE-5 (fixed) | CI | no run was recorded for `b662153`; the `ci` workflow has since succeeded on `b744d25`, `4ef2db2` and `5d61501` (verification report §10) |
 | KE-6 | `CMakeLists.txt` | the version number was not bumped after 2026-10-22 (§3.3) |
 | KE-7 | build | downloads are not checksum-pinned; the first configure needs the network |
 | KE-8 | licence | none chosen; all rights reserved by default |

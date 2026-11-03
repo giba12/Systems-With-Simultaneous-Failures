@@ -214,3 +214,18 @@ The fresh-copy check was repeated on the final tree, including the optional repa
 | `analyze … --c-comp 0.1 --c-sys 1 --c-set 0.05` | 4 threshold policies, best r = 1 |
 | `run_experiments.py all`, new virtual environment, `analyze_results.py`, `plot_results.py` | five experiments saved, five figures drawn |
 | verdicts | Exp 1 15/15, Exp 2 6/8, Exp 3 9/9, Exp 4 7/8 (the same timing-sensitive criterion as in §9), **Exp 5 8/8** |
+
+## 10. Re-verification (2026-11-03)
+
+`project/run_all.sh` was run end to end on the tree at commit `4ef2db2` (only the README, the docs index and the sample-output folder changed afterwards). This is a dated record; earlier sections are not rewritten.
+
+| Check | Result |
+|---|---|
+| g++ 13.3.0, Release, `ctest` | **129 / 129 passed** (total test time 74.5 s) |
+| `analyze --verify`: independent exponential, lethal shock (β = 0.5), binomial failure rate (β = 0.5) | all passed; MTTF of the new system 0.7000, 0.9143, 0.7603 |
+| Experiments 1 – 7, `analyze_results.py` | **58 / 62 predictions supported**: Experiment 1 15/15, 2 6/8, 3 9/9, 4 7/8, 5 8/8, 6 6/7, 7 7/7. Rejected: two in Experiment 2, the verification-versus-analysis timing criterion at n = 14 in Experiment 4, and the model-ranking prediction in Experiment 6 |
+| Cost of exactness, n = 20 (1,048,576 states) | 1.32 s, 34.7 MB (timings vary with machine and load) |
+| `tools/check_traceability.py` | 39 requirements, 113 test cases, 110 tagged in test code, 0 problems; the regenerated matrix is identical to [traceability-matrix.md](traceability-matrix.md) |
+| GitHub Actions, workflow `ci` | succeeded on `b744d25` (run 41566824764), `4ef2db2` (run 41573522942) and `5d61501` (run 41691371967) |
+
+Not repeated on this date: the local clang++ build, the local sanitizer build, and the repeated and shuffled test runs; the CI workflow covers g++, clang++ and ASan/UBSan on each push. Raw output of this run is in [sample-output/](sample-output/).
