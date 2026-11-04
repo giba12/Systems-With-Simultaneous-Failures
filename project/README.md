@@ -36,6 +36,8 @@ ctest --test-dir build --output-on-failure
 
 To do all of this in one go (venv, build, all tests, the analysis tool, the seven experiments, tables and figures; about 6 minutes), run `./run_all.sh`. Options: `--skip-tests`, `--skip-experiments`.
 
+An interactive, browser-based playground for the main ideas lives in [`playground/`](playground/README.md) (open `playground/switchboard-lab.html`).
+
 ## Layout
 
 | Path | What it holds | Plan day |
