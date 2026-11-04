@@ -1,0 +1,847 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Switchboard Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:wght@600;800&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout concept: a workbench. One persistent switchboard on top, five lab benches below it.
+   Colour story: the three component families (power, comms, computers) keep one colour everywhere. */
+:root {
+  --bg: #EDF0F6; --panel: #FFFFFF; --ink: #15203A; --muted: #56627F; --line: #D3DAE8; --soft: #F4F6FB;
+  --power: #E39B00; --comms: #1F7FE0; --comp: #D12F6C;
+  --ok: #178A4B; --bad: #CC2F38; --mark: #15203A;
+  --display: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1320; --panel: #171F31; --ink: #E7ECF7; --muted: #9AA7C4; --line: #2A3552; --soft: #1D2740;
+    --power: #F4B53A; --comms: #5DA8FF; --comp: #FF77A4;
+    --ok: #4CC38A; --bad: #FF7076; --mark: #E7ECF7; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1320; --panel: #171F31; --ink: #E7ECF7; --muted: #9AA7C4; --line: #2A3552; --soft: #1D2740;
+  --power: #F4B53A; --comms: #5DA8FF; --comp: #FF77A4;
+  --ok: #4CC38A; --bad: #FF7076; --mark: #E7ECF7; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 16px/1.55 var(--body); margin: 0;
+  padding-block: 28px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 980px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; line-height: 1.1; }
+h1 { font-size: clamp(2.1rem, 6.5vw, 3.5rem); font-weight: 800; letter-spacing: -0.02em; }
+h2 { font-size: 1.45rem; font-weight: 800; letter-spacing: -0.01em; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.eyebrow { font: 500 0.78rem var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.lede { color: var(--muted); max-width: 62ch; margin-top: 10px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
+.row > * { min-width: 0; }
+.lab { font: 500 0.74rem var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+.seg button, .btn { background: var(--soft); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); font-weight: 700; }
+.btn:disabled { opacity: 0.45; cursor: default; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--comms); outline-offset: 2px; }
+input[type=range] { accent-color: var(--ink); width: 100%; max-width: 280px; }
+.val { font-family: var(--mono); font-size: 0.9rem; }
+
+/* switchboard */
+.board { display: flex; flex-wrap: wrap; gap: 16px 26px; margin-top: 14px; }
+.grp { display: flex; flex-direction: column; gap: 6px; }
+.grp-n { font: 500 0.74rem var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); min-height: 1em; }
+.grp-sw { display: flex; gap: 10px; }
+.c-power { --c: var(--power); } .c-comms { --c: var(--comms); } .c-comp { --c: var(--comp); }
+.sw { width: 92px; min-height: 92px; border-radius: 18px; border: 2px solid var(--c); background: color-mix(in srgb, var(--c) 20%, var(--panel));
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; padding: 10px 12px; text-align: left; position: relative; }
+.sw .nm { font: 800 1.35rem var(--display); }
+.sw .st { font: 500 0.7rem var(--mono); letter-spacing: 0.05em; text-transform: uppercase; }
+.sw .lamp { position: absolute; top: 10px; right: 10px; width: 14px; height: 14px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 30%, transparent); }
+.sw.down { background: var(--panel); border-style: dashed; color: var(--muted); }
+.sw.down .nm { text-decoration: line-through; }
+.sw.down .lamp { background: transparent; box-shadow: inset 0 0 0 2px var(--muted); }
+.sw .need { font: 500 0.66rem var(--mono); background: var(--ink); color: var(--bg); border-radius: 6px; padding: 0 6px; margin-top: 2px; }
+.status { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-top: 14px; }
+.verdict { font: 800 1.05rem var(--display); padding: 4px 14px; border-radius: 999px; border: 2px solid; }
+.verdict.ok { color: var(--ok); border-color: var(--ok); } .verdict.bad { color: var(--bad); border-color: var(--bad); }
+.bits { font-family: var(--mono); font-size: 0.95rem; }
+.bits b { letter-spacing: 0.18em; }
+
+/* tabs */
+.tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.tabs button { white-space: nowrap; background: transparent; border: 0; border-bottom: 3px solid transparent; padding: 8px 12px; font-weight: 700; color: var(--muted); }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+.panel { display: flex; flex-direction: column; gap: 22px; }
+.sec { display: flex; flex-direction: column; gap: 10px; }
+.sec + .sec { border-top: 1px solid var(--line); padding-top: 22px; }
+.note { color: var(--muted); max-width: 66ch; }
+.big { font: 800 2.1rem var(--display); letter-spacing: -0.02em; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.stat { background: var(--soft); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; }
+.good { color: var(--ok); } .badtxt { color: var(--bad); }
+
+/* chips and bars */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { background: var(--soft); border: 1px solid var(--line); border-radius: 12px; padding: 6px 12px; display: flex; flex-direction: column; align-items: center; min-width: 62px; }
+.chip b { font: 800 1.35rem var(--display); }
+.chip span, .chip i { font: 500 0.68rem var(--mono); color: var(--muted); font-style: normal; }
+button.chip { cursor: pointer; flex-direction: row; gap: 8px; font-family: var(--mono); font-size: 0.85rem; }
+button.chip.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.bars { display: flex; gap: 8px; align-items: flex-end; height: 130px; border-bottom: 2px solid var(--ink); padding-top: 6px; }
+.bcol { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; position: relative; }
+.bar { width: 100%; max-width: 52px; background: var(--c, var(--comms)); border-radius: 6px 6px 0 0; min-height: 2px; }
+.bval { font: 500 0.72rem var(--mono); margin-bottom: 3px; }
+.mk { position: absolute; left: 50%; transform: translateX(-50%); width: 100%; max-width: 62px; border-top: 3px solid var(--ink); }
+.mk::after { content: ""; position: absolute; left: 50%; top: -8px; width: 10px; height: 10px; background: var(--panel); border: 2px solid var(--ink); border-radius: 50%; transform: translateX(-50%); }
+.blabs { display: flex; gap: 8px; }
+.blabs span { flex: 1; text-align: center; font: 500 0.72rem var(--mono); color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.88rem; color: var(--muted); }
+.sw-dot { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; background: var(--comms); }
+
+/* tables and grids */
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; font-size: 0.92rem; min-width: 100%; }
+th, td { border-bottom: 1px solid var(--line); padding: 6px 10px; text-align: center; white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { font: 500 0.72rem var(--mono); color: var(--muted); letter-spacing: 0.04em; }
+tr.sum td { font-weight: 700; } tr.res td { font: 800 1.2rem var(--display); background: var(--soft); }
+.floors { display: flex; flex-direction: column; gap: 6px; }
+.floor { display: flex; gap: 10px; align-items: center; }
+.floor > .lab { width: 78px; flex: none; }
+.cells { display: flex; flex-wrap: wrap; gap: 4px; }
+.cell { width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid var(--line); padding: 0; background: var(--panel); }
+.cell.live { background: color-mix(in srgb, var(--comms) var(--p, 50%), var(--panel)); border-color: var(--comms); }
+.cell.dead { background: repeating-linear-gradient(45deg, var(--line) 0 3px, transparent 3px 6px); }
+.cell.pending { border-style: dashed; }
+.cell.rep { background: var(--comp); border-color: var(--comp); }
+.cell.keep { background: color-mix(in srgb, var(--comms) 28%, var(--panel)); border-color: var(--comms); }
+.cell.cur { outline: 3px solid var(--ink); outline-offset: 1px; }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+.two > * { min-width: 0; }
+svg.chart { width: 100%; height: auto; display: block; touch-action: none; }
+svg .ax { fill: var(--muted); font: 11px var(--mono); }
+svg .gl { stroke: var(--line); stroke-width: 1; }
+svg .axl { stroke: var(--ink); stroke-width: 1.5; }
+.ln { fill: none; stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+.ln.a { stroke: var(--comms); } .ln.b { stroke: var(--comp); stroke-dasharray: 7 5; } .ln.c { stroke: var(--muted); stroke-width: 2; stroke-dasharray: 2 5; }
+.sline { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 3 3; }
+.rbar { display: grid; grid-template-columns: minmax(120px, 190px) 1fr 64px; gap: 10px; align-items: center; font-size: 0.92rem; }
+.rbar .track { height: 18px; background: var(--soft); border-radius: 6px; overflow: hidden; }
+.rbar .fill { height: 100%; background: var(--comms); border-radius: 6px; }
+.rbar.best .fill { background: var(--ok); } .rbar.best .nm { font-weight: 700; }
+.rbar .nm { min-width: 0; overflow-wrap: anywhere; }
+.rbar .v { font-family: var(--mono); text-align: right; }
+.tag { font: 500 0.66rem var(--mono); background: var(--ok); color: var(--bg); border-radius: 6px; padding: 0 6px; margin-left: 6px; vertical-align: 1px; }
+.sliders { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.sliders label { display: flex; flex-direction: column; gap: 4px; }
+.callout { background: var(--soft); border-radius: 12px; padding: 12px 14px; max-width: 70ch; }
+.foot { color: var(--muted); font-size: 0.88rem; max-width: 70ch; }
+@media (max-width: 520px) { .sw { width: 84px; } .rbar { grid-template-columns: 1fr 56px; } .rbar .track { grid-column: 1 / -1; order: 3; } .floor > .lab { width: 60px; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Space System Reliability Analyzer · playground</div>
+    <h1>Switchboard Lab</h1>
+    <p class="lede">Break switches and watch what the project's algorithm knows about the ship. Every number here comes from a JavaScript port of the C++ code, checked against the numbers in the project's reports. The satellite is fictional.</p>
+  </header>
+
+  <section class="card" aria-label="The ship">
+    <div class="row">
+      <span class="lab">Ship</span>
+      <div class="seg" id="presets"></div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <span class="lab">Failures</span>
+      <div class="seg" id="models"></div>
+      <label class="row" style="gap:10px"><span class="lab">β</span>
+        <input type="range" id="beta" min="0.01" max="1" step="0.01" value="0.5" aria-label="Pairwise beta factor">
+        <span class="val" id="betaV">0.50</span></label>
+    </div>
+    <p class="note" id="blurb" style="margin-top:10px"></p>
+    <div class="board" id="board"></div>
+    <div class="status" id="status"></div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn" data-act="allup">All working</button>
+      <button class="btn" data-act="breakone">Break one at random</button>
+      <button class="btn" data-act="alldown">All broken</button>
+    </div>
+  </section>
+
+  <nav class="tabs" role="tablist" aria-label="Lab benches" id="tabs">
+    <button role="tab" data-tab="t1" aria-selected="true">What the board knows</button>
+    <button role="tab" data-tab="t2" aria-selected="false">The lazy trick</button>
+    <button role="tab" data-tab="t3" aria-selected="false">Flip game</button>
+    <button role="tab" data-tab="t4" aria-selected="false">Common bumps</button>
+    <button role="tab" data-tab="t5" aria-selected="false">Repair crew</button>
+  </nav>
+
+  <section class="card panel" id="t1" role="tabpanel"></section>
+
+  <section class="card panel" id="t2" role="tabpanel" hidden>
+    <div class="sec">
+      <h2>Counting without counting</h2>
+      <p class="note">For the board above, each row is a neighbour with one more switch broken. Add up their numbers in a column, divide by k, and you get this board's count. Nobody had to list the ways by hand.</p>
+      <div class="scroll" id="lazy"></div>
+    </div>
+    <div class="sec">
+      <h2>Climb the stairs</h2>
+      <p class="note">The algorithm starts with every switch broken and climbs one floor at a time. It asks "does the ship work?" once per arrangement and keeps only the floor it is on and the one below. Click a square to put it on the board.</p>
+      <div class="row">
+        <button class="btn primary" data-act="climb">Climb one floor</button>
+        <button class="btn" data-act="climball">Run all floors</button>
+        <button class="btn" data-act="climbreset">Start over</button>
+      </div>
+      <div class="stats" id="sweepstats"></div>
+      <div class="floors" id="stairs"></div>
+      <div class="legend"><span><i class="sw-dot" style="background:var(--comms)"></i>works (darker = longer expected life)</span><span><i class="sw-dot" style="background:repeating-linear-gradient(45deg,var(--line) 0 3px,transparent 3px 6px);border:1px solid var(--line)"></i>ship is dead</span><span>dashed = not reached yet</span></div>
+    </div>
+  </section>
+
+  <section class="card panel" id="t3" role="tabpanel" hidden></section>
+  <section class="card panel" id="t4" role="tabpanel" hidden>
+    <div class="sec">
+      <h2>When one bump breaks several switches</h2>
+      <p class="note">Slide β or click the chart. At β = 0 switches break alone. As β grows, more breaks arrive as bundles. Two things happen to this ship, and they pull in different directions.</p>
+      <div class="row">
+        <div class="seg" id="bmodes"></div>
+        <label class="row" style="gap:10px"><span class="lab">β</span><input type="range" id="beta4" min="0.02" max="1" step="0.02" aria-label="Pairwise beta factor"><span class="val" id="beta4V"></span></label>
+      </div>
+      <div id="b4chart"></div>
+      <div class="legend"><span><i class="sw-dot" style="background:var(--comms)"></i>lethal shock</span><span><i class="sw-dot" style="background:var(--comp)"></i>binomial failure rate</span><span><i class="sw-dot" style="background:var(--muted)"></i>independent failures</span></div>
+    </div>
+    <div class="sec">
+      <div class="stats" id="b4stats"></div>
+      <p class="note">"Worth of the redundancy" is this ship's life divided by the life of the same switches wired in series, under the same failure model. Bundled breaks tend to make the absolute life longer, because the first bundle takes a while to arrive, but a bundle can take a switch and its backup together. The two bundling recipes agree on a single redundant pair and split apart as more pairs are added.</p>
+    </div>
+  </section>
+
+  <section class="card panel" id="t5" role="tabpanel" hidden>
+    <div class="sec">
+      <h2>When do you call the crew?</h2>
+      <p class="note">A repair replaces every broken switch and makes the ship new. It costs a set-up fee, a price per replaced switch, and a fine if the ship had already died. Each rule below is scored by average cost per unit of time.</p>
+      <div class="sliders">
+        <label><span class="lab">Price per switch <span class="val" id="cCompV"></span></span><input type="range" id="cComp" min="0" max="0.5" step="0.01"></label>
+        <label><span class="lab">Fine if the ship died <span class="val" id="cSysV"></span></span><input type="range" id="cSys" min="0" max="2" step="0.05"></label>
+        <label><span class="lab">Set-up fee per visit <span class="val" id="cSetV"></span></span><input type="range" id="cSet" min="0" max="0.5" step="0.01"></label>
+      </div>
+      <div class="row">
+        <span class="lab">Try</span>
+        <button class="btn" data-scn="cheap">Cheap switches</button>
+        <button class="btn" data-scn="fee">Big set-up fee</button>
+        <button class="btn" data-scn="dear">Dear switches</button>
+        <button class="btn" data-scn="line">Where the health line wins</button>
+      </div>
+    </div>
+    <div class="sec">
+      <h3>Cost per unit of time (lower is better)</h3>
+      <div id="rbars" style="display:flex;flex-direction:column;gap:8px"></div>
+      <div class="callout" id="rsummary"></div>
+    </div>
+    <div class="sec">
+      <h2>The health line</h2>
+      <p class="note">Health = a board's expected remaining life divided by a new ship's. Call the crew when health drops below your line. Slide it and watch the cost change. The curve is a staircase because the plan only changes when the line crosses a board's health.</p>
+      <label style="max-width:420px"><span class="lab">Line <span class="val" id="gV"></span></span><input type="range" id="gamma" min="0" max="1" step="0.01"></label>
+      <div id="gchart"></div>
+      <div class="two">
+        <div><h3>Your line: <span class="val" id="gcost"></span></h3><div class="floors" id="gridG" style="margin-top:8px"></div></div>
+        <div><h3>The perfect plan: <span class="val" id="ocost"></span></h3><div class="floors" id="gridO" style="margin-top:8px"></div></div>
+      </div>
+      <div class="legend"><span><i class="sw-dot" style="background:var(--comp)"></i>call the crew</span><span><i class="sw-dot" style="background:color-mix(in srgb,var(--comms) 28%,var(--panel));border:1px solid var(--comms)"></i>keep flying</span><span><i class="sw-dot" style="background:repeating-linear-gradient(45deg,var(--line) 0 3px,transparent 3px 6px);border:1px solid var(--line)"></i>ship is dead (crew always comes)</span></div>
+    </div>
+    <div class="sec">
+      <h2>Finding the perfect plan by guessing</h2>
+      <p class="note">Dinkelbach's method. Guess a price for each day of flying, make the best repair-or-fly choice on every board at that price, then measure what that plan really costs per day. Use that as the next guess. Stop when the guess stops improving.</p>
+      <div class="row">
+        <button class="btn primary" data-act="dknext">Next round</button>
+        <button class="btn" data-act="dkall">Run all rounds</button>
+        <button class="btn" data-act="dkreset">Start over</button>
+      </div>
+      <div class="scroll" id="dk"></div>
+    </div>
+  </section>
+
+  <p class="foot">The port covers ships of up to six switches so every board can be shown. The C++ tool goes to 20 switches for the independent model and 16 for the common-cause models. Common-cause models here are the lethal shock and the binomial failure rate, both calibrated so a switch lives one unit on average.</p>
+</div>
+
+<script>
+/* engine.js - a small JavaScript port of the C++ library, for systems of up to 6 components.
+   Same maths as the project: level sweep (Lemma 1), tail signature, signature, MTTF (Eq. 7),
+   Levy-frailty kernel (Eq. 20) with the non-negative increment recursion, repair policies by
+   enumeration of sub-states, and the optimal policy by Dinkelbach's method. */
+
+const BINOM = [];
+for (let a = 0; a <= 12; a++) {
+  BINOM[a] = [];
+  for (let b = 0; b <= a; b++) BINOM[a][b] = b === 0 || b === a ? 1 : BINOM[a - 1][b - 1] + BINOM[a - 1][b];
+}
+const choose = (a, b) => (b < 0 || b > a ? 0 : BINOM[a][b]);
+const pop = (x) => { let c = 0; while (x) { c += x & 1; x >>= 1; } return c; };
+
+/* ---------- systems ---------- */
+function makeSystem(id, name, labels, colors, phi, blurb) {
+  const n = labels.length;
+  return { id, name, labels, colors, n, phi, blurb, all: (1 << n) - 1 };
+}
+const SYSTEMS = [
+  makeSystem('sat', 'Satellite', ['P1', 'P2', 'C1', 'C2', 'K1', 'K2'],
+    ['power', 'power', 'comms', 'comms', 'comp', 'comp'],
+    (x) => (x & 3) !== 0 && (x & 12) !== 0 && (x & 48) !== 0,
+    'Three pairs: power, communications, computers. Each pair needs one working unit.'),
+  makeSystem('fig1', 'Paper Fig. 1', ['x1', 'x2', 'x3'], ['comms', 'comms', 'power'],
+    (x) => ((x & 4) !== 0) || ((x & 3) === 3),
+    'Works if x3 works, or if x1 and x2 both work.'),
+  makeSystem('two4', 'Two of four', ['A', 'B', 'C', 'D'], ['comms', 'comms', 'comms', 'comms'],
+    (x) => pop(x) >= 2,
+    'Works while at least two of the four units work.'),
+  makeSystem('ser4', 'Series of four', ['A', 'B', 'C', 'D'], ['comp', 'comp', 'comp', 'comp'],
+    (x) => x === 15,
+    'Every unit is needed.'),
+  makeSystem('par3', 'Parallel of three', ['A', 'B', 'C'], ['power', 'power', 'power'],
+    (x) => x !== 0,
+    'Any one working unit is enough.'),
+];
+function seriesOf(n) {
+  return makeSystem('series', 'Series', Array.from({ length: n }, (_, i) => 'S' + (i + 1)),
+    Array(n).fill('comp'), (x) => x === (1 << n) - 1, '');
+}
+
+/* ---------- failure models ---------- */
+function makeModel(type, beta) {
+  if (type === 'exp') {
+    return { type, name: 'Independent', nu: (w) => w, P: (w1, w2) => (w2 === w1 - 1 ? 1 : 0), inc: (w, k) => 1 / (w - k) };
+  }
+  const psi = type === 'lsh'
+    ? (x) => (x <= 0 ? 0 : (1 - beta) * x + beta)
+    : (x) => (x <= 0 ? 0 : (1 - Math.pow(1 - beta, x)) / beta);
+  const N = 8;
+  const psiV = Array.from({ length: N + 1 }, (_, i) => psi(i));
+  const K = Array.from({ length: N + 1 }, () => Array(N + 1).fill(0));
+  for (let w1 = 1; w1 <= N; w1++) {
+    for (let w2 = 0; w2 < w1; w2++) {
+      let sum = 0;
+      for (let w = w2; w <= w1; w++) {
+        const sign = (w - w2 + 1) % 2 === 0 ? 1 : -1;
+        sum += sign * choose(w1 - w2, w1 - w) * psiV[w] / psiV[w1];
+      }
+      K[w1][w2] = Math.max(0, choose(w1, w1 - w2) * sum);
+    }
+  }
+  const INC = Array.from({ length: N + 1 }, () => Array(N + 1).fill(0));
+  for (let w = 1; w <= N; w++) {
+    const reach = Array(w + 1).fill(0);
+    reach[w] = 1;
+    for (let v = w - 1; v >= 0; v--) {
+      let t = 0;
+      for (let a = v + 1; a <= w; a++) t += reach[a] * K[a][v];
+      reach[v] = t;
+    }
+    for (let k = 0; k < w; k++) INC[w][k] = reach[w - k] / psiV[w - k];
+  }
+  return {
+    type, name: type === 'lsh' ? 'Lethal shock' : 'Binomial failure rate',
+    nu: (w) => psiV[w], P: (w1, w2) => (w2 >= w1 || w1 === 0 ? 0 : K[w1][w2]), inc: (w, k) => INC[w][k],
+  };
+}
+
+/* ---------- the level sweep (Algorithm 1) ---------- */
+function analyse(sys, model) {
+  const n = sys.n, size = 1 << n;
+  const W = new Array(size);
+  const levels = Array.from({ length: n + 1 }, () => []);
+  for (let x = 0; x < size; x++) levels[pop(x)].push(x);
+  let phiCalls = 0;
+  const order = [];
+  for (let w = 0; w <= n; w++) {
+    for (const x of levels[w]) {
+      phiCalls++;
+      const vec = [sys.phi(x) ? 1 : 0];
+      for (let k = 1; k <= w; k++) {
+        let total = 0;
+        for (let i = 0; i < n; i++) if ((x >> i) & 1) total += W[x & ~(1 << i)][k - 1];
+        if (total % k !== 0) throw new Error('not divisible');
+        vec[k] = total / k;
+      }
+      W[x] = vec;
+      order.push(x);
+    }
+  }
+  const tail = new Array(size), sig = new Array(size), mttf = new Array(size);
+  for (let x = 0; x < size; x++) {
+    const w = pop(x), vec = W[x];
+    if (vec[0] === 0) { tail[x] = vec.map(() => 0); sig[x] = []; mttf[x] = 0; continue; }
+    tail[x] = vec.map((v, k) => v / choose(w, k));
+    sig[x] = [];
+    for (let k = 1; k <= w; k++) sig[x][k - 1] = tail[x][k - 1] - tail[x][k];
+    let m = 0;
+    for (let k = 0; k < w; k++) m += tail[x][k] * model.inc(w, k);
+    mttf[x] = m;
+  }
+  const minimal = [];
+  for (let x = 1; x < size; x++) if (W[x][0] === 1 && W[x][1] === 0) minimal.push(x);
+  let peak = 0;
+  for (let w = 0; w <= n; w++) peak = Math.max(peak, levels[w].length + (w > 0 ? levels[w - 1].length : 0));
+  return { sys, model, W, tail, sig, mttf, levels, order, minimal, phiCalls, peak };
+}
+
+/* ---------- repair policies ---------- */
+function repairCost(sys, costs, x) {
+  return costs.set + (sys.n - pop(x)) * costs.comp + (sys.phi(x) ? 0 : costs.sys);
+}
+function evalPolicy(sys, model, rep, costs) {
+  const size = 1 << sys.n, len = new Array(size), cost = new Array(size);
+  for (let x = 0; x < size; x++) {
+    if (rep[x]) { len[x] = 0; cost[x] = repairCost(sys, costs, x); continue; }
+    const w = pop(x);
+    let l = 1 / model.nu(w), c = 0;
+    for (let y = (x - 1) & x; ; y = (y - 1) & x) {
+      const f = model.P(w, pop(y)) / choose(w, w - pop(y));
+      l += f * len[y]; c += f * cost[y];
+      if (y === 0) break;
+    }
+    len[x] = l; cost[x] = c;
+  }
+  const all = sys.all;
+  return { length: len[all], cost: cost[all], ltmc: cost[all] / len[all] };
+}
+function correctivePolicy(sys) {
+  const rep = new Uint8Array(1 << sys.n);
+  for (let x = 0; x < rep.length; x++) rep[x] = sys.phi(x) ? 0 : 1;
+  return rep;
+}
+function rOutOfN(sys, r) {
+  const rep = new Uint8Array(1 << sys.n);
+  for (let x = 0; x < rep.length; x++) rep[x] = (!sys.phi(x) || (x !== sys.all && sys.n - pop(x) >= r)) ? 1 : 0;
+  return rep;
+}
+function thresholdPolicy(sys, mttf, gamma) {
+  const rep = new Uint8Array(1 << sys.n), top = mttf[sys.all];
+  for (let x = 0; x < rep.length; x++) rep[x] = (!sys.phi(x) || (x !== sys.all && mttf[x] / top < gamma)) ? 1 : 0;
+  return rep;
+}
+const countRepairs = (rep) => rep.reduce((a, b) => a + b, 0);
+
+function thresholdCurve(sys, model, mttf, costs) {
+  const top = mttf[sys.all];
+  const ratios = [];
+  for (let x = 0; x < mttf.length; x++) if (sys.phi(x) && x !== sys.all) ratios.push(mttf[x] / top);
+  ratios.sort((a, b) => a - b);
+  const distinct = [];
+  for (const r of ratios) if (!distinct.length || r - distinct[distinct.length - 1] > 1e-9) distinct.push(r);
+  const out = [];
+  const make = (cut) => {
+    const rep = new Uint8Array(1 << sys.n);
+    for (let x = 0; x < rep.length; x++) {
+      rep[x] = (!sys.phi(x) || (x !== sys.all && mttf[x] / top <= cut + 1e-9)) ? 1 : 0;
+    }
+    return rep;
+  };
+  out.push({ from: 0, to: distinct.length ? distinct[0] : 1, rep: make(-1) });
+  for (let j = 0; j < distinct.length; j++) {
+    out.push({ from: distinct[j], to: j + 1 < distinct.length ? distinct[j + 1] : 1, rep: make(distinct[j]) });
+  }
+  const pts = out.filter((p) => p.to > p.from + 1e-12 || p === out[0]);
+  for (const p of pts) { p.ev = evalPolicy(sys, model, p.rep, costs); p.count = countRepairs(p.rep); }
+  let best = 0;
+  pts.forEach((p, i) => { if (p.ev.ltmc < pts[best].ev.ltmc - 1e-12) best = i; });
+  return { points: pts, best };
+}
+
+function optimalPolicy(sys, model, costs) {
+  const size = 1 << sys.n;
+  let rep = correctivePolicy(sys);
+  let g = evalPolicy(sys, model, rep, costs).ltmc;
+  const rounds = [{ rent: null, count: countRepairs(rep), ltmc: g }];
+  for (let guard = 0; guard < 60; guard++) {
+    const h = new Array(size), plan = new Uint8Array(size);
+    for (let x = 0; x < size; x++) {
+      const w = pop(x), cx = repairCost(sys, costs, x);
+      if (!sys.phi(x)) { h[x] = cx; plan[x] = 1; continue; }
+      let cont = -g / model.nu(w);
+      for (let y = (x - 1) & x; ; y = (y - 1) & x) {
+        cont += model.P(w, pop(y)) / choose(w, w - pop(y)) * h[y];
+        if (y === 0) break;
+      }
+      if (x === sys.all) { h[x] = cont; plan[x] = 0; continue; }
+      if (cx < cont - 1e-12 * Math.max(1, Math.abs(cont))) { h[x] = cx; plan[x] = 1; } else { h[x] = cont; plan[x] = 0; }
+    }
+    const next = evalPolicy(sys, model, plan, costs).ltmc;
+    if (next < g - 1e-12 * Math.max(1, Math.abs(g))) {
+      rounds.push({ rent: g, count: countRepairs(plan), ltmc: next });
+      g = next; rep = plan;
+    } else break;
+  }
+  return { rep, ltmc: g, rounds };
+}
+
+/* ---------- simulation ---------- */
+function simulateLife(sys, model, x0) {
+  let x = x0, t = 0;
+  while (sys.phi(x)) {
+    const w = pop(x);
+    t += -Math.log(1 - Math.random()) / model.nu(w);
+    let u = Math.random(), w2 = w - 1;
+    if (model.type !== 'exp') {
+      let acc = 0; w2 = 0;
+      for (let v = w - 1; v >= 0; v--) { acc += model.P(w, v); if (u <= acc) { w2 = v; break; } }
+    }
+    const up = [];
+    for (let i = 0; i < sys.n; i++) if ((x >> i) & 1) up.push(i);
+    for (let r = w - w2; r > 0; r--) {
+      const j = Math.floor(Math.random() * up.length);
+      x &= ~(1 << up[j]); up.splice(j, 1);
+    }
+  }
+  return t;
+}
+function deathFlip(sys, x0) {
+  const up = [];
+  for (let i = 0; i < sys.n; i++) if ((x0 >> i) & 1) up.push(i);
+  let x = x0, k = 0;
+  while (sys.phi(x)) {
+    const j = Math.floor(Math.random() * up.length);
+    x &= ~(1 << up[j]); up.splice(j, 1); k++;
+  }
+  return k;
+}
+
+if (typeof module !== 'undefined') {
+  module.exports = { SYSTEMS, seriesOf, makeModel, analyse, evalPolicy, correctivePolicy, rOutOfN, thresholdPolicy,
+    thresholdCurve, optimalPolicy, countRepairs, simulateLife, deathFlip, choose, pop };
+}
+
+</script>
+<script>
+const GROUPS = { sat: [{ n: 'Power', i: [0, 1] }, { n: 'Communications', i: [2, 3] }, { n: 'Computers', i: [4, 5] }] };
+const MODELS = [['exp', 'Independent'], ['lsh', 'Lethal shock'], ['bfr', 'Binomial failure rate']];
+const SCN = { cheap: { comp: 0.03, sys: 1, set: 0 }, fee: { comp: 0.05, sys: 1, set: 0.3 }, dear: { comp: 0.45, sys: 1, set: 0.05 } };
+const st = { sysId: 'sat', model: 'exp', beta: 0.5, x: 63, tab: 't1', costs: { comp: 0.1, sys: 1, set: 0.05 }, gamma: 0.7,
+  sweep: -1, dk: 1, flips: null, hist: null, mc: null };
+const $ = (s) => document.querySelector(s);
+const sysObj = () => SYSTEMS.find((s) => s.id === st.sysId);
+const cache = new Map();
+function A(sys = sysObj(), type = st.model, beta = st.beta) {
+  const key = sys.id + '|' + type + '|' + (type === 'exp' ? 0 : beta);
+  if (!cache.has(key)) cache.set(key, analyse(sys, makeModel(type, beta)));
+  return cache.get(key);
+}
+const f3 = (v) => v.toFixed(3), f4 = (v) => v.toFixed(4), pc = (v) => (100 * v).toFixed(0) + '%';
+const lbl = (S, x) => S.labels.filter((_, i) => (x >> i) & 1).join(' · ') || 'nothing';
+const failedLbl = (S, x) => S.labels.filter((_, i) => !((x >> i) & 1)).join(', ') || 'none';
+const bits = (S, x) => { let s = ''; for (let i = S.n - 1; i >= 0; i--) s += (x >> i) & 1; return s; };
+
+function barsHTML(vals, labels, o = {}) {
+  const max = o.max || 1;
+  const cols = vals.map((v, i) => {
+    const h = Math.max(0, Math.min(1, v / max)) * 100;
+    const mk = o.marks ? `<div class="mk" style="bottom:max(0px, calc(${Math.min(1, o.marks[i] / max) * 100}% - 18px))"></div>` : '';
+    return `<div class="bcol"><div class="bval">${o.fmt ? o.fmt(v) : f3(v)}</div><div class="bar" style="height:max(2px, calc(${h}% - 18px));background:${o.color || 'var(--comms)'}"></div>${mk}</div>`;
+  }).join('');
+  return `<div class="bars">${cols}</div><div class="blabs">${labels.map((l) => `<span>${l}</span>`).join('')}</div>`;
+}
+function stateGrid(S, cellFn, floorsShown) {
+  let h = '';
+  for (let w = S.n; w >= 0; w--) {
+    const cells = [];
+    for (let x = 0; x <= S.all; x++) if (pop(x) === w) {
+      const c = cellFn(x, w);
+      cells.push(`<button class="cell ${c.cls}${x === st.x ? ' cur' : ''}" data-cell="${x}" style="${c.style || ''}" title="${c.title}" aria-label="${c.title}"></button>`);
+    }
+    h += `<div class="floor"><span class="lab">${w} working</span><div class="cells">${cells.join('')}</div></div>`;
+  }
+  return h;
+}
+function niceTop(v) {
+  const e = Math.pow(10, Math.floor(Math.log10(v))), m = v / e;
+  const t = m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10;
+  return t * e;
+}
+function lineChart(o) {
+  const w = 640, h = 270, m = { l: 48, r: 16, t: 12, b: 36 }, iw = w - m.l - m.r, ih = h - m.t - m.b;
+  const X = (v) => m.l + (v - o.xs[0]) / (o.xs[1] - o.xs[0]) * iw, Y = (v) => m.t + ih - (v - o.ys[0]) / (o.ys[1] - o.ys[0]) * ih;
+  let s = `<svg class="chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="${o.label}" id="${o.id}">`;
+  for (let i = 0; i <= 4; i++) {
+    const v = o.ys[0] + (o.ys[1] - o.ys[0]) * i / 4;
+    s += `<line class="gl" x1="${m.l}" x2="${w - m.r}" y1="${Y(v)}" y2="${Y(v)}"/><text class="ax" x="${m.l - 8}" y="${Y(v) + 4}" text-anchor="end">${o.fmtY(v)}</text>`;
+    const xv = o.xs[0] + (o.xs[1] - o.xs[0]) * i / 4;
+    s += `<text class="ax" x="${X(xv)}" y="${h - 14}" text-anchor="middle">${xv.toFixed(2)}</text>`;
+  }
+  s += `<line class="axl" x1="${m.l}" x2="${w - m.r}" y1="${Y(o.ys[0])}" y2="${Y(o.ys[0])}"/>`;
+  s += `<text class="ax" x="${m.l + iw / 2}" y="${h - 1}" text-anchor="middle">${o.xlab}</text>`;
+  for (const se of o.series) {
+    s += `<path class="ln ${se.cls}" d="${se.d ? se.d(X, Y) : 'M' + se.pts.map((p) => X(p[0]).toFixed(1) + ',' + Y(p[1]).toFixed(1)).join('L')}"/>`;
+  }
+  if (o.cursor != null) s += `<line class="sline" x1="${X(o.cursor)}" x2="${X(o.cursor)}" y1="${m.t}" y2="${m.t + ih}"/>`;
+  for (const d of o.dots || []) s += `<circle cx="${X(d[0])}" cy="${Y(d[1])}" r="5" fill="${d[2]}" stroke="var(--panel)" stroke-width="2"/>`;
+  return s + '</svg>';
+}
+
+/* ---------- top controls ---------- */
+function renderControls() {
+  $('#presets').innerHTML = SYSTEMS.map((s) => `<button aria-pressed="${s.id === st.sysId}" data-sys="${s.id}">${s.name}</button>`).join('');
+  $('#models').innerHTML = MODELS.map((m) => `<button aria-pressed="${m[0] === st.model}" data-model="${m[0]}">${m[1]}</button>`).join('');
+  $('#betaV').textContent = st.beta.toFixed(2);
+  $('#beta').value = st.beta;
+  $('#beta').disabled = st.model === 'exp';
+  $('#blurb').textContent = sysObj().blurb + (st.model === 'exp' ? ' Switches break one at a time, on their own.' : ' Breaks can come in bundles: β is the share of a switch’s failing that also takes a given partner with it.');
+}
+function renderBoard() {
+  const S = sysObj(), x = st.x, works = S.phi(x);
+  const groups = GROUPS[S.id] || [{ n: '', i: S.labels.map((_, i) => i) }];
+  $('#board').innerHTML = groups.map((g) => `<div class="grp"><div class="grp-n">${g.n || '&nbsp;'}</div><div class="grp-sw">` + g.i.map((i) => {
+    const up = (x >> i) & 1, need = works && up && !S.phi(x & ~(1 << i));
+    return `<button class="sw c-${S.colors[i]} ${up ? 'up' : 'down'}" data-sw="${i}" aria-pressed="${!!up}" aria-label="${S.labels[i]} ${up ? 'working' : 'broken'}"><span class="lamp"></span><span class="nm">${S.labels[i]}</span><span class="st">${up ? 'working' : 'broken'}</span>${need ? '<span class="need">needed</span>' : ''}</button>`;
+  }).join('') + '</div></div>').join('');
+  $('#status').innerHTML = `<span class="verdict ${works ? 'ok' : 'bad'}">${works ? 'The ship works' : 'The ship is dead'}</span>
+    <span class="bits">state <b>${bits(S, x)}</b> = ${x} · ${pop(x)} of ${S.n} working</span>`;
+}
+
+/* ---------- bench 1 ---------- */
+function renderT1() {
+  const S = sysObj(), a = A(), x = st.x, w = pop(x), works = S.phi(x), W = a.W[x];
+  const top = a.mttf[S.all];
+  let h = `<div class="sec"><h2>Remaining life</h2><div class="stats">
+    <div class="stat"><span class="lab">Expected remaining life</span><span class="big">${works ? f3(a.mttf[x]) : '0'}</span><span class="note">${works ? pc(a.mttf[x] / top) + ' of a new ship (' + f3(top) + ')' : 'nothing left'}</span></div>
+    <div class="stat"><span class="lab">Failed switches</span><span class="big" style="font-size:1.4rem">${failedLbl(S, x)}</span><span class="note">${S.n - w} broken, ${w} still working</span></div>
+    <div class="stat"><span class="lab">Boards in this ship</span><span class="big">${1 << S.n}</span><span class="note">${a.mttf.filter((m, i) => S.phi(i)).length} of them still work</span></div></div></div>`;
+  if (!works) {
+    h += `<div class="sec"><h2>Nothing left to count</h2><p class="note">When the ship is dead, every count is 0. Fix a switch on the board to bring it back.</p></div>`;
+  } else {
+    const ks = W.map((_, k) => 'k=' + k);
+    h += `<div class="sec"><h2>Counting vector</h2><p class="note">Entry k: in how many ways can you break exactly k more working switches and still have a working ship? The small number is how many ways there are in total.</p>
+      <div class="chips">${W.map((v, k) => `<div class="chip"><i>k = ${k}</i><b>${v}</b><span>of ${choose(w, k)}</span></div>`).join('')}</div></div>`;
+    h += `<div class="sec"><h2>Tail signature</h2><p class="note">The share of k-break cases that still work: the chance the ship is alive after k random breaks.</p>${barsHTML(a.tail[x], ks, { fmt: pc })}</div>`;
+    h += `<div class="sec"><h2>Signature</h2><p class="note">How much the tail drops at each break: the chance the ship dies exactly on break number k. It adds up to 100%.</p>${barsHTML(a.sig[x], a.sig[x].map((_, k) => 'break ' + (k + 1)), { fmt: pc, color: 'var(--comp)' })}</div>`;
+  }
+  const mins = a.minimal.slice().sort((p, q) => pop(p) - pop(q) || p - q);
+  h += `<div class="sec"><h2>Smallest crews that keep the ship alive</h2>
+    <p class="note">A minimal path set is a group of working switches where the ship works, but breaking any one of them kills it. On the board, a switch tagged <b>needed</b> is one that would kill the ship if it broke. A board is a minimal path set when every working switch is needed. The algorithm finds these for free: the board works and its counting vector has a 0 at k = 1.</p>
+    ${works && a.W[x][1] === 0 ? '<div class="callout"><b>This board is a minimal path set.</b> Every working switch on it is needed.</div>' : ''}
+    <div class="chips">${mins.map((m) => `<button class="chip${m === x ? ' on' : ''}" data-cell="${m}">${lbl(S, m)}</button>`).join('')}</div>
+    <p class="note">${mins.length} of them. Click one to put it on the board.</p></div>`;
+  $('#t1').innerHTML = h;
+}
+
+/* ---------- bench 2 ---------- */
+function renderT2() {
+  const S = sysObj(), a = A(), x = st.x, w = pop(x);
+  if (w === 0) { $('#lazy').innerHTML = '<p class="note">Every switch is broken, so there are no neighbours. Fix one on the board.</p>'; }
+  else {
+    const ups = []; for (let i = 0; i < S.n; i++) if ((x >> i) & 1) ups.push(i);
+    let t = `<table><tr><th>neighbour</th>${a.W[x].map((_, k) => `<th>k = ${k}</th>`).join('')}</tr>`;
+    t += `<tr><td>this board</td><td colspan="${w + 1}" style="text-align:left">k = 0 is just the one question: does it work? Answer ${a.W[x][0]}.</td></tr>`;
+    for (const i of ups) {
+      const son = x & ~(1 << i);
+      t += `<tr><td>${S.labels[i]} also broken</td><td>—</td>${a.W[x].slice(1).map((_, k) => `<td>${a.W[son][k]}</td>`).join('')}</tr>`;
+    }
+    const sums = a.W[x].slice(1).map((_, k) => ups.reduce((acc, i) => acc + a.W[x & ~(1 << i)][k], 0));
+    t += `<tr class="sum"><td>add up</td><td>—</td>${sums.map((v) => `<td>${v}</td>`).join('')}</tr>`;
+    t += `<tr class="sum"><td>divide by k</td><td>—</td>${sums.map((v, k) => `<td>÷ ${k + 1}</td>`).join('')}</tr>`;
+    t += `<tr class="res"><td>this board's count</td><td>${a.W[x][0]}</td>${sums.map((v, k) => `<td>${v / (k + 1)}</td>`).join('')}</tr></table>`;
+    $('#lazy').innerHTML = t;
+  }
+  const fl = st.sweep, total = 1 << S.n;
+  let asked = 0; for (let k = 0; k <= fl; k++) asked += choose(S.n, k);
+  const mem = fl < 0 ? 0 : choose(S.n, fl) + (fl > 0 ? choose(S.n, fl - 1) : 0);
+  $('#sweepstats').innerHTML = `
+    <div class="stat"><span class="lab">Questions asked</span><span class="big">${asked}<span class="note"> of ${total}</span></span></div>
+    <div class="stat"><span class="lab">Counting vectors in memory</span><span class="big">${mem}<span class="note"> now</span></span><span class="note">biggest ever: ${a.peak} (instead of ${total})</span></div>
+    <div class="stat"><span class="lab">Floor</span><span class="big">${fl < 0 ? '—' : fl + ' working'}</span><span class="note">${fl >= S.n ? 'done: every board has its numbers' : 'next: ' + (fl + 1) + ' working'}</span></div>`;
+  const top = a.mttf[S.all];
+  $('#stairs').innerHTML = stateGrid(S, (y, wy) => {
+    if (wy > fl) return { cls: 'pending', title: `${bits(S, y)} not reached yet` };
+    if (!S.phi(y)) return { cls: 'dead', title: `${bits(S, y)}: dead` };
+    return { cls: 'live', style: `--p:${Math.round(18 + 82 * a.mttf[y] / top)}%`, title: `${bits(S, y)}: life ${f3(a.mttf[y])}` };
+  });
+  document.querySelector('[data-act=climb]').disabled = fl >= S.n;
+}
+
+/* ---------- bench 3 ---------- */
+function gameKey() { return [st.sysId, st.x, st.model, st.model === 'exp' ? 0 : st.beta].join('|'); }
+function renderT3() {
+  const S = sysObj(), a = A(), x = st.x, key = gameKey();
+  if (!st.flips || st.flips.key !== key) st.flips = { key, seq: [], x, over: false };
+  if (!st.hist || st.hist.key !== key) st.hist = { key, counts: Array(S.n + 2).fill(0), total: 0 };
+  if (!st.mc || st.mc.key !== key) st.mc = { key, n: 0, sum: 0, sq: 0 };
+  const works = S.phi(x), g = st.flips, H = st.hist, M = st.mc;
+  if (!works) { $('#t3').innerHTML = '<div class="sec"><h2>Flip game</h2><p class="note">The ship on the board is already dead. Fix some switches to play.</p></div>'; return; }
+  const ups = pop(x);
+  const state = S.labels.map((l, i) => `<span class="chip" style="min-width:0;padding:4px 10px;${((g.x >> i) & 1) ? '' : 'opacity:.4;text-decoration:line-through'}"><b style="font-size:1rem">${l}</b></span>`).join('');
+  let h = `<div class="sec"><h2>One game</h2><p class="note">Close your eyes and flip working switches down in random order. Stop when the ship dies. The signature predicts which flip that will be.</p>
+    <div class="chips">${state}</div>
+    <p>${g.seq.length ? 'Flipped: ' + g.seq.map((i, n) => `<b>${n + 1}.</b> ${S.labels[i]}`).join('  ') : 'No flips yet.'}</p>
+    <p class="${g.over ? 'badtxt' : ''}" style="font-weight:700">${g.over ? 'The ship died on flip ' + g.seq.length + '.' : g.seq.length ? 'Still working after ' + g.seq.length + ' flips.' : ''}</p>
+    <div class="row"><button class="btn primary" data-act="flip" ${g.over ? 'disabled' : ''}>Flip a random switch</button><button class="btn" data-act="newgame">New game</button></div></div>`;
+  const obs = a.sig[x].map((_, k) => H.total ? H.counts[k + 1] / H.total : 0);
+  h += `<div class="sec"><h2>Play a thousand games</h2><p class="note">Each game starts from the board above. Bars are what happened. The black marker is the signature, which the algorithm computed without playing anything.</p>
+    <div class="row"><button class="btn primary" data-act="play1k">Play 1,000 games</button><button class="btn" data-act="clear">Clear</button><span class="val">${H.total} games played</span></div>
+    ${barsHTML(obs, a.sig[x].map((_, k) => 'flip ' + (k + 1)), { fmt: (v) => (H.total ? (100 * v).toFixed(1) + '%' : '—'), marks: a.sig[x], color: 'var(--comp)' })}
+    <div class="legend"><span><i class="sw-dot" style="background:var(--comp)"></i>share of games that ended on this flip</span><span>● signature (exact)</span></div></div>`;
+  const mean = M.n ? M.sum / M.n : 0, se = M.n > 1 ? Math.sqrt(Math.max(0, M.sq / M.n - mean * mean) / M.n) : 0;
+  const exact = a.mttf[x];
+  h += `<div class="sec"><h2>Run ships through time</h2><p class="note">Now add the clock. Each ship lives until it dies, using the failure model chosen at the top (${A().model.name}${st.model === 'exp' ? '' : ', β = ' + st.beta.toFixed(2)}). The average life should drift toward the exact expected remaining life.</p>
+    <div class="row"><button class="btn primary" data-act="mc">Run 2,000 ships</button><button class="btn" data-act="mcclear">Clear</button></div>
+    <div class="stats"><div class="stat"><span class="lab">Average life of ${M.n} ships</span><span class="big">${M.n ? f3(mean) : '—'}</span><span class="note">${M.n > 1 ? '± ' + f3(2 * se) + ' (about 95% range)' : 'run some ships'}</span></div>
+    <div class="stat"><span class="lab">Exact, from the algorithm</span><span class="big">${f3(exact)}</span><span class="note">${M.n > 1 ? (Math.abs(mean - exact) <= 2.5 * se + 1e-9 ? '<span class="good">The simulation agrees.</span>' : 'Slightly outside the range. Run more ships.') : ''}</span></div></div></div>`;
+  $('#t3').innerHTML = h;
+}
+
+/* ---------- bench 4 ---------- */
+const curveCache = new Map();
+function betaCurves(S) {
+  if (curveCache.has(S.id)) return curveCache.get(S.id);
+  const ser = seriesOf(S.n), grid = [], out = { grid, lsh: [], bfr: [], base: A(S, 'exp', 0).mttf[S.all], baseSer: analyse(ser, makeModel('exp', 0)).mttf[ser.all] };
+  for (let b = 0.02; b <= 1.0001; b += 0.02) grid.push(+b.toFixed(2));
+  for (const t of ['lsh', 'bfr']) for (const b of grid) {
+    const m = makeModel(t, b);
+    out[t].push({ sys: analyse(S, m).mttf[S.all], ser: analyse(ser, m).mttf[ser.all] });
+  }
+  curveCache.set(S.id, out);
+  return out;
+}
+let betaMode = 'rel';
+function renderT4() {
+  const S = sysObj(), C = betaCurves(S), b = st.beta, ix = Math.max(0, Math.min(C.grid.length - 1, Math.round(b / 0.02) - 1));
+  const rel = betaMode === 'rel';
+  const val = (t, i) => rel ? C[t][i].sys / C[t][i].ser : C[t][i].sys;
+  const base = rel ? C.base / C.baseSer : C.base;
+  const all = [base]; for (const t of ['lsh', 'bfr']) C[t].forEach((_, i) => all.push(val(t, i)));
+  const top = niceTop(Math.max(...all) * 1.05), bottom = rel ? 0 : 0;
+  const chart = lineChart({
+    id: 'bchart', label: 'Chart of the ship against beta', xs: [0, 1], ys: [bottom, top], xlab: 'β: pairwise beta factor', fmtY: (v) => (rel ? v.toFixed(1) + '×' : v.toFixed(2)), cursor: b,
+    series: [
+      { cls: 'c', pts: [[0, base], [1, base]] },
+      { cls: 'a', pts: [[0, base]].concat(C.grid.map((g, i) => [g, val('lsh', i)])) },
+      { cls: 'b', pts: [[0, base]].concat(C.grid.map((g, i) => [g, val('bfr', i)])) }],
+    dots: [[b, val('lsh', ix), 'var(--comms)'], [b, val('bfr', ix), 'var(--comp)']],
+  });
+  const r = (t) => C[t][ix].sys / C[t][ix].ser, rb = C.base / C.baseSer, bv = ((ix + 1) * 0.02).toFixed(2);
+  $('#bmodes').innerHTML = `<button aria-pressed="${!rel}" data-bm="abs">Expected life</button><button aria-pressed="${rel}" data-bm="rel">Worth of the redundancy</button>`;
+  $('#beta4').value = bv; $('#beta4V').textContent = bv;
+  $('#b4chart').innerHTML = chart;
+  $('#b4stats').innerHTML = `
+    <div class="stat"><span class="lab">Independent</span><span class="big">${f3(C.base)}</span><span class="note">series ship: ${f3(C.baseSer)} · redundancy worth ${rb.toFixed(2)}×</span></div>
+    <div class="stat"><span class="lab">Lethal shock, β = ${bv}</span><span class="big">${f3(C.lsh[ix].sys)}</span><span class="note">series ship: ${f3(C.lsh[ix].ser)} · redundancy worth ${r('lsh').toFixed(2)}×</span></div>
+    <div class="stat"><span class="lab">Binomial failure rate, β = ${bv}</span><span class="big">${f3(C.bfr[ix].sys)}</span><span class="note">series ship: ${f3(C.bfr[ix].ser)} · redundancy worth ${r('bfr').toFixed(2)}×</span></div>`;
+}
+/* dragging on a chart: listeners live on the container, which survives re-renders */
+function chartDrag(box, apply) {
+  const at = (e) => { const svg = box.querySelector('svg'); if (!svg) return; const rect = svg.getBoundingClientRect(); apply(Math.max(0, Math.min(1, ((e.clientX - rect.left) / rect.width * 640 - 48) / (640 - 48 - 16)))); };
+  box.addEventListener('pointerdown', (e) => { box.setPointerCapture(e.pointerId); at(e); });
+  box.addEventListener('pointermove', (e) => { if (e.buttons) at(e); });
+}
+
+/* ---------- bench 5 ---------- */
+let dkShown = 1;
+function renderT5() {
+  const S = sysObj(), a = A(), c = st.costs, model = a.model;
+  $('#cComp').value = c.comp; $('#cSys').value = c.sys; $('#cSet').value = c.set; $('#gamma').value = st.gamma;
+  $('#cCompV').textContent = c.comp.toFixed(2); $('#cSysV').textContent = c.sys.toFixed(2); $('#cSetV').textContent = c.set.toFixed(2); $('#gV').textContent = st.gamma.toFixed(2);
+  const ev = (rep) => evalPolicy(S, model, rep, c);
+  const corr = ev(correctivePolicy(S)).ltmc;
+  const rows = [{ nm: 'Wait until the ship dies', v: corr, k: 'corr' }];
+  let bestR = Infinity;
+  for (let r = 1; r < S.n; r++) {
+    const v = ev(rOutOfN(S, r)).ltmc; bestR = Math.min(bestR, v);
+    rows.push({ nm: 'Fix after ' + r + ' break' + (r > 1 ? 's' : ''), v, k: 'r' });
+  }
+  const tc = thresholdCurve(S, model, a.mttf, c), thr = tc.points[tc.best];
+  const opt = optimalPolicy(S, model, c);
+  rows.push({ nm: 'Best health line (' + thr.from.toFixed(2) + '–' + thr.to.toFixed(2) + ')', v: thr.ev.ltmc, k: 'thr' });
+  rows.push({ nm: 'The perfect plan', v: opt.ltmc, k: 'opt' });
+  const mn = Math.min(...rows.map((r) => r.v)), mx = Math.max(...rows.map((r) => r.v));
+  $('#rbars').innerHTML = rows.map((r) => `<div class="rbar${r.v <= mn + 1e-9 ? ' best' : ''}"><span class="nm">${r.nm}${r.v <= mn + 1e-9 ? '<span class="tag">cheapest</span>' : ''}</span><div class="track"><div class="fill" style="width:${(r.v / mx * 100).toFixed(1)}%"></div></div><span class="v">${f4(r.v)}</span></div>`).join('');
+  const bestFixed = Math.min(corr, bestR), saveT = (bestFixed - thr.ev.ltmc) / bestFixed, gapO = (thr.ev.ltmc - opt.ltmc) / thr.ev.ltmc;
+  $('#rsummary').innerHTML = `${saveT > 1e-6 ? `The best health line is <b>${(100 * saveT).toFixed(1)}% cheaper</b> than the best "fix after r breaks" rule, because it can tell which switches broke.` : 'The best health line costs the same as the best "fix after r breaks" rule. On a ship whose switches are all alike, counting breaks and measuring health say the same thing.'}
+    ${gapO > 1e-6 ? ` The perfect plan is another <b>${(100 * gapO).toFixed(1)}%</b> cheaper.` : ' The perfect plan cannot beat it here.'}`;
+  const gp = thresholdPolicy(S, a.mttf, st.gamma), ge = ev(gp);
+  $('#gcost').textContent = f4(ge.ltmc) + ' · ' + countRepairs(gp) + ' of ' + (1 << S.n) + ' boards';
+  $('#ocost').textContent = f4(opt.ltmc) + ' · ' + countRepairs(opt.rep) + ' of ' + (1 << S.n) + ' boards';
+  const grid = (rep) => stateGrid(S, (y) => !S.phi(y) ? { cls: 'dead', title: `${bits(S, y)} dead` } : rep[y] ? { cls: 'rep', title: `${bits(S, y)} call the crew` } : { cls: 'keep', title: `${bits(S, y)} keep flying` });
+  $('#gridG').innerHTML = grid(gp); $('#gridO').innerHTML = grid(opt.rep);
+  const pts = tc.points, topY = niceTop(Math.max(...pts.map((p) => p.ev.ltmc)) * 1.08);
+  $('#gchart').innerHTML = lineChart({
+    id: 'gch', label: 'Cost against health line', xs: [0, 1], ys: [0, topY], xlab: 'health line γ', fmtY: (v) => v.toFixed(2), cursor: st.gamma,
+    series: [{ cls: 'a', d: (X, Y) => 'M' + X(pts[0].from).toFixed(1) + ',' + Y(pts[0].ev.ltmc).toFixed(1) + pts.map((p, i) => (i ? 'V' + Y(p.ev.ltmc).toFixed(1) : '') + 'H' + X(p.to).toFixed(1)).join('') },
+      { cls: 'c', pts: [[0, opt.ltmc], [1, opt.ltmc]] }],
+    dots: [[(thr.from + thr.to) / 2, thr.ev.ltmc, 'var(--ok)']],
+  });
+  const R = opt.rounds, n = Math.min(dkShown, R.length);
+  let t = `<table><tr><th>round</th><th>price per day of flying</th><th>plan calls the crew at</th><th>real cost per day</th></tr>`;
+  for (let i = 0; i < n; i++) {
+    t += `<tr><td>${i}</td><td>${i === 0 ? 'start: wait for the death' : f4(R[i].rent)}</td><td>${R[i].count} of ${1 << S.n} boards</td><td><b>${f4(R[i].ltmc)}</b></td></tr>`;
+  }
+  t += '</table>';
+  t += n >= R.length ? `<p class="callout" style="margin-top:10px">Using ${f4(R[R.length - 1].ltmc)} as the price gives a plan that costs exactly that, so nothing beats it. <b>That is the perfect plan.</b></p>` : `<p class="note" style="margin-top:10px">The real cost came out lower than the price we guessed, so use it as the next guess.</p>`;
+  $('#dk').innerHTML = t;
+  document.querySelector('[data-act=dknext]').disabled = n >= R.length;
+}
+
+/* ---------- plumbing ---------- */
+function renderTab() { ({ t1: renderT1, t2: renderT2, t3: renderT3, t4: renderT4, t5: renderT5 })[st.tab](); }
+function update() { renderControls(); renderBoard(); renderTab(); }
+function setTab(id) {
+  st.tab = id;
+  document.querySelectorAll('#tabs button').forEach((b) => b.setAttribute('aria-selected', b.dataset.tab === id));
+  document.querySelectorAll('.panel').forEach((p) => { p.hidden = p.id !== id; });
+  renderTab();
+}
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('button'); if (!t) return;
+  const S = sysObj();
+  if (t.dataset.tab) return setTab(t.dataset.tab);
+  if (t.dataset.sys) { st.sysId = t.dataset.sys; st.x = sysObj().all; st.sweep = -1; dkShown = 1; return update(); }
+  if (t.dataset.model) { st.model = t.dataset.model; dkShown = 1; return update(); }
+  if (t.dataset.sw != null) { st.x ^= 1 << +t.dataset.sw; return update(); }
+  if (t.dataset.cell != null) { st.x = +t.dataset.cell; return update(); }
+  if (t.dataset.bm) { betaMode = t.dataset.bm; return renderT4(); }
+  if (t.dataset.scn) {
+    if (t.dataset.scn === 'line') { st.sysId = 'fig1'; st.x = 7; st.model = 'exp'; st.costs = { comp: 0, sys: 0.5, set: 0.2 }; }
+    else st.costs = Object.assign({}, SCN[t.dataset.scn]);
+    dkShown = 1; return update();
+  }
+  switch (t.dataset.act) {
+    case 'allup': st.x = S.all; break;
+    case 'alldown': st.x = 0; break;
+    case 'breakone': { const ups = []; for (let i = 0; i < S.n; i++) if ((st.x >> i) & 1) ups.push(i); if (ups.length) st.x &= ~(1 << ups[Math.floor(Math.random() * ups.length)]); break; }
+    case 'climb': st.sweep = Math.min(S.n, st.sweep + 1); break;
+    case 'climball': st.sweep = S.n; break;
+    case 'climbreset': st.sweep = -1; break;
+    case 'flip': { const g = st.flips; if (g && !g.over) { const ups = []; for (let i = 0; i < S.n; i++) if ((g.x >> i) & 1) ups.push(i); const i = ups[Math.floor(Math.random() * ups.length)]; g.x &= ~(1 << i); g.seq.push(i); if (!S.phi(g.x)) g.over = true; } break; }
+    case 'newgame': st.flips = null; break;
+    case 'play1k': { const H = st.hist; for (let i = 0; i < 1000; i++) { H.counts[deathFlip(S, st.x)]++; H.total++; } break; }
+    case 'clear': st.hist = null; break;
+    case 'mc': { const m = A().model, M = st.mc; for (let i = 0; i < 2000; i++) { const v = simulateLife(S, m, st.x); M.n++; M.sum += v; M.sq += v * v; } break; }
+    case 'mcclear': st.mc = null; break;
+    case 'dknext': dkShown++; break;
+    case 'dkall': dkShown = 99; break;
+    case 'dkreset': dkShown = 1; break;
+    default: return;
+  }
+  update();
+});
+$('#beta').addEventListener('input', (e) => { st.beta = +e.target.value; update(); });
+document.addEventListener('input', (e) => {
+  const id = e.target.id;
+  if (id === 'beta4') { st.beta = +e.target.value; update(); }
+  else if (id === 'cComp') { st.costs.comp = +e.target.value; renderT5(); }
+  else if (id === 'cSys') { st.costs.sys = +e.target.value; renderT5(); }
+  else if (id === 'cSet') { st.costs.set = +e.target.value; renderT5(); }
+  else if (id === 'gamma') { st.gamma = +e.target.value; renderT5(); }
+});
+chartDrag($('#b4chart'), (v) => { st.beta = Math.max(0.02, +(Math.round(v / 0.02) * 0.02).toFixed(2)); update(); });
+chartDrag($('#gchart'), (v) => { st.gamma = Math.round(v * 100) / 100; renderT5(); });
+update();
+</script>
+
+</html>
