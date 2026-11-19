@@ -147,16 +147,80 @@ svg .axl { stroke: var(--ink); stroke-width: 1.5; }
 .callout { background: var(--soft); border-radius: 12px; padding: 12px 14px; max-width: 70ch; }
 .foot { color: var(--muted); font-size: 0.88rem; max-width: 70ch; }
 @media (max-width: 520px) { .sw { width: 84px; } .rbar { grid-template-columns: 1fr 56px; } .rbar .track { grid-column: 1 / -1; order: 3; } .floor > .lab { width: 60px; } }
+
+/* hero: the auto-playing overview */
+.hero { display: flex; flex-direction: column; gap: 14px; }
+.hero-tabs button { font-size: 0.92rem; }
+.stage { display: flex; flex-wrap: wrap; gap: 14px; }
+.ship { flex: 1 1 300px; min-width: 0; background: var(--soft); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.ship-t { font: 800 1.05rem var(--display); }
+.ship-g { display: flex; flex-wrap: wrap; gap: 10px 16px; }
+.ship-grp { display: flex; flex-direction: column; gap: 4px; }
+.ship-grp .grp-n { font-size: 0.66rem; }
+.ship-grp .grp-sw { gap: 6px; }
+.mini { width: 54px; height: 54px; border-radius: 12px; border: 2px solid var(--c); background: color-mix(in srgb, var(--c) 22%, var(--panel));
+  display: flex; flex-direction: column; justify-content: flex-end; padding: 6px 8px; position: relative; font: 800 1.05rem var(--display);
+  transition: background .35s, border-color .35s, color .35s; }
+.mini .lamp { position: absolute; top: 7px; right: 7px; width: 10px; height: 10px; border-radius: 50%; background: var(--c); transition: background .35s; }
+.mini.down { background: var(--panel); border-style: dashed; color: var(--muted); }
+.mini.down b { text-decoration: line-through; }
+.mini.down .lamp { background: transparent; box-shadow: inset 0 0 0 2px var(--muted); }
+.mini.hit { animation: hit .8s ease-out; }
+.mini.fixed { animation: fixed .9s ease-out; }
+@keyframes hit { 0% { transform: scale(1.18) rotate(-4deg); box-shadow: 0 0 0 0 var(--bad); } 25% { transform: translateX(-4px); } 50% { transform: translateX(4px); } 100% { transform: none; box-shadow: 0 0 0 14px transparent; } }
+@keyframes fixed { 0% { transform: scale(1.18); box-shadow: 0 0 0 0 var(--ok); } 100% { transform: none; box-shadow: 0 0 0 14px transparent; } }
+.ship-v { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-height: 34px; }
+.ship-v .verdict { font-size: 0.92rem; }
+.pill { font: 700 0.85rem var(--body); border-radius: 999px; padding: 3px 12px; background: var(--ink); color: var(--bg); }
+.pill:empty { display: none; }
+.pill.warn { background: var(--power); color: #15203A; }
+.meter { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: end; }
+.meter-l { font: 500 0.72rem var(--mono); letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+.meter-n { font: 800 2rem/1 var(--display); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.meter .track { grid-column: 1 / -1; height: 12px; background: var(--panel); border-radius: 6px; overflow: hidden; }
+.meter .fill { height: 100%; width: 0; background: var(--comms); border-radius: 6px; transition: width .8s cubic-bezier(.3,.7,.2,1), background .4s; }
+.meter .fill.zero { background: var(--bad); }
+.hcap { font: 700 1.12rem/1.4 var(--body); min-height: 4.2em; max-width: 72ch; }
+.hextra { display: flex; flex-direction: column; gap: 8px; }
+.hextra:empty { display: none; }
+.hextra .rbar { grid-template-columns: minmax(150px, 260px) 1fr 52px; }
+.hctl { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
+.hctl .dots { display: flex; gap: 6px; margin: 0 6px; }
+.dot { width: 12px; height: 12px; padding: 0; border-radius: 50%; border: 2px solid var(--ink); background: transparent; }
+.dot[aria-current="true"] { background: var(--ink); }
+a.btn { text-decoration: none; display: inline-block; color: inherit; }
+.hctl .spacer { flex: 1; }
+@media (prefers-reduced-motion: reduce) { .mini, .meter .fill { transition: none; } .mini.hit, .mini.fixed { animation: none; } }
+@media (max-width: 520px) { .mini { width: 40px; height: 40px; font-size: 0.88rem; padding: 4px 6px; } .mini .lamp { width: 8px; height: 8px; top: 5px; right: 5px; } .ship { padding: 10px; gap: 8px; flex-basis: 100%; } .ship-g { gap: 6px 10px; } .ship-grp .grp-sw { gap: 4px; } .meter-n { font-size: 1.6rem; } .hcap { min-height: 7em; } .hextra .rbar { grid-template-columns: 1fr 52px; } .hextra .rbar .track { grid-column: 1 / -1; order: 3; } }
 </style>
 
 <div class="wrap">
   <header>
     <div class="eyebrow">Space System Reliability Analyzer · playground</div>
     <h1>Switchboard Lab</h1>
-    <p class="lede">Break switches and watch what the project's algorithm knows about the ship. Every number here comes from a JavaScript port of the C++ code, checked against the numbers in the project's reports. The satellite is fictional.</p>
+    <p class="lede">How much working life does a spacecraft have left, given which parts have already broken? This project computes it exactly, even when failures arrive in bundles. The demo below plays on its own.</p>
   </header>
 
-  <section class="card" aria-label="The ship">
+  <section class="card hero" id="hero" aria-label="Animated overview of what the program does">
+    <div class="row" style="justify-content:space-between">
+      <div class="eyebrow">Watch it work · three short scenarios, auto-playing</div>
+      <div class="seg hero-tabs" id="htabs" role="group" aria-label="Scenarios"></div>
+    </div>
+    <p class="hcap" id="hcap" aria-live="off"></p>
+    <div class="stage" id="hstage"></div>
+    <div class="hextra" id="hextra"></div>
+    <div class="hctl">
+      <button class="btn primary" id="hplay" type="button">Pause</button>
+      <button class="btn" id="hback" type="button" aria-label="Previous step">&#9664; Back</button>
+      <button class="btn" id="hnext" type="button" aria-label="Next step">Next &#9654;</button>
+      <span class="dots" id="hdots"></span>
+      <span class="spacer"></span>
+      <a class="btn" href="#ship">Try it yourself &darr;</a>
+    </div>
+    <p class="foot">Every number here is computed live by a JavaScript port of the project's C++ code and checked against its reports. The satellite is fictional.</p>
+  </section>
+
+  <section class="card" id="ship" aria-label="The ship">
     <div class="row">
       <span class="lab">Ship</span>
       <div class="seg" id="presets"></div>
@@ -842,6 +906,145 @@ document.addEventListener('input', (e) => {
 chartDrag($('#b4chart'), (v) => { st.beta = Math.max(0.02, +(Math.round(v / 0.02) * 0.02).toFixed(2)); update(); });
 chartDrag($('#gchart'), (v) => { st.gamma = Math.round(v * 100) / 100; renderT5(); });
 update();
+</script>
+
+<script>
+/* The "Watch it work" card. Every number on it is computed by the engine above, not typed in. */
+(function heroDemo() {
+  const sat = SYSTEMS.find((s) => s.id === 'sat'), ser = seriesOf(6), ALL = sat.all;
+  const [P1, P2, C1, C2, K1, K2] = [0, 1, 2, 3, 4, 5];
+  const down = (...ix) => ALL & ~ix.reduce((m, i) => m | (1 << i), 0);
+  const mInd = makeModel('exp', 0), mBun = makeModel('bfr', 0.5);
+  const aInd = analyse(sat, mInd), aBun = analyse(sat, mBun), sInd = analyse(ser, mInd), sBun = analyse(ser, mBun);
+  const life = (x) => aInd.mttf[x], top = life(ALL);
+  const gain = (a, s) => a.mttf[ALL] / s.mttf[ALL];
+  const costs = { comp: 0.1667, sys: 1, set: 0.2 };
+  const waitCost = evalPolicy(sat, mInd, correctivePolicy(sat), costs).ltmc;
+  const rep2 = rOutOfN(sat, 2), crewCost = evalPolicy(sat, mInd, rep2, costs).ltmc;
+  const f2 = (v) => v.toFixed(2), f3 = (v) => v.toFixed(3);
+  const lifeRO = (x) => ({ label: 'Expected life left', val: life(x), max: top, fmt: f3 });
+  const gainRO = (g) => ({ label: 'How much the spares help', val: g, max: 4.4, fmt: (v) => '×' + f2(v) });
+  const bar = (name, v, max, best) => `<div class="rbar${best ? ' best' : ''}"><span class="nm">${name}${best ? '<span class="tag">cheaper</span>' : ''}</span><div class="track"><div class="fill" style="width:${100 * v / max}%"></div></div><span class="v">${f2(v)}</span></div>`;
+
+  const SCEN = [
+    { tab: 'Same damage, different future', boards: ['Ship A', 'Ship B'], frames: [
+      { cap: `A satellite with three pairs of parts: power, communications and computers. It lives as long as every pair has one working unit. Brand new, it is expected to last ${f3(top)}.`,
+        b: [{ x: ALL, ro: lifeRO(ALL) }, { x: ALL, ro: lifeRO(ALL) }] },
+      { cap: `Both ships lose power unit P1. Both still work, and the forecast drops to ${f3(life(down(P1)))}.`,
+        b: [{ x: down(P1), hit: 1 << P1, ro: lifeRO(down(P1)) }, { x: down(P1), hit: 1 << P1, ro: lifeRO(down(P1)) }] },
+      { cap: 'A second failure on each ship. Ship A loses C1, from a different pair. Ship B loses P2, the only spare for P1.',
+        b: [{ x: down(P1, C1), hit: 1 << C1, ro: lifeRO(down(P1, C1)) }, { x: down(P1, P2), hit: 1 << P2, ro: lifeRO(down(P1, P2)) }] },
+      { cap: `Two failures each, yet ${f3(life(down(P1, C1)))} left versus none. How many parts broke is not enough; which ones did. The program forecasts all 64 damage patterns exactly.`,
+        b: [{ x: down(P1, C1), ro: lifeRO(down(P1, C1)) }, { x: down(P1, P2), ro: lifeRO(down(P1, P2)) }] },
+    ] },
+    { tab: 'Failures in bundles', boards: ['Parts fail one at a time', 'Failures arrive in bundles'], frames: [
+      { cap: 'Same satellite, same parts. On the left every part fails on its own. On the right, one event (a power surge, a radiation burst) can take out several parts at once.',
+        b: [{ x: ALL }, { x: ALL }] },
+      { cap: 'One bad event on each ship. On the left a single part fails and its spare covers for it. On the right the event takes out both power units together, and the ship is dead.',
+        b: [{ x: down(P1), hit: 1 << P1 }, { x: down(P1, P2), hit: (1 << P1) | (1 << P2) }] },
+      { cap: `Averaged over every possible chain of events, exactly: the spares multiply the lifetime by ${f2(gain(aInd, sInd))} when parts fail alone, but only by ${f2(gain(aBun, sBun))} when failures come in bundles.`,
+        b: [{ x: ALL, ro: gainRO(gain(aInd, sInd)) }, { x: ALL, ro: gainRO(gain(aBun, sBun)) }] },
+      { cap: 'Redundancy that looks generous on paper can be worth much less when failures are linked. This is the risk the program puts a number on.',
+        b: [{ x: ALL, ro: gainRO(gain(aInd, sInd)) }, { x: ALL, ro: gainRO(gain(aBun, sBun)) }] },
+    ] },
+    { tab: 'When to call the repair crew', boards: ['Satellite with a repair crew'], frames: [
+      { cap: 'Parts can be replaced, but every crew visit costs money. Wait too long and you lose the ship; call too early and you waste visits. When is the right moment?',
+        b: [{ x: ALL, ro: lifeRO(ALL), pill: 'All healthy' }] },
+      { cap: `P1 fails. The ship still has ${f3(life(down(P1)))} left. The cheapest rule the program found says: keep flying.`,
+        b: [{ x: down(P1), hit: 1 << P1, ro: lifeRO(down(P1)), pill: rep2[down(P1)] ? 'Call the crew' : 'Keep flying', warn: rep2[down(P1)] }] },
+      { cap: `K2 fails too, two down. Now the rule says call the crew, before one more unlucky failure ends the mission.`,
+        b: [{ x: down(P1, K2), hit: 1 << K2, ro: lifeRO(down(P1, K2)), pill: rep2[down(P1, K2)] ? 'Call the crew' : 'Keep flying', warn: rep2[down(P1, K2)] }] },
+      { cap: `The crew replaces both parts. The ship is as good as new: ${f3(top)} again.`,
+        b: [{ x: ALL, fix: (1 << P1) | (1 << K2), ro: lifeRO(ALL), pill: 'Repaired' }] },
+      { cap: `Over the long run, calling the crew after 2 failures costs ${f2(crewCost)} per unit of time; waiting until the ship dies costs ${f2(waitCost)}. That is ${Math.round(100 * (1 - crewCost / waitCost))}% cheaper, and the program searches every possible rule to find it.`,
+        b: [{ x: ALL, ro: lifeRO(ALL), pill: 'Best rule: call after 2 failures' }],
+        extra: bar('Call the crew after 2 failures', crewCost, waitCost, true) + bar('Wait until the ship dies', waitCost, waitCost, false) },
+    ] },
+  ];
+
+  const $h = (s) => document.querySelector(s);
+  const stage = $h('#hstage'), capEl = $h('#hcap'), extraEl = $h('#hextra'), playBtn = $h('#hplay');
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const GR = [{ n: 'Power', i: [P1, P2] }, { n: 'Comms', i: [C1, C2] }, { n: 'Computers', i: [K1, K2] }];
+  let sc = -1, fi = 0, playing = !reduce, onScreen = true, timer = null;
+
+  $h('#htabs').innerHTML = SCEN.map((s, i) => `<button type="button" data-hs="${i}" aria-pressed="false">${i + 1}. ${s.tab}</button>`).join('');
+
+  function build(s) {
+    stage.innerHTML = SCEN[s].boards.map((t) => `<div class="ship" role="img"><div class="ship-t">${t}</div><div class="ship-g">` +
+      GR.map((g) => `<div class="ship-grp"><div class="grp-n">${g.n}</div><div class="grp-sw">` +
+        g.i.map((i) => `<span class="mini c-${sat.colors[i]}" data-i="${i}"><span class="lamp"></span><b>${sat.labels[i]}</b></span>`).join('') + '</div></div>').join('') +
+      `</div><div class="ship-v"><span class="verdict"></span><span class="pill"></span></div>
+      <div class="meter"><div class="meter-l"></div><div class="meter-n">—</div><div class="track"><div class="fill"></div></div></div></div>`).join('');
+    $h('#hdots').innerHTML = SCEN[s].frames.map((_, k) => `<button type="button" class="dot" data-hf="${k}" aria-label="Step ${k + 1} of ${SCEN[s].frames.length}"></button>`).join('');
+  }
+
+  function retrigger(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+  function tween(el, to, fmt, animate) {
+    cancelAnimationFrame(el._raf);
+    const from = el._v == null ? 0 : el._v; el._v = to;
+    if (!animate || reduce || from === to) { el.textContent = fmt(to); return; }
+    const t0 = performance.now(), ms = 700;
+    (function step(now) {
+      const p = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - p, 3);
+      el.textContent = fmt(from + (to - from) * e);
+      if (p < 1) el._raf = requestAnimationFrame(step);
+    })(t0);
+  }
+
+  function apply(s, k, animate) {
+    const F = SCEN[s].frames[k];
+    F.b.forEach((bd, b) => {
+      const el = stage.children[b], works = sat.phi(bd.x);
+      el.querySelectorAll('.mini').forEach((m) => {
+        const i = +m.dataset.i;
+        m.classList.toggle('down', !((bd.x >> i) & 1));
+        if (animate && bd.hit && (bd.hit >> i) & 1) retrigger(m, 'hit');
+        if (animate && bd.fix && (bd.fix >> i) & 1) retrigger(m, 'fixed');
+      });
+      const v = el.querySelector('.verdict');
+      v.textContent = works ? 'Working' : 'Dead'; v.className = 'verdict ' + (works ? 'ok' : 'bad');
+      const p = el.querySelector('.pill'); p.textContent = bd.pill || ''; p.classList.toggle('warn', !!bd.warn);
+      const n = el.querySelector('.meter-n'), fill = el.querySelector('.fill');
+      el.querySelector('.meter-l').textContent = bd.ro ? bd.ro.label : '';
+      if (bd.ro) { tween(n, bd.ro.val, bd.ro.fmt, animate); fill.style.width = (100 * Math.min(1, bd.ro.val / bd.ro.max)) + '%'; fill.classList.toggle('zero', bd.ro.val === 0); }
+      else { cancelAnimationFrame(n._raf); n._v = null; n.textContent = '—'; fill.style.width = '0'; fill.classList.remove('zero'); }
+      const down = sat.labels.filter((_, i) => !((bd.x >> i) & 1));
+      el.setAttribute('aria-label', `${SCEN[s].boards[b]}: ${down.length ? down.join(', ') + ' broken' : 'all parts working'}; ${works ? 'ship working' : 'ship dead'}`);
+    });
+    capEl.textContent = F.cap;
+    extraEl.innerHTML = F.extra || '';
+    document.querySelectorAll('#hdots .dot').forEach((d, i) => d.setAttribute('aria-current', i === k));
+    document.querySelectorAll('#htabs button').forEach((t, i) => t.setAttribute('aria-pressed', i === s));
+  }
+
+  function schedule() {
+    clearTimeout(timer);
+    playBtn.textContent = playing ? 'Pause' : 'Play';
+    capEl.setAttribute('aria-live', playing ? 'off' : 'polite');
+    if (!playing || !onScreen || document.hidden) return;
+    timer = setTimeout(() => go(...nextPos()), 2600 + 38 * capEl.textContent.length);
+  }
+  const nextPos = () => (fi + 1 < SCEN[sc].frames.length ? [sc, fi + 1] : [(sc + 1) % SCEN.length, 0]);
+  const prevPos = () => (fi > 0 ? [sc, fi - 1] : [(sc + SCEN.length - 1) % SCEN.length, SCEN[(sc + SCEN.length - 1) % SCEN.length].frames.length - 1]);
+  function go(s, k) {
+    const animate = s !== sc || k === fi + 1 || k === 0 || sc < 0;
+    if (s !== sc) build(s);
+    sc = s; fi = k; apply(s, k, animate); schedule();
+  }
+
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest('#hero button'); if (!t) return;
+    if (t.dataset.hs != null) return go(+t.dataset.hs, 0);
+    if (t.dataset.hf != null) return go(sc, +t.dataset.hf);
+    if (t === playBtn) { playing = !playing; return schedule(); }
+    if (t.id === 'hnext') return go(...nextPos());
+    if (t.id === 'hback') return go(...prevPos());
+  });
+  document.addEventListener('visibilitychange', schedule);
+  if ('IntersectionObserver' in window) new IntersectionObserver((en) => { onScreen = en[0].isIntersecting; schedule(); }, { threshold: 0.25 }).observe($h('#hero'));
+  go(0, 0);
+})();
 </script>
 
 </html>
