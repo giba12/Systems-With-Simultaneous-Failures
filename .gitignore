@@ -8,3 +8,7 @@ docs/space_system_reliability_analyzer_project_guide.docx
 
 # Generated PDF copies of the documents (regenerated from docs/*.md)
 docs/pdf/
+
+# Packaged copies for sharing (rebuilt from the sources)
+dist/Switchboard-Lab.zip
+dist/Analyzer-Demo.zip
