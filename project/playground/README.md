@@ -2,7 +2,7 @@
 
 An interactive page for playing with the ideas in this project: break switches on the satellite (or four other small systems) and watch the counting vector, tail signature, signature and MTTF change; step through the level sweep; flip switches in random order; compare failure models; and compare repair policies, including a step-by-step Dinkelbach run.
 
-Open `switchboard-lab.html` in a browser. It is one self-contained file (it only loads fonts from Google Fonts, and falls back to system fonts offline).
+Open `switchboard-lab.html` in a browser. It opens with a self-playing "Watch it work" card (three short scenarios: same damage with different futures, failures in bundles, and when to call the repair crew; pause, step or skip it at any time), then the full interactive board. The card's numbers come from the same engine, not from typed-in values. It is one self-contained file (it only loads fonts from Google Fonts, and falls back to system fonts offline).
 
 | File | What it is |
 |---|---|
